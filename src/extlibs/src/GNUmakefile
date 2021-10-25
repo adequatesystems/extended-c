@@ -54,8 +54,8 @@ BINARIES:= $(patsubst $(SRCDIR)/%.c,$(BUILDDIR)/%,$(TESTSOURCES))
 BINARYNAMES:= $(patsubst $(BUILDDIR)/%,%,$(BINARIES))
 
 # library and include dependencies
-DEPENDENCIES:= ../../hash/lib/libhash.a
-INCLUDEDIRS:= ../../hash/src
+DEPENDENCIES:=
+INCLUDEDIRS:=
 LIBRARYDIRS:= $(LIBDIR) $(dir $(DEPENDENCIES))
 LIBRARYFLAGS:= -l$(MODULE) $(patsubst lib%.a,-l%,$(notdir $(DEPENDENCIES)))
 
@@ -161,6 +161,3 @@ help:
 	@echo " make test-<test>   	build and run tests matching <test>*"
 	@echo " make help          	prints this usage information"
 	@echo ""
-
-../../hash/lib/libhash.a:
-	@make library -C ../../hash/src
