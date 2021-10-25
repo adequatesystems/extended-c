@@ -46,8 +46,8 @@
  * Regarding word64...
  * - To ensure compilation/compatibility on 32-bit machines, routines
  *   involving word64 should include 32-bit alternatives by testing
- *   for the DISABLE_WORD64 definition at compile time.
- * - Likewise, to disable word64 regardless of availability, define
+ *   for the WORD64 definition using #ifdef.
+ * - To disable word64 regardless of availability, define
  *   DISABLE_WORD64 before inclusion or as a compile time definition.
  *
 */
@@ -93,7 +93,6 @@ typedef unsigned short int word16;
 
 /* check 64-bit words are not disabled */
 #ifndef DISABLE_WORD64
-   #define DISABLE_WORD64  /* assume word64 may NOT be available */
    #ifdef ULLONG_MAX  /* assume 64-bit word is available in some form */
       /* we can ONLY rely on ULL to represent our 64-bit max literal */
       #define WORD64_C(x)  x ## ULL
@@ -102,12 +101,12 @@ typedef unsigned short int word16;
          /* long long is 64-bit word */
          typedef unsigned long long int word64;
          #define WORD64_PRINTF_PREFIX  "ll"
-         #undef DISABLE_WORD64
+         #define WORD64  /* definition to indicate avaialbaility */
       #elif ULONG_MAX == WORD64_MAX
          /* long is 64-bit word */
          typedef unsigned long int word64;
          #define WORD64_PRINTF_PREFIX  "l"
-         #undef DISABLE_WORD64
+         #define WORD64  /* definition to indicate avaialbaility */
       #endif  /* end #if ULLONG_MAX... elif ULONG_MAX... */
    #endif  /* end #ifdef ULLONG_MAX... */
 #endif  /* end #ifndef DISABLE_WORD64 */
@@ -136,7 +135,7 @@ typedef unsigned short int word16;
 #define WORD32x WORD32_PRINTF_PREFIX   "x"
 #define WORD32X WORD32_PRINTF_PREFIX   "X"
 
-#ifndef DISABLE_WORD64
+#ifdef WORD64
    /* define printf literals for 64-bit word */
    #define WORD64d WORD64i
    #define WORD64i WORD64_PRINTF_PREFIX   "i"

@@ -67,7 +67,7 @@ void put32(void *buff, word32 val)
 /* Places a 64-bit unsigned value in buff. */
 void put64(void *buff, void *val)
 {
-#ifndef DISABLE_WORD64
+#ifdef WORD64
    *((word64 *) buff) = *((word64 *) val);
 #else
    ((word32 *) buff)[0] = ((word32 *) val)[0];
@@ -141,10 +141,11 @@ int iszero(void *buff, int len)
 {
    word8 *bp = (word8 *) buff;
 
-#ifndef DISABLE_WORD64
+#ifdef WORD64  /* 64-bit method */
    for( ; len >= 8; bp += 8, len -= 8) if(*((word64 *) bp)) return 0;
-#endif
+#else  /* 32-bit alternative */
    for( ; len >= 4; bp += 4, len -= 4) if(*((word32 *) bp)) return 0;
+#endif
    for( ; len; bp++, len--) if(*bp) return 0;
 
    return 1;
@@ -154,14 +155,14 @@ int iszero(void *buff, int len)
  * Returns carry. */
 int add64(void *ax, void *bx, void *cx)
 {
-#ifndef DISABLE_WORD64
+#ifdef WORD64  /* 64-bit method */
    word64 *a = (word64 *) ax;
    word64 *b = (word64 *) bx;
    word64 *c = (word64 *) cx;
 
    *c = (*a) + (*b);
    return (*c < *b);
-#else
+#else  /* 32-bit alternative */
    word32 *a = (word32 *) ax;
    word32 *b = (word32 *) bx;
    word32 *c = (word32 *) cx;
@@ -176,14 +177,14 @@ int add64(void *ax, void *bx, void *cx)
  * Returns carry. */
 int sub64(void *ax, void *bx, void *cx)
 {
-#ifndef DISABLE_WORD64
+#ifdef WORD64  /* 64-bit method */
    word64 *a = (word64 *) ax;
    word64 *b = (word64 *) bx;
    word64 *c = (word64 *) cx;
 
    *c = (*a) - (*b);
    return *c > *b;
-#else
+#else  /* 32-bit alternative */
    word32 *a = (word32 *) ax;
    word32 *b = (word32 *) bx;
    word32 *c = (word32 *) cx;
@@ -198,10 +199,10 @@ int sub64(void *ax, void *bx, void *cx)
  * NOTE: equivalent to *ax multiplied by -1. */
 void negate64(void *ax)
 {
-#ifndef DISABLE_WORD64
+#ifdef WORD64  /* 64-bit method */
    word64 *a = (word64 *) ax;
    *a = ~(*a) + 1;
-#else
+#else  /* 32-bit alternative */
    word32 *a = (word32 *) ax;
 
    a[0] = ~a[0];
@@ -214,14 +215,14 @@ void negate64(void *ax)
  * Returns 1 if *ax > *bx, -1 if *ax < *bx, or 0 if *ax == *bx. */
 int cmp64(void *ax, void *bx)
 {
-#ifndef DISABLE_WORD64
+#ifdef WORD64  /* 64-bit method */
    word64 *a = (word64 *) ax;
    word64 *b = (word64 *) bx;
 
    if(*a > *b) return 1;
    if(*a < *b) return -1;
    return 0;
-#else
+#else /* 32-bit alternative */
    word32 *a = (word32 *) ax;
    word32 *b = (word32 *) bx;
 
@@ -236,9 +237,9 @@ int cmp64(void *ax, void *bx)
 /* 64-bit shift *ax one to the right. */
 void shiftr64(void *ax)
 {
-#ifndef DISABLE_WORD64
+#ifdef WORD64  /* 64-bit method */
    *((word64 *) ax) >>= 1;
-#else
+#else  /* 32-bit alternative */
    word32 *a = (word32 *) ax;
 
    a[0] >>= 1;
@@ -251,7 +252,7 @@ void shiftr64(void *ax)
  * Returns 1 if overflow, else 0. */
 int mult64(void *ax, void *bx, void *cx)
 {
-#ifndef DISABLE_WORD64
+#ifdef WORD64  /* 64-bit method */
    word64 *a = (word64 *) ax;
    word64 *b = (word64 *) bx;
    word64 *c = (word64 *) cx;
@@ -260,7 +261,7 @@ int mult64(void *ax, void *bx, void *cx)
    if (*a == 0) return 0; /* avoid division by zero */
    if (*c / *a == *b) return 0; /* check overflow */
    return 1; /* result overflowed */
-#else
+#else  /* 32-bit alternative */
    word32 a[2], b[2], c[2];
    int overflow = 0;
 
