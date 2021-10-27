@@ -26,28 +26,6 @@ volatile word32 Lseed2 = 1;
 volatile word32 Lseed3 = 362436069;
 volatile word32 Lseed4 = 123456789;
 
-/* Swap bytes of val[n], to change endianess. */
-void swapbytes(void *val, int n)
-{
-   word8 t[4], *bp, *bpe;
-
-   if (n < 1) return;
-
-   bp = (word8 *) val;
-   bpe = ((word8 *) val) + (n - 1);
-   /* swap bytes in 32-bit chunks */
-   for ( ; bpe - bp >= 4; bp += 4, bpe -= 4) {
-      *((word32 *) t) = *((word32 *) bp);
-      *((word32 *) bp) = ((word32) bpe[0]) | ((word32) bpe[-1] << 8) |
-         ((word32) bpe[-2] << 16) | ((word32) bpe[-3] << 24);
-      *((word32 *) &bpe[-3]) = ((word32) t[3]) | ((word32) t[2] << 8) |
-         ((word32) t[1] << 16) | ((word32) t[0] << 24);
-   }  /* swap remaining bytes */
-   for ( ; bp < bpe; bp++, bpe--) {
-      *t = *bp; *bp = *bpe; *bpe = *t;
-   }
-}
-
 /* Returns a 16-bit unsigned value from buff. */
 word16 get16(void *buff)
 {

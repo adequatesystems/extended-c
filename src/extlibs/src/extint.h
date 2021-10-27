@@ -182,7 +182,6 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void swapbytes(void *val, int n);
 word16 get16(void *buff);
 void put16(void *buff, word16 val);
 word32 get32(void *buff);
