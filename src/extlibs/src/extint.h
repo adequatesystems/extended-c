@@ -17,48 +17,40 @@
  *    word32 - 4 byte unsigned
  *    word64 - 8 byte unsigned
  *
- * Number literals:
- *    INT8_C(1)   - 1
- *    INT16_C(1)  - 1
- *    INT32_C(1)  - 1L
- *    INT64_C(1)  - 1LL
- *    WORD8_C(1)  - 1
- *    WORD16_C(1) - 1U
- *    WORD32_C(1) - 1UL
- *    WORD64_C(1) - 1ULL
- *
  * Number Constants:
- *    INT8_MIN   - (-128)
- *    INT16_MIN  - (-32768)
- *    INT32_MIN  - (-12147483648L)
- *    INT64_MIN  - (-9223372036854775808LL)
- *    INT8_MAX   - 127
- *    INT16_MAX  - 32767
- *    INT32_MAX  - 2147483647L
- *    INT64_MAX  - 9223372036854775807LL
  *    WORD8_MAX  - 255
  *    WORD16_MAX - 65535U
  *    WORD32_MAX - 4294967295UL
  *    WORD64_MAX - 18446744073709551615ULL
+ * Number Constants on signed equivalents have been removed
+ * due to a lack of determining a naming scheme that does not
+ * conflict with the C Standard Library header, "stdint.h".
+ * If Number Constants on signed equivalents are required, use
+ * exact number literals, or define the following arithmetic:
+ * where '#' represents bit width; 8/16/32/64
+ *    INT#_MAX = ( WORD#_MAX / 2 )
+ *    INT#_MIN = ( ( WORD#_MAX / (-2) ) - 1)
  *
  * Printf literals guide:
  * where '#' represents bit width; 8/16/32/64
- *    PRId# - print value as a signed integer
- *    PRIi# - print value as a signed integer
- *    PRIo# - print value as an octal
- *    PRIu# - print value as an unsigned integer
- *    PRIx# - print value as a hexadecimal (lowercase)
- *    PRIX# - print value as a hexadecimal (UPPERCASE)
+ *    INTd# - print signed value as a string
+ *    INTi# - print signed value as a string
+ *    INTo# - print signed value as an octal string
+ *    INTx# - print signed value as a hexadecimal string (lowercase)
+ *    INTX# - print signed value as a hexadecimal string (UPPERCASE)
+ *    WORDo# - print unsigned value as an octal string
+ *    WORDu# - print unsigned value as a string
+ *    WORDx# - print unsigned value as a hexadecimal string (lowercase)
+ *    WORDX# - print unsigned value as a hexadecimal string (UPPERCASE)
  *
  * NOTES:
  * - "emulates" the C Standard Library header file stdint.h,
  *   and "extends" upon the non-standard functionality.
- * - Multi-byte values are assumed little-endian.
- * - All word types are assumed unsigned.
- * - All int types are assumed signed.
+ * - For most functions, Multi-byte values are assumed little-endian.
+ * - All word# types are unsigned, and all int# types are signed.
  * Regarding word8...
- * - The word8 datatype supersedes the byte datatype. This is due to
- *   a historical conflict with the BYTE datatype in the Windows API.
+ * - The word8 datatype serves to supersede the byte datatype, due to a
+ *   redefinition conflict with the std::byte type introduced in C++17.
  * - A char may also be used in place of a word8, however, care should
  *   be taken to avoid misrepresenting associated char*'s as strings.
  * Regarding word64 and int64...
@@ -74,7 +66,7 @@
 #define _EXTENDED_INTEGER_H_  /* include guard */
 
 /*
-#include <stdint.h>  // extint.h defines WORD#* types using limits.h */
+#include <stdint.h>  // datatypes are defined using limits.h instead */
 #include <limits.h>
 
 /* ensure system uses 8-bit chars */
@@ -83,39 +75,46 @@
 #endif
 
 /* define 8-bit types */
-#define INT8_C(x)       x
-#define WORD8_C(x)      x
-#define INT8_MIN        INT8_C(0x80)
-#define INT8_MAX        INT8_C(0x7F)
+#define WORD8_C(x)      x  /* no number literal required */
 #define WORD8_MAX       WORD8_C(0xFF)
 #define PRI8_PREFIX     "hh"
 typedef char int8;
 typedef unsigned char word8;
 
 /* define 16-bit types */
-#define INT16_C(x)      x
-#define WORD16_C(x)     x ## U
-#define INT16_MIN       INT16_C(0x8000)
-#define INT16_MAX       INT16_C(0x7FFF)
+#define WORD16_C(x)     x ## U  /* assume 16-bit literal */
 #define WORD16_MAX      WORD16_C(0xFFFF)
-#define PRI16_PREFIX    "h"
-typedef short int int16;
-typedef unsigned short int word16;
+#if UINT_MAX == WORD16_MAX  /* int is preferred */
+   #define PRI16_PREFIX
+   typedef int int16;
+   typedef unsigned int word16;
+#elif USHRT_MAX == WORD16_MAX  /* short is preferred */
+   #undef WORD16_C  /* redefine actual 16-bit literal */
+   #undef WORD16_MAX  /* redefine actual 16-bit max */
+   #define WORD16_C(x)  x ## UL
+   #define WORD16_MAX   WORD16_C(0xFFFFFFFF)
+   #define PRI16_PREFIX "h"
+   typedef short int int16;
+   typedef unsigned short int word16;
+#else  /* end #if ULONG_MAX... elif UINT_MAX... */
+   Error. Cannot determine type for word16.
+#endif  /* end else... */
 
 /* determine type for word32 */
-#define INT32_C(x)      x ## L
-#define WORD32_C(x)     x ## UL
-#define INT32_MIN       INT32_C(0x80000000)
-#define INT32_MAX       INT32_C(0x7FFFFFFF)
+#define WORD32_C(x)     x ## UL  /* assume 32-bit literal */
 #define WORD32_MAX      WORD32_C(0xFFFFFFFF)
-#if UINT_MAX == WORD32_MAX  /* int is preferred 32-bit word */
-   #define PRI32_PREFIX
-   typedef int int32;
-   typedef unsigned int word32;
-#elif ULONG_MAX == WORD32_MAX  /* long is preferred 32-bit word */
+#if ULONG_MAX == WORD32_MAX  /* long is preferred */
    #define PRI32_PREFIX "l"
    typedef long int int32;
    typedef unsigned long int word32;
+#elif UINT_MAX == WORD32_MAX  /* int is preferred */
+   #undef WORD32_C  /* redefine actual 32-bit literal */
+   #undef WORD32_MAX  /* redefine actual 32-bit max */
+   #define WORD32_C(x)  x ## UL
+   #define WORD32_MAX   WORD32_C(0xFFFFFFFF)
+   #define PRI32_PREFIX
+   typedef int int32;
+   typedef unsigned int word32;
 #else  /* end #if ULONG_MAX... elif UINT_MAX... */
    Error. Cannot determine type for word32.
 #endif  /* end else... */
@@ -123,58 +122,70 @@ typedef unsigned short int word16;
 /* check 64-bit words are not disabled */
 #ifndef DISABLE_WORD64
    #ifdef ULLONG_MAX  /* assume 64-bit word is available in some form */
-      /* we can ONLY rely on ULL to represent our 64-bit max literal */
-      #define INT64_C(x)   x ## LL
-      #define WORD64_C(x)  x ## ULL
-      #define INT64_MAX    INT64_C(0x7FFFFFFFFFFFFFFF)
-      #define INT64_MIN    INT64_C(0x8000000000000000)
-      #define WORD64_MAX   WORD64_C(0xFFFFFFFFFFFFFFFF)
-      #if ULONG_MAX == WORD64_MAX  /* long is preferred 64-bit word */
-         #define WORD64  /* definition to indicate availability */
-         #define PRI64_PREFIX "l"
-         typedef long int int64;
-         typedef unsigned long int word64;
-      #elif ULLONG_MAX == WORD64_MAX  /* long long preferred is 64-bit word */
+      #define WORD64_C(x)     x ## ULL  /* assume 64-bit literal */
+      #define WORD64_MAX      WORD64_C(0xFFFFFFFFFFFFFFFF)
+      #if ULLONG_MAX == WORD64_MAX  /* long long is preferred */
          #define WORD64  /* definition to indicate availability */
          #define PRI64_PREFIX "ll"
          typedef long long int int64;
          typedef unsigned long long int word64;
+      #elif ULONG_MAX == WORD64_MAX  /* long is preferred */
+         #define WORD64  /* definition to indicate availability */
+         #undef WORD64_C  /* redefine actual 64-bit literal */
+         #undef WORD64_MAX  /* redefine actual 64-bit max */
+         #define WORD64_C(x)  x ## UL
+         #define WORD64_MAX   WORD64_C(0xFFFFFFFFFFFFFFFF)
+         #define PRI64_PREFIX "l"
+         typedef long int int64;
+         typedef unsigned long int word64;
       #endif  /* end #if ULLONG_MAX... elif ULONG_MAX... */
    #endif  /* end #ifdef ULLONG_MAX... */
 #endif  /* end #ifndef DISABLE_WORD64 */
 
 /* define printf literals for 8-bit types */
-#define PRId8       PRI8_PREFIX "d"
-#define PRIi8       PRI8_PREFIX "i"
-#define PRIo8       PRI8_PREFIX "o"
-#define PRIu8       PRI8_PREFIX "u"
-#define PRIx8       PRI8_PREFIX "x"
-#define PRIX8       PRI8_PREFIX "X"
+#define INTd8        PRI8_PREFIX "d"
+#define INTi8        PRI8_PREFIX "i"
+#define INTo8        PRI8_PREFIX "o"
+#define INTx8        PRI8_PREFIX "x"
+#define INTX8        PRI8_PREFIX "X"
+#define WORDo8       PRI8_PREFIX "o"
+#define WORDu8       PRI8_PREFIX "u"
+#define WORDx8       PRI8_PREFIX "x"
+#define WORDX8       PRI8_PREFIX "X"
 
 /* define printf literals for 16-bit types */
-#define PRId16      PRI16_PREFIX "d"
-#define PRIi16      PRI16_PREFIX "i"
-#define PRIo16      PRI16_PREFIX "o"
-#define PRIu16      PRI16_PREFIX "u"
-#define PRIx16      PRI16_PREFIX "x"
-#define PRIX16      PRI16_PREFIX "X"
+#define INTd16       PRI16_PREFIX "d"
+#define INTi16       PRI16_PREFIX "i"
+#define INTo16       PRI16_PREFIX "o"
+#define INTx16       PRI16_PREFIX "x"
+#define INTX16       PRI16_PREFIX "X"
+#define WORDo16      PRI16_PREFIX "o"
+#define WORDu16      PRI16_PREFIX "u"
+#define WORDx16      PRI16_PREFIX "x"
+#define WORDX16      PRI16_PREFIX "X"
 
 /* define printf literals for 32-bit types */
-#define PRId32      PRI32_PREFIX "d"
-#define PRIi32      PRI32_PREFIX "i"
-#define PRIo32      PRI32_PREFIX "o"
-#define PRIu32      PRI32_PREFIX "u"
-#define PRIx32      PRI32_PREFIX "x"
-#define PRIX32      PRI32_PREFIX "X"
+#define INTd32       PRI32_PREFIX "d"
+#define INTi32       PRI32_PREFIX "i"
+#define INTo32       PRI32_PREFIX "o"
+#define INTx32       PRI32_PREFIX "x"
+#define INTX32       PRI32_PREFIX "X"
+#define WORDo32      PRI32_PREFIX "o"
+#define WORDu32      PRI32_PREFIX "u"
+#define WORDx32      PRI32_PREFIX "x"
+#define WORDX32      PRI32_PREFIX "X"
 
 #ifdef WORD64
    /* define printf literals for 64-bit types */
-   #define PRId64   PRI64_PREFIX "d"
-   #define PRIi64   PRI64_PREFIX "i"
-   #define PRIo64   PRI64_PREFIX "o"
-   #define PRIu64   PRI64_PREFIX "u"
-   #define PRIx64   PRI64_PREFIX "x"
-   #define PRIX64   PRI64_PREFIX "X"
+   #define INTd64    PRI64_PREFIX "d"
+   #define INTi64    PRI64_PREFIX "i"
+   #define INTo64    PRI64_PREFIX "o"
+   #define INTx64    PRI64_PREFIX "x"
+   #define INTX64    PRI64_PREFIX "X"
+   #define WORDo64   PRI64_PREFIX "o"
+   #define WORDu64   PRI64_PREFIX "u"
+   #define WORDx64   PRI64_PREFIX "x"
+   #define WORDX64   PRI64_PREFIX "X"
 #endif
 
 #ifdef __cplusplus
