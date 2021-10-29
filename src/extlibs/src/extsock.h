@@ -24,6 +24,7 @@
 
 #ifndef _WIN32  /* assume UNIXLIKE */
 
+   #include <errno.h>
    #include <netinet/in.h>
    #include <sys/ioctl.h>
    #include <sys/socket.h>
