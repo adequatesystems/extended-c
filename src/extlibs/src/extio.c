@@ -47,16 +47,12 @@
     * Returns char* to converted result. */
    static inline char *timestamp(char *dest, size_t count)
    {
-      static char static_dest[28] = { 0 };
       struct tm dt, *dtp = &dt;
       time_t t, *tp = &t;
 
       time(tp);
       localtime_r(tp, dtp);
-      if (dest == NULL) {
-         strftime(static_dest, 28, "%FT%T%z; ", dtp);
-         return static_dest;
-      } else strftime(dest, count, "%FT%T%z; ", dtp);
+      strftime(dest, count, "%FT%T%z; ", dtp);
 
       return dest;
    }  /* end timestamp() */
