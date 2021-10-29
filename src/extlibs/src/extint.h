@@ -92,7 +92,7 @@ typedef unsigned char word8;
    #undef WORD16_C  /* redefine actual 16-bit literal */
    #undef WORD16_MAX  /* redefine actual 16-bit max */
    #define WORD16_C(x)  x ## UL
-   #define WORD16_MAX   WORD16_C(0xFFFFFFFF)
+   #define WORD16_MAX   WORD16_C(0xFFFF)
    #define PRI16_PREFIX "h"
    typedef short int int16;
    typedef unsigned short int word16;
