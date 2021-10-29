@@ -2,7 +2,7 @@
 #include "_assert.h"
 #include "../extstring.h"
 
-#define LISTLENGTH      256
+#define LISTLENGTH      1024
 #define LISTHALFLENGTH  (LISTLENGTH / 2)
 
 int main()
