@@ -73,9 +73,9 @@ char Ptimestamp;  /* prefix logs with timestamp */
 char Pconsole;    /* console output loglevel */
 
 /* Global log counters */
-volatile long Nstderrs;  /* counter for number of stderr logs */
-volatile long Nstdouts;  /* counter for number of stdout logs */
-volatile long Ndebugs;   /* counter for number of debug logs */
+volatile unsigned Nstderrs;  /* counter for number of stderr logs */
+volatile unsigned Nstdouts;  /* counter for number of stdout logs */
+volatile unsigned Ndebugs;   /* counter for number of debug logs */
 
 /* Function prototypes for extio.c */
 #ifndef DISABLE_PALL
