@@ -14,7 +14,8 @@ int main()
 
    /* initialize lists */
    for(i = 0; i < LISTLENGTH; i++) {
-      expect_long[i] = (unsigned char) (i + LISTHALFLENGTH);
+      if (i < LISTHALFLENGTH) expect_long[i] = i + LISTHALFLENGTH;
+      else expect_long[i] = i - LISTHALFLENGTH;
       list[i] = i;
    }
 
