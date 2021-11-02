@@ -10,6 +10,7 @@ int main()
    word64 result = 0;
 
    ASSERT_EQ(sub64(&result, &numB, &result), 1);
+   ASSERT_EQ(sub64(&numB, &numB, &result), 0);
    ASSERT_EQ(sub64(&numB, &numA, &result), 0);
    ASSERT_EQ(sub64(&numA, &numA, &result), 0);
    ASSERT_EQ(sub64(&numA, &numB, &result), 1);
