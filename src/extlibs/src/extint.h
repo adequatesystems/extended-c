@@ -65,117 +65,151 @@
 #ifndef _EXTENDED_INTEGER_H_
 #define _EXTENDED_INTEGER_H_  /* include guard */
 
+
 /*
 #include <stdint.h>  // datatypes are defined using limits.h instead */
 #include <limits.h>
 
-/* ensure system uses 8-bit chars */
-#if CHAR_BIT != 8
-   Error. Incompatible char bit width.
-#endif
 
-/* define 8-bit types */
-#define WORD8_C(x)      x  /* no number literal required */
-#define WORD8_MAX       WORD8_C(0xFF)
-#define PRI8_PREFIX     "hh"
-typedef char int8;
-typedef unsigned char word8;
+/* 8-BIT DATATYPES */
+#ifndef WORD8_MAX
 
-/* define 16-bit types */
-#define WORD16_C(x)     x ## U  /* assume 16-bit literal */
-#define WORD16_MAX      WORD16_C(0xFFFF)
-#if UINT_MAX == WORD16_MAX  /* int is preferred */
-   #define PRI16_PREFIX
-   typedef int int16;
-   typedef unsigned int word16;
-#elif USHRT_MAX == WORD16_MAX  /* short is preferred */
-   #undef WORD16_C  /* redefine actual 16-bit literal */
-   #undef WORD16_MAX  /* redefine actual 16-bit max */
-   #define WORD16_C(x)  x ## UL
-   #define WORD16_MAX   WORD16_C(0xFFFF)
-   #define PRI16_PREFIX "h"
-   typedef short int int16;
-   typedef unsigned short int word16;
-#else  /* end #if ULONG_MAX... elif UINT_MAX... */
-   Error. Cannot determine type for word16.
-#endif  /* end else... */
+   /* determine compatibility with 8-bit chars */
+   #if CHAR_BIT == 8
 
-/* determine type for word32 */
-#define WORD32_C(x)     x ## UL  /* assume 32-bit literal */
-#define WORD32_MAX      WORD32_C(0xFFFFFFFF)
-#if ULONG_MAX == WORD32_MAX  /* long is preferred */
-   #define PRI32_PREFIX "l"
-   typedef long int int32;
-   typedef unsigned long int word32;
-#elif UINT_MAX == WORD32_MAX  /* int is preferred */
-   #undef WORD32_C  /* redefine actual 32-bit literal */
-   #undef WORD32_MAX  /* redefine actual 32-bit max */
-   #define WORD32_C(x)  x ## UL
-   #define WORD32_MAX   WORD32_C(0xFFFFFFFF)
-   #define PRI32_PREFIX
-   typedef int int32;
-   typedef unsigned int word32;
-#else  /* end #if ULONG_MAX... elif UINT_MAX... */
-   Error. Cannot determine type for word32.
-#endif  /* end else... */
+      /* char is preferred 8-bit word */
+      typedef char            int8;
+      typedef unsigned char   word8;
+      #define WORD8_MAX       0xFF
+      #define WORD8_C(x)      x
+      #define PRI8_PREFIX     "hh"
 
-/* check 64-bit words are not disabled */
-#ifndef DISABLE_WORD64
-   #ifdef ULLONG_MAX  /* assume 64-bit word is available in some form */
-      #define WORD64_C(x)     x ## ULL  /* assume 64-bit literal */
-      #define WORD64_MAX      WORD64_C(0xFFFFFFFFFFFFFFFF)
-      #if ULLONG_MAX == WORD64_MAX  /* long long is preferred */
-         #define WORD64  /* definition to indicate availability */
-         #define PRI64_PREFIX "ll"
-         typedef long long int int64;
-         typedef unsigned long long int word64;
-      #elif ULONG_MAX == WORD64_MAX  /* long is preferred */
-         #define WORD64  /* definition to indicate availability */
-         #undef WORD64_C  /* redefine actual 64-bit literal */
-         #undef WORD64_MAX  /* redefine actual 64-bit max */
-         #define WORD64_C(x)  x ## UL
-         #define WORD64_MAX   WORD64_C(0xFFFFFFFFFFFFFFFF)
-         #define PRI64_PREFIX "l"
-         typedef long int int64;
-         typedef unsigned long int word64;
-      #endif  /* end #if ULLONG_MAX... elif ULONG_MAX... */
-   #endif  /* end #ifdef ULLONG_MAX... */
-#endif  /* end #ifndef DISABLE_WORD64 */
+   #else  /* end #if CHAR_BIT... */
+      #error Incompatible char bit width.
+   #endif
 
-/* define printf literals for 8-bit types */
-#define INTd8        PRI8_PREFIX "d"
-#define INTi8        PRI8_PREFIX "i"
-#define INTo8        PRI8_PREFIX "o"
-#define INTx8        PRI8_PREFIX "x"
-#define INTX8        PRI8_PREFIX "X"
-#define WORDo8       PRI8_PREFIX "o"
-#define WORDu8       PRI8_PREFIX "u"
-#define WORDx8       PRI8_PREFIX "x"
-#define WORDX8       PRI8_PREFIX "X"
+   /* define printf literals for 8-bit datatypes */
+   #define INTd8     PRI8_PREFIX "d"
+   #define INTi8     PRI8_PREFIX "i"
+   #define INTo8     PRI8_PREFIX "o"
+   #define INTx8     PRI8_PREFIX "x"
+   #define INTX8     PRI8_PREFIX "X"
+   #define WORDo8    PRI8_PREFIX "o"
+   #define WORDu8    PRI8_PREFIX "u"
+   #define WORDx8    PRI8_PREFIX "x"
+   #define WORDX8    PRI8_PREFIX "X"
 
-/* define printf literals for 16-bit types */
-#define INTd16       PRI16_PREFIX "d"
-#define INTi16       PRI16_PREFIX "i"
-#define INTo16       PRI16_PREFIX "o"
-#define INTx16       PRI16_PREFIX "x"
-#define INTX16       PRI16_PREFIX "X"
-#define WORDo16      PRI16_PREFIX "o"
-#define WORDu16      PRI16_PREFIX "u"
-#define WORDx16      PRI16_PREFIX "x"
-#define WORDX16      PRI16_PREFIX "X"
+#endif  /* end #ifndef WORD8_MAX */
+/* END 8-BIT DATATYPES */
 
-/* define printf literals for 32-bit types */
-#define INTd32       PRI32_PREFIX "d"
-#define INTi32       PRI32_PREFIX "i"
-#define INTo32       PRI32_PREFIX "o"
-#define INTx32       PRI32_PREFIX "x"
-#define INTX32       PRI32_PREFIX "X"
-#define WORDo32      PRI32_PREFIX "o"
-#define WORDu32      PRI32_PREFIX "u"
-#define WORDx32      PRI32_PREFIX "x"
-#define WORDX32      PRI32_PREFIX "X"
+/* 16-BIT DATATYPES */
+#ifndef WORD16_MAX
 
-#ifdef WORD64
+   /* determine datatype with 16-bit width */
+   #if UINT_MAX == 0xFFFFU
+
+      /* int is preferred 16-bit word */
+      typedef int                int16;
+      typedef unsigned int       word16;
+      #define WORD16_MAX         0xFFFFU
+      #define WORD16_C(x)        x ## U
+      #define PRI16_PREFIX
+
+   #elif USHRT_MAX == 0xFFFF
+
+      /* short is preferred 16-bit word */
+      typedef short int          int16;
+      typedef unsigned short int word16;
+      #define WORD16_MAX         0xFFFF
+      #define WORD16_C(x)        x
+      #define PRI16_PREFIX       "h"
+
+   #else  /* end #if UINT_MAX... #elif USHRT_MAX... */
+      #error Cannot determine datatype for 16-bit word.
+   #endif
+
+   /* define printf literals for 16-bit datatypes */
+   #define INTd16    PRI16_PREFIX "d"
+   #define INTi16    PRI16_PREFIX "i"
+   #define INTo16    PRI16_PREFIX "o"
+   #define INTx16    PRI16_PREFIX "x"
+   #define INTX16    PRI16_PREFIX "X"
+   #define WORDo16   PRI16_PREFIX "o"
+   #define WORDu16   PRI16_PREFIX "u"
+   #define WORDx16   PRI16_PREFIX "x"
+   #define WORDX16   PRI16_PREFIX "X"
+
+#endif  /* end #ifndef WORD16_MAX */
+/* END 16-BIT DATATYPES */
+
+/* 32-BIT DATATYPES */
+#ifndef WORD32_MAX
+
+   /* determine datatype with 32-bit width */
+   #if ULONG_MAX == 0xFFFFFFFFUL
+
+      /* long is preferred 32-bit word */
+      typedef long int           int32;
+      typedef unsigned long int  word32;
+      #define WORD32_MAX         0xFFFFFFFFUL
+      #define WORD32_C(x)        x ## UL
+      #define PRI32_PREFIX       "l"
+
+   #elif UINT_MAX == 0xFFFFFFFFU
+
+      /* int is preferred 32-bit word */
+      typedef int                int32;
+      typedef unsigned int       word32;
+      #define WORD32_MAX         0xFFFFFFFFU
+      #define WORD32_C(x)        x
+      #define PRI32_PREFIX
+
+   #else  /* end #if ULONG_MAX... elif UINT_MAX... */
+      #error Cannot determine datatype for 32-bit word.
+   #endif
+
+   /* define printf literals for 32-bit datatypes */
+   #define INTd32    PRI32_PREFIX "d"
+   #define INTi32    PRI32_PREFIX "i"
+   #define INTo32    PRI32_PREFIX "o"
+   #define INTx32    PRI32_PREFIX "x"
+   #define INTX32    PRI32_PREFIX "X"
+   #define WORDo32   PRI32_PREFIX "o"
+   #define WORDu32   PRI32_PREFIX "u"
+   #define WORDx32   PRI32_PREFIX "x"
+   #define WORDX32   PRI32_PREFIX "X"
+
+#endif  /* end #ifndef WORD32_MAX */
+/* END 32-BIT DATATYPES */
+
+/* 64-BIT DATATYPES.
+ * Ensure 64-bit words are not disabled.
+ * Ensure 64-bit words are available to the system. */
+#if ! defined(WORD64_MAX) && ! defined(DISABLE_64BIT) && defined(ULLONG_MAX)
+
+   /* determine datatype for 64-bit word */
+   #if ULLONG_MAX == 0xFFFFFFFFFFFFFFFFULL
+
+      /* long long is preferred 64-bit word */
+      typedef long long int            int64;
+      typedef unsigned long long int   word64;
+      #define WORD64_MAX               0xFFFFFFFFFFFFFFFFULL
+      #define WORD64_C(x)              x ## ULL
+      #define PRI64_PREFIX             "ll"
+
+   #elif ULONG_MAX == 0xFFFFFFFFFFFFFFFFUL
+
+      /* long is preferred 64-bit word */
+      typedef long int                 int64;
+      typedef unsigned long int        word64;
+      #define WORD64_MAX               0xFFFFFFFFFFFFFFFFUL
+      #define WORD64_C(x)              x ## UL
+      #define PRI64_PREFIX             "l"
+
+   #else  /* end #if ULLONG_MAX... elif ULONG_MAX... */
+      #error Cannot determine datatype for 64-bit word.
+   #endif
+
    /* define printf literals for 64-bit types */
    #define INTd64    PRI64_PREFIX "d"
    #define INTi64    PRI64_PREFIX "i"
@@ -186,31 +220,58 @@ typedef unsigned char word8;
    #define WORDu64   PRI64_PREFIX "u"
    #define WORDx64   PRI64_PREFIX "x"
    #define WORDX64   PRI64_PREFIX "X"
-#endif
+
+#endif  /* end #ifndef DISABLE_WORD64 */
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#ifdef WORD64_MAX
+
+/* 64-bit function prototype variants */
+void put64_64(void*, void*);
+int iszero_64(void*, int);
+int add64_64(void*, void*, void*);
+int sub64_64(void*, void*, void*);
+int mult64_64(void*, void*, void*);
+void negate64_64(void*);
+int cmp64_64(void*, void*);
+void shiftr64_64(void*);
+
+#endif
+
+/* 32-bit function prototype variants */
+void put64_32(void*, void*);
+int iszero_32(void*, int);
+int add64_32(void*, void*, void*);
+int sub64_32(void*, void*, void*);
+int mult64_32(void*, void*, void*);
+void negate64_32(void*);
+int cmp64_32(void*, void*);
+void shiftr64_32(void*);
+
+/* Function pointer prototypes */
+void (*put64)(void*, void*);
+int (*iszero)(void*, int);
+int (*add64)(void*, void*, void*);
+int (*sub64)(void*, void*, void*);
+int (*mult64)(void*, void*, void*);
+void (*negate64)(void*);
+int (*cmp64)(void*, void*);
+void (*shiftr64)(void*);
 
 /* Function prototypes */
 word16 get16(void *buff);
 void put16(void *buff, word16 val);
 word32 get32(void *buff);
 void put32(void *buff, word32 val);
-void put64(void *buff, void *val);
 void srand16fast(word32 x);
 word32 get_rand16fast(void);
 void srand16(word32 x, word32 y, word32 z);
 void get_rand16(word32 *x, word32 *y, word32 *z);
 word32 rand16fast(void);
 word32 rand16(void);
-int iszero(void *buff, int len);
-int add64(void *ax, void *bx, void *cx);
-int sub64(void *ax, void *bx, void *cx);
-void negate64(void *ax);
-int cmp64(void *ax, void *bx);
-void shiftr64(void *ax);
-int mult64(void *ax, void *bx, void *cx);
 int multi_add(void *ax, void *bx, void *cx, int bytelen);
 int multi_sub(void *ax, void *bx, void *cx, int bytelen);
 
