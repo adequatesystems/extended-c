@@ -5,16 +5,10 @@
  * For more information, please refer to ../LICENSE
  *
  * Date: 14 September 2021
- * Revised: 25 October 2021
+ * Revised: 4 November 2021
  *
  * NOTES:
  * - "extends" the C Standard Library header file stdio.h
- * Regarding the removal of print functions at compile time
- * to remove the overhead of related function calls...
- * - define DISABLE_PALL to disable all print functions.
- * - define DISABLE_PERR to disable perrno() and perr().
- * - define DISABLE_PLOG to disable plog().
- * - define DISABLE_PDEBUG to disable pdebug().
  *
 */
 
@@ -42,22 +36,9 @@
 #define PPREFIX_DEBUG   "DEBUG: "
 #endif
 
-/* Print function removal definitions. */
-#ifdef DISABLE_PALL
-#define DISABLE_PERR
-#define DISABLE_PLOG
-#define DISABLE_PDEBUG
-#endif
-#ifdef DISABLE_PERR
-   #define perrno(ECODE, FMT, ...)  do { /* nothing */ } while(0)
-   #define perr(FMT, ...)           do { /* nothing */ } while(0)
-#endif
-#ifdef DISABLE_PLOG
-   #define plog(FMT, ...)           do { /* nothing */ } while(0)
-#endif
-#ifdef DISABLE_PDEBUG
-   #define pdebug(FMT, ...)         do { /* nothing */ } while(0)
-#endif
+/* Function redirects for print progress */
+#define pprog_done(name)   pprog(name, NULL, -1, -1)
+#define pprog_update()     pprog(NULL, NULL, 0, 0)
 
 #ifdef __cplusplus
 extern "C" {
@@ -78,18 +59,17 @@ volatile unsigned Nstdouts;  /* counter for number of stdout logs */
 volatile unsigned Ndebugs;   /* counter for number of debug logs */
 
 /* Function prototypes for extio.c */
-#ifndef DISABLE_PALL
-   #ifndef DISABLE_PERR
-      void perrno(int ecode, char *fmt, ...);
-      void perr(char *fmt, ...);
-   #endif
-   #ifndef DISABLE_PLOG
-      void plog(char *fmt, ...);
-   #endif
-   #ifndef DISABLE_PDEBUG
-      void pdebug(char *fmt, ...);
-   #endif
-#endif  /* end #ifndef DISABLE_PALL */
+
+/* Obtain CPU Vendor information */
+char *cpu_vendor(void);
+int cpu_logical_cores(void);
+int cpu_actual_cores(void);
+int cpu_hyper_threads(void);
+void perrno(int ecode, char *fmt, ...);
+void perr(char *fmt, ...);
+void plog(char *fmt, ...);
+void pdebug(char *fmt, ...);
+void pprog(char *msg, char *unit, long cur, long end);
 int existsnz(char *fname);
 int exists(char *fname);
 int write_data(void *buff, int len, char *fname);
