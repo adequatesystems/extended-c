@@ -5,7 +5,7 @@
  * For more information, please refer to ../LICENSE
  *
  * Date: 9 January 2018
- * Revised: 25 October 2021
+ * Revised: 8 November 2021
  *
 */
 
@@ -118,10 +118,9 @@ unsigned long getsocketip(SOCKET sd)
 SOCKET connectip(unsigned long ip, unsigned short port)
 {
    static size_t sizeof_addr = sizeof(struct sockaddr);
-
-   SOCKET sd;
    struct sockaddr_in addr;
-   time_t timeout;
+   time_t start;
+   SOCKET sd;
    int ecode;
 
    /* AF_INET = IPv4 */
@@ -136,12 +135,12 @@ SOCKET connectip(unsigned long ip, unsigned short port)
    addr.sin_port = htons(port);
 
    nonblock(sd);  /* was after connect() v.21 */
-   timeout = time(NULL) + 3;  /* 3 second connection timeout */
+   time(&start);
 
    while (!SockAbort && connect(sd, (struct sockaddr *) &addr, sizeof_addr)) {
       ecode = getsockerr();
       if (connect_success(ecode)) break;
-      if (connect_waiting(ecode) && time(NULL) < timeout ) {
+      if (connect_waiting(ecode) && difftime(time(NULL), start) < 3) {
          /* RECOMMEND: microsleep wouldn't hurt here */
          continue;
       } /* ... connection is deemed a failure, cleanup... */
