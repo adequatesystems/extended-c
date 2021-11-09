@@ -102,10 +102,9 @@
  * and a specific error code can be retrieved with getsockerr(). */
 unsigned long getsocketip(SOCKET sd)
 {
+   static socklen_t addrlen = (socklen_t) sizeof(struct sockaddr_in);
    struct sockaddr_in addr;
-   socklen_t addrlen;
 
-   addrlen = (socklen_t) sizeof(addr);
    if(getpeername(sd, (struct sockaddr *) &addr, &addrlen) == 0) {
       return addr.sin_addr.s_addr;  /* the unsigned long ip */
    }
@@ -117,7 +116,7 @@ unsigned long getsocketip(SOCKET sd)
  * or INVALID_SOCKET on error. */
 SOCKET connectip(unsigned long ip, unsigned short port)
 {
-   static size_t sizeof_addr = sizeof(struct sockaddr);
+   static socklen_t addrlen = (socklen_t) sizeof(struct sockaddr_in);
    struct sockaddr_in addr;
    time_t start;
    SOCKET sd;
@@ -137,7 +136,7 @@ SOCKET connectip(unsigned long ip, unsigned short port)
    nonblock(sd);  /* was after connect() v.21 */
    time(&start);
 
-   while (!SockAbort && connect(sd, (struct sockaddr *) &addr, sizeof_addr)) {
+   while (!SockAbort && connect(sd, (struct sockaddr *) &addr, addrlen)) {
       ecode = getsockerr();
       if (connect_success(ecode)) break;
       if (connect_waiting(ecode) && difftime(time(NULL), start) < 3) {
