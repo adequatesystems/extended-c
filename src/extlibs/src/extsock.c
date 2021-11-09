@@ -138,15 +138,15 @@ SOCKET connectip(unsigned long ip, unsigned short port)
 
    while (!SockAbort && connect(sd, (struct sockaddr *) &addr, addrlen)) {
       ecode = getsockerr();
-      if (connect_success(ecode)) break;
+      if (connect_success(ecode)) return sd;
       if (connect_waiting(ecode) && difftime(time(NULL), start) < 3) {
          /* RECOMMEND: microsleep wouldn't hurt here */
          continue;
-      } /* ... connection is deemed a failure, cleanup... */
-      closesocket(sd);
-      return INVALID_SOCKET;
+      }
    }
-   return sd;
+   /* cleanup */
+   closesocket(sd);
+   return INVALID_SOCKET;
 }  /* end connectip() */
 
 /* Print local host info on stdout.
