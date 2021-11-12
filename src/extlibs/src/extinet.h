@@ -1,114 +1,77 @@
 /**
- * extsock.h - Extended socket support header
+ * extinet.h - Extended internet support header
  *
  * Copyright (c) 2021 Adequate Systems, LLC. All Rights Reserved.
  * For more information, please refer to ../LICENSE
  *
  * Date: 16 September 2021
- * Revised: 25 October 2021
+ * Revised: 12 November 2021
  *
  * NOTES:
- * - to abort all "in progress" socket connections in, for example,
- *   the case of a shutdown or cleanup routine, the SockAbort flag
+ * - to abort all "in progress" inet connections in, for example,
+ *   the case of a shutdown or cleanup routine, the Shutdown flag
  *   should be set to a non-zero value.
- * - win32 applications should call sockstartup() and sockcleanup(),
- *   before and after (respectively) using socket support functions.
- *   For Cross Platform convenience, these functions are defined to
- *   do "nothing" when compiled on non-win32 systems.
+ * - where applications are designed for compatibility with win32
+ *   systems, call sock_startup() and sock_cleanup(), in the init
+ *   and the cleanup routines of an application.
  *
 */
 
-#ifndef _EXTENDED_SOCKET_H_
-#define _EXTENDED_SOCKET_H_  /* include guard */
+#ifndef EXTENDED_INTERNET_H
+#define EXTENDED_INTERNET_H  /* include guard */
 
 
-#ifndef _WIN32  /* assume UNIXLIKE */
-
-   #include <errno.h>
-   #include <netinet/in.h>
-   #include <sys/ioctl.h>
-   #include <sys/socket.h>
-   #include <unistd.h>
-
-   #define getsockerr()                   (errno)
-   #define closesocket(_sd)               close(_sd)
-   #define ioctlsocket(_sd, _cmd, _arg)   ioctl(_sd, _cmd, _arg)
-
-   #define connect_success(e)    (e == EISCONN)
-   #define connect_waiting(e)    (e == EINPROGRESS || e == EALREADY)
-
-   #define sockstartup()   do { /* nothing */ } while(0)
-   #define sockcleanup()   do { /* nothing */ } while(0)
-
-#else  /* assume Windows */
-
-   #pragma comment(lib, "ws2_32.lib")
-   #include <winsock2.h>
-
-   #define getsockerr() WSAGetLastError()
-
-   #define connect_success(e)  (e == WSAEISCONN)
-   #define connect_waiting(e)  (e == WSAEWOULDBLOCK || \
-                                 e == WSAEALREADY || e == WSAEINVAL)
-
-   #ifdef __cplusplus
-   extern "C" {
-   #endif
-
-   WSADATA SockData;
-   WORD SockVerReq = 0x0202;  /* version 2.2 */
-   unsigned char SockStarted;
-
-   /* Perform socket startup routines.
-    * Returns 0 on success, -1 if SockVerReq was not met or error code. */
-   int SockStartup(void);
-
-   /* Perform socket cleanup for every startup call. */
-   void SockCleanup(void);
-
-   #ifdef __cplusplus
-   }
-   #endif
-
-#endif /* end Windows */
-
-
-/* When <windows.h> is included into a program, the below socket
- * definitions MUST OCCUR AFTER the first "windows.h" include. */
-#ifndef INVALID_SOCKET
-#define INVALID_SOCKET (-1) /* represents an undefined socket */
+#ifdef _WIN32  /* OS includes ... */
+#include "win32inet.h"
+#else
+#include "unixinet.h"
 #endif
-#ifndef SOCKET_ERROR
-#define SOCKET_ERROR (-1) /* represents a socket error, as a return code */
-#endif
+
 #ifndef SOCKET
-#define SOCKET int /* represents the standard datatype used for SOCKET */
+/* Standard datatype used for SOCKET */
+#define SOCKET int
 #endif
 
-/* Initialize an outgoing connection with a char *ADDR on PORT,
- * using connectip() */
-#define connectaddr(ADDR, PORT)  connectip(aton(ADDR), PORT)
+#ifndef SOCKET_ERROR
+/* Standard socket error, as a return code */
+#define SOCKET_ERROR (-1)
+#endif
+
+#ifndef INVALID_SOCKET
+/* Standard undefined socket */
+#define INVALID_SOCKET (SOCKET)(~0)
+#endif
+
+/* Create a cokect connection with an addres, *_addr, on port, _port. */
+#define sock_connect_addr(_addr, _port, _timeout) \
+   sock_connect_ip(aton(_addr), _port, _timeout)
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* Global flag to abort any socket support function loops.
+/* Global flag to abort any inet support function loops.
  * Set non-zero to activate. */
-unsigned char SockAbort;
+int Shutdown;
 
-/* Function prototypes for extsock.c */
-int nonblock(SOCKET sd);
-int blocking(SOCKET sd);
-unsigned long getsocketip(SOCKET sd);
-SOCKET connectip(unsigned long ip, unsigned short port);
+/* OS specific function prototypes */
+int http_get(char *url, char *fname);
+int sock_set_nonblock(SOCKET sd);
+int sock_set_blocking(SOCKET sd);
+
+/* Function prototypes */
 int phostinfo(void);
 char *ntoa(void *n, char *a);
 unsigned long aton(char *a);
+unsigned long get_sock_ip(SOCKET sd);
+SOCKET sock_connect_ip(unsigned long ip, unsigned short port, double timeout);
+int sock_recv(SOCKET sd, void *pkt, int len, int flags, double timeout);
+int sock_send(SOCKET sd, void *pkt, int len, int flags, double timeout);
 
 #ifdef __cplusplus
 }
 #endif
 
 
-#endif /* end _EXTENDED_SOCKET_H_ */
+#endif /* end EXTENDED_INTERNET_H */
