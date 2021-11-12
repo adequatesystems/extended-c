@@ -14,7 +14,7 @@
 #define WIN32_INTERNET_C  /* include guard */
 
 
-#include "win32inet.h"
+#include "extinet.h"
 
 #pragma comment(lib, "winhttp.lib")
 #define WIN32_LEAN_AND_MEAN

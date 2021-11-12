@@ -1,5 +1,5 @@
 /**
- * unixinet.c - Unix internet support
+ * unixinet.c - Unix specific extended internet support
  *
  * Copyright (c) 2018-2021 Adequate Systems, LLC. All Rights Reserved.
  * For more information, please refer to ../LICENSE *** NO WRRANTY ***
@@ -14,7 +14,7 @@
 #define UNIX_INTERNET_C  /* include guard */
 
 
-#include "unixinet.h"
+#include "extinet.h"
 
 #include <fcntl.h>
 #include <stdio.h>
