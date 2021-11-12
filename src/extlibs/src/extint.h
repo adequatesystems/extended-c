@@ -229,49 +229,47 @@ extern "C" {
 
 #ifdef WORD64_MAX
 
-/* 64-bit function prototype variants */
-void put64_64(void*, void*);
-int iszero_64(void*, int);
-int add64_64(void*, void*, void*);
-int sub64_64(void*, void*, void*);
-int mult64_64(void*, void*, void*);
-void negate64_64(void*);
-int cmp64_64(void*, void*);
-void shiftr64_64(void*);
+/* x64 function prototypes */
+void put64_x64(void *buff, void *val);
+int iszero_x64(void *buff, int len);
+int add64_x64(void *ax, void *bx, void *cx);
+int sub64_x64(void *ax, void *bx, void *cx);
+void negate64_x64(void *ax);
+int cmp64_x64(void *ax, void *bx);
+void shiftr64_x64(void *ax);
+int mult64_x64(void *ax, void *bx, void *cx);
 
 #endif
 
-/* 32-bit function prototype variants */
-void put64_32(void*, void*);
-int iszero_32(void*, int);
-int add64_32(void*, void*, void*);
-int sub64_32(void*, void*, void*);
-int mult64_32(void*, void*, void*);
-void negate64_32(void*);
-int cmp64_32(void*, void*);
-void shiftr64_32(void*);
-
-/* Function pointer prototypes */
-void (*put64)(void*, void*);
-int (*iszero)(void*, int);
-int (*add64)(void*, void*, void*);
-int (*sub64)(void*, void*, void*);
-int (*mult64)(void*, void*, void*);
-void (*negate64)(void*);
-int (*cmp64)(void*, void*);
-void (*shiftr64)(void*);
+/* x86 function prototypes */
+void put64_x86(void *buff, void *val);
+int iszero_x86(void *buff, int len);
+int add64_x86(void *ax, void *bx, void *cx);
+int sub64_x86(void *ax, void *bx, void *cx);
+void negate64_x86(void *ax);
+int cmp64_x86(void *ax, void *bx);
+void shiftr64_x86(void *ax);
+int mult64_x86(void *ax, void *bx, void *cx);
 
 /* Function prototypes */
 word16 get16(void *buff);
 void put16(void *buff, word16 val);
 word32 get32(void *buff);
 void put32(void *buff, word32 val);
+void put64(void *buff, void *val);
 void srand16fast(word32 x);
 word32 get_rand16fast(void);
 void srand16(word32 x, word32 y, word32 z);
 void get_rand16(word32 *x, word32 *y, word32 *z);
 word32 rand16fast(void);
 word32 rand16(void);
+int iszero(void *buff, int len);
+int add64(void *ax, void *bx, void *cx);
+int sub64(void *ax, void *bx, void *cx);
+void negate64(void *ax);
+int cmp64(void *ax, void *bx);
+void shiftr64(void *ax);
+int mult64(void *ax, void *bx, void *cx);
 int multi_add(void *ax, void *bx, void *cx, int bytelen);
 int multi_sub(void *ax, void *bx, void *cx, int bytelen);
 

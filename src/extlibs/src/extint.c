@@ -51,20 +51,14 @@ void put32(void *buff, word32 val)
 }
 
 /* Places a 64-bit unsigned value in buff. */
-void put64_32(void *buff, void *val)
+void put64(void *buff, void *val)
 {
-   ((word32 *) buff)[0] = ((word32 *) val)[0];
-   ((word32 *) buff)[1] = ((word32 *) val)[1];
-}
 #ifdef WORD64_MAX
-void put64_64(void *buff, void *val)
-{
-   *((word64 *) buff) = *((word64 *) val);
-}
-void (*put64)(void*, void*) = &put64_64;
-#else  /* word32 fallback */
-void (*put64)(void*, void*) = &put64_32;
+   put64_x64(buff, val);
+#else
+   put64_x86(buff, val);
 #endif
+}
 
 /* Set the seed for the rand16fast() number generator to x. */
 void srand16fast(word32 x)
@@ -127,188 +121,85 @@ word32 rand16(void)
    return (Lseed2 ^ (Lseed3 << 16) ^ Lseed4) >> 16;
 }
 
-/* Check if buff is all zeros. Returns 1 on true, else 0. */
-int iszero_32(void *buff, int len)
+/**
+ * Check if buff is all zeros. Returns 1 on true, else 0. */
+int iszero(void *buff, int len)
 {
-   word8 *bp = (word8 *) buff;
-
-   for( ; len >= 4; bp += 4, len -= 4) if(*((word32 *) bp)) return 0;
-   for( ; len; bp++, len--) if(*bp) return 0;
-   return 1;
-}  /* end iszero_32() */
 #ifdef WORD64_MAX
-int iszero_64(void *buff, int len)
-{
-   word8 *bp = (word8 *) buff;
-
-   for( ; len >= 8; bp += 8, len -= 8) if(*((word64 *) bp)) return 0;
-   for( ; len; bp++, len--) if(*bp) return 0;
-   return 1;
-}  /* end iszero_64() */
-int (*iszero)(void*, int) = &iszero_64;
-#else  /* word32 fallback */
-int (*iszero)(void*, int) = &iszero_32;
-#endif
-
-/* 64-bit addition of *ax and *bx. Place result in *cx. 
- * Returns carry. */
-int add64_32(void *ax, void *bx, void *cx)
-{
-   word32 a[2], b[2];
-   word32 *c = (word32 *) cx;
-
-   put64(a, ax);
-   put64(b, bx);
-   c[0] = a[0] + b[0];
-   c[1] = a[1] + b[1] + (word32) (c[0] < a[0]);
-   return (c[1] < a[1] || (c[1] == a[1] && c[0] < a[0]));
-}  /* end add64_32() */
-#ifdef WORD64_MAX
-int add64_64(void *ax, void *bx, void *cx)
-{
-   word64 a = *((word64 *) ax);
-   word64 b = *((word64 *) bx);
-   word64 *c = (word64 *) cx;
-
-   *c = a + b;
-   return (*c < a);
-}
-int (*add64)(void*, void*, void*) = &add64_64;
-#else  /* word32 fallback */
-int (*add64)(void*, void*, void*) = &add64_32;
-#endif
-
-/* 64-bit subtraction of *bx from *ax. Place result in *cx.
- * Returns carry. */
-int sub64_32(void *ax, void *bx, void *cx)
-{  /* 32-bit function variant for sub64() */
-   word32 a[2], b[2];
-   word32 *c = (word32 *) cx;
-
-   put64(a, ax);
-   put64(b, bx);
-   c[0] = a[0] - b[0];
-   c[1] = a[1] - b[1] - (c[0] > a[0]);
-   return (c[1] > a[1] || (c[1] == a[1] && c[0] > a[0]));
-}  /* end sub64_word32() */
-#ifdef WORD64_MAX  /* 64-bit function variant */
-int sub64_64(void *ax, void *bx, void *cx)
-{  /* 64-bit function variant for sub64() */
-   word64 a = *((word64 *) ax);
-   word64 b = *((word64 *) bx);
-   word64 *c = (word64 *) cx;
-
-   *c = a - b;
-   return (*c > a);
-}  /* end sub64_word64() */
-int (*sub64)(void*, void*, void*) = &sub64_64;
-#else  /* ... use 32-bit fallback */
-int (*sub64)(void*, void*, void*) = &sub64_32;
-#endif  /* end sub64() */
-
-/* Swap sign on 64-bit *ax.
- * NOTE: equivalent to *ax multiplied by -1. */
-void negate64_32(void *ax)
-{
-   word32 *a = (word32 *) ax;
-
-   a[0] = ~a[0];
-   a[1] = ~a[1];
-   if(++a[0] == 0) a[1]++;
-}  /* end negate64_32() */
-#ifdef WORD64_MAX
-void negate64_64(void *ax)
-{
-   *((word64*) ax) = ~(*((word64*) ax)) + 1;
-}  /* end negate64_64() */
-void (*negate64)(void*) = &negate64_64;
+   return iszero_x64(buff, len);
 #else
-void (*negate64)(void*) = &negate64_32;
-#endif  /* end negate64() */
+   return iszero_x86(buff, len);
+#endif
+}  /* end iszero() */
 
-/* 64-bit unsigned compare *ax to *bx.
+/**
+ * 64-bit addition of *ax and *bx. Result in *cx. Returns carry. */
+int add64(void *ax, void *bx, void *cx)
+{
+#ifdef WORD64_MAX
+   return add64_x64(ax, bx, cx);
+#else
+   return add64_x86(ax, bx, cx);
+#endif
+}  /* end add64() */
+
+/**
+ * 64-bit subtraction of *bx from *ax. Result in *cx. Returns carry. */
+int sub64(void *ax, void *bx, void *cx)
+{
+#ifdef WORD64_MAX
+   return sub64_x64(ax, bx, cx);
+#else
+   return sub64_x86(ax, bx, cx);
+#endif
+}  /* end sub64() */
+
+/**
+ * Swap sign on 64-bit *ax. Equivalent to *ax multiplied by -1. */
+void negate64(void *ax)
+{
+#ifdef WORD64_MAX
+   negate64_x64(ax);
+#else
+   negate64_x86(ax);
+#endif
+}  /* end negate64() */
+
+
+/**
+ * 64-bit unsigned compare *ax to *bx.
  * Returns 1 if *ax > *bx, -1 if *ax < *bx, or 0 if *ax == *bx. */
-int cmp64_32(void *ax, void *bx)
+int cmp64(void *ax, void *bx)
 {
-   word32 *a = (word32 *) ax;
-   word32 *b = (word32 *) bx;
-
-   if(a[1] > b[1]) return 1;
-   if(a[1] < b[1]) return -1;
-   if(a[0] > b[0]) return 1;
-   if(a[0] < b[0]) return -1;
-   return 0;
-}  /* end cmp64_32() */
 #ifdef WORD64_MAX
-int cmp64_64(void *ax, void *bx)
-{
-   word64 *a = (word64 *) ax;
-   word64 *b = (word64 *) bx;
-
-   if(*a > *b) return 1;
-   if(*a < *b) return -1;
-   return 0;
-}  /* end cmp64_64() */
-int (*cmp64)(void*, void*) = &cmp64_64;
+   return cmp64_x64(ax, bx);
 #else
-int (*cmp64)(void*, void*) = &cmp64_32;
+   return cmp64_x86(ax, bx);
 #endif
+}  /* end cmp64() */
 
-/* 64-bit shift *ax one to the right. */
-void shiftr64_32(void *ax)
+/**
+ * 64-bit shift *ax one to the right. */
+void shiftr64(void *ax)
 {
-   word32 *a = (word32 *) ax;
-
-   a[0] >>= 1;
-   if(a[1] & 1) a[0] |= 0x80000000;
-   a[1] >>= 1;
-}  /* end shiftr64_32() */
 #ifdef WORD64_MAX
-void shiftr64_64(void *ax)
-{
-   *((word64 *) ax) >>= 1;
-}  /* end shiftr64_64() */
-void (*shiftr64)(void*) = &shiftr64_64;
+   shiftr64_x64(ax);
 #else
-void (*shiftr64)(void*) = &shiftr64_32;
-#endif  /* end shiftr64() */
+   shiftr64_x86(ax);
+#endif
+}  /* end shiftr64() */
 
-/* 64-bit multiplication of *ax and *bx. Place result in *cx.
+/**
+ * 64-bit multiplication of *ax and *bx. Place result in *cx.
  * Returns 1 if overflow, else 0. */
-int mult64_32(void *ax, void *bx, void *cx)
+int mult64(void *ax, void *bx, void *cx)
 {
-   word32 *c = (word32 *) cx;
-   word32 a[2], b[2];
-   int overflow = 0;
-
-   put64(a, ax);
-   put64(b, bx);
-   c[0] = c[1] = 0;
-   while(b[0] | b[1]) {
-      if(b[0] & 1)
-         overflow |= add64(c, a, c);
-      add64(a, a, a);  /* shift a left */
-      shiftr64(b);
-   }
-
-   return overflow;
-}  /* end mult64_32() */
 #ifdef WORD64_MAX
-int mult64_64(void *ax, void *bx, void *cx)
-{
-   word64 *c = (word64 *) cx;
-   word64 a = *((word64 *) ax);
-   word64 b = *((word64 *) bx);
-
-   *c = a * b;
-   if (a == 0) return 0; /* avoid division by zero */
-   if ((*c / a) == b) return 0; /* check overflow */
-   return 1; /* result overflowed */
-}  /* end mult64_64() */
-int (*mult64)(void*, void*, void*) = &mult64_64;
+   return mult64_x64(ax, bx, cx);
 #else
-int (*mult64)(void*, void*, void*) = &mult64_32;
-#endif  /* end mult64() */
+   return mult64_x86(ax, bx, cx);
+#endif
+}  /* end mult64() */
 
 /* Multi-byte addition of ax[bytelen] and bx[bytelen].
  * Place result in cx[bytelen].  Returns carry. */
