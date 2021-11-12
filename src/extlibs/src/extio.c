@@ -293,7 +293,7 @@ void pprog(char *msg, char *unit, long cur, long end)
    static char *spinner = "-\\|/";
    static struct _prog {
       float pc, ps;
-      long tscur, cur, eta, time;
+      long tscur, cur, end, eta, time;
       char msg[48], unit[16];
       time_t ts, started;
    } prog[MAXPROGRESS], p;
@@ -312,32 +312,35 @@ void pprog(char *msg, char *unit, long cur, long end)
          if (prog[i].msg[0] == '\0') {
             /* create progress */
             prog[i].started = prog[i].ts = now;
-            if (unit) strncpy(prog[i].unit, unit, 16);
             strncpy(prog[i].msg, msg, 48);
+            if (unit) strncpy(prog[i].unit, unit, 16);
+            if (cur) prog[i].cur = cur;
+            if (end) prog[i].end = end;
             count++;
             break;
          } else if (strncmp(prog[i].msg, msg, 48) == 0) {
             prog[i].time = difftime(now, prog[i].started);
             if (cur < 0 && end < 0) {
                /* remove progress */
-               p = prog[i];  /* temp copy progress */
                if (count <= i) memset(&prog[i], 0, proglen);
                else memmove(&prog[i], &prog[i + 1], proglen * (count - i));
                i = count; while(i--) printf("\n\33[2K");
                printf("\33[%dA", count--);
-               plog("%s... done [%lds]", p.msg, (long) p.time);
             } else {
                /* update progress */
-               prog[i].cur = cur;
+               if (cur) prog[i].cur = cur;
+               if (end) prog[i].end = end;
                if (difftime(now, prog[i].ts)) {
-                  prog[i].ps = cur - prog[i].tscur;
-                  prog[i].tscur = cur;
+                  prog[i].ps = prog[i].cur - prog[i].tscur;
+                  prog[i].tscur = prog[i].cur;
                   prog[i].ts = now;
                }
-               if (end > 0) {
+               if (prog[i].end > 0) {
                   /* calculate ETA and completion */
-                  prog[i].pc = 100.0 * cur / end;
-                  if (prog[i].ps) prog[i].eta = (end - cur) / prog[i].ps;
+                  prog[i].pc = 100.0 * prog[i].cur / prog[i].end;
+                  if (prog[i].ps) {
+                     prog[i].eta = (prog[i].end - prog[i].cur) / prog[i].ps;
+                  }
                }
             }
             break;

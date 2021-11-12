@@ -12,13 +12,13 @@ int main()
 
    last = time(&then);
    Pconsole = PCONSOLE_LOG;
-   /* print progress bar over 5 seconds, lazy spin loops */
+   /* print progress over 5 seconds, lazy spin loops */
    pprog(prog_name, "B", 0, 0);
-   pprog(prog_name2, NULL, 0, 5);
+   pprog(prog_name2, NULL, 0, 3);
    for (i = 0; i < 5; time(&now), i = difftime(now, then)) {
       if (difftime(now, last)) {
          pprog(prog_name, NULL, i, 0);
-         pprog(prog_name2, NULL, i, 5);
+         pprog(prog_name2, NULL, i, 3);
       }
    }
    pprog_done(prog_name);
