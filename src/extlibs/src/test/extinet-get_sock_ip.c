@@ -1,13 +1,12 @@
 
 #include "_assert.h"
-#include "../extsock.h"
+#include "../extinet.h"
 
 int main()
-{  /* check getsocketip() returns appropriate value */
-   SOCKET sd;
+{  /* check get_sock_ip() returns appropriate value */
+   SOCKET sd = sock_connect_addr("example.com", 443, 3);
 
-   ASSERT_NE_MSG((sd = connectaddr("google.com", 443)), INVALID_SOCKET,
-      "connection failed, but needs to succeed to test getsocketip()");
-   ASSERT_EQ(getsocketip(sd), aton("google.com"));
-   ASSERT_EQ(getsocketip(INVALID_SOCKET), (unsigned long) INVALID_SOCKET);
+   ASSERT_NE_MSG(sd, INVALID_SOCKET, "connection is required for testing");
+   ASSERT_EQ(get_sock_ip(sd), aton("example.com"));
+   ASSERT_EQ(get_sock_ip(INVALID_SOCKET), (unsigned long) SOCKET_ERROR);
 }

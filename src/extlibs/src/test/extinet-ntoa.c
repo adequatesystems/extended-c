@@ -1,6 +1,6 @@
 
 #include "_assert.h"
-#include "../extsock.h"
+#include "../extinet.h"
 
 int main()
 {  /* check ntoa() converts 32-bit unsigned value to hexadecimal string */

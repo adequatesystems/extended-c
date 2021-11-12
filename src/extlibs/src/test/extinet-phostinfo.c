@@ -1,6 +1,6 @@
 
 #include "_assert.h"
-#include "../extsock.h"
+#include "../extinet.h"
 
 int main()
 {  /* check phostinfo() success */
