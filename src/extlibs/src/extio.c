@@ -290,7 +290,7 @@ void pdebug(char *fmt, ...)
 void pprog(char *msg, char *unit, long cur, long end)
 {
    static char metric[9][3] = { "", "K", "M", "G", "T", "P", "E", "Z", "Y" };
-   static char *spinner = "-\\|/";
+   static char spinner[] = "-\\|/";
    static struct _prog {
       float pc, ps;
       long tscur, cur, end, eta, time;
@@ -298,7 +298,8 @@ void pprog(char *msg, char *unit, long cur, long end)
       time_t ts, started;
    } prog[MAXPROGRESS], p;
    static size_t proglen = sizeof(*prog);
-   static int count;
+   static int count = 0;
+   double diff;
    time_t now;
    int i, n;
 
@@ -330,8 +331,9 @@ void pprog(char *msg, char *unit, long cur, long end)
                /* update progress */
                if (cur) prog[i].cur = cur;
                if (end) prog[i].end = end;
-               if (difftime(now, prog[i].ts)) {
-                  prog[i].ps = prog[i].cur - prog[i].tscur;
+               diff = difftime(now, prog[i].ts);
+               if (diff) {
+                  prog[i].ps = (prog[i].cur - prog[i].tscur) / diff;
                   prog[i].tscur = prog[i].cur;
                   prog[i].ts = now;
                }
@@ -363,6 +365,7 @@ void pprog(char *msg, char *unit, long cur, long end)
          }
       }
       printf("\r\33[%dA", i);
+      fflush(stdout);
    }
 }
 
