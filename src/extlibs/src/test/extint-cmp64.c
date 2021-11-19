@@ -1,6 +1,5 @@
 
 #include "_assert.h"
-#define DISABLE_WORD64
 #include "../extint.h"
 
 int main()

@@ -179,6 +179,18 @@ int cmp64(void *ax, void *bx)
 }  /* end cmp64() */
 
 /**
+ * 256-bit unsigned compare *ax to *bx.
+ * Returns 1 if *ax > *bx, -1 if *ax < *bx, or 0 if *ax == *bx. */
+int cmp256(void *ax, void *bx)
+{
+#ifdef WORD64_MAX
+   return cmp256_x64(ax, bx);
+#else
+   return cmp256_x86(ax, bx);
+#endif
+}  /* end cmp256() */
+
+/**
  * 64-bit shift *ax one to the right. */
 void shiftr64(void *ax)
 {

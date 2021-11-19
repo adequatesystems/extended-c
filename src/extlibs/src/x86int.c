@@ -90,6 +90,23 @@ int cmp64_x86(void *ax, void *bx)
 }  /* end cmp64_x86() */
 
 /**
+ * 256-bit unsigned compare *ax to *bx.
+ * Returns 1 if *ax > *bx, -1 if *ax < *bx, or 0 if *ax == *bx. */
+int cmp256_x86(void *ax, void *bx)
+{
+   word32 *a = (word32 *) ax;
+   word32 *b = (word32 *) bx;
+   int i;
+
+   for (i = 7; i >= 0; i--) {
+      if(a[i] > b[i]) return 1;
+      if(a[i] < b[i]) return -1;
+   }
+
+   return 0;
+}  /* end cmp256_x86() */
+
+/**
  * 64-bit shift *ax one to the right. */
 void shiftr64_x86(void *ax)
 {

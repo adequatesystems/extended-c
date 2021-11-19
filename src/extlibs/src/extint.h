@@ -236,6 +236,7 @@ int add64_x64(void *ax, void *bx, void *cx);
 int sub64_x64(void *ax, void *bx, void *cx);
 void negate64_x64(void *ax);
 int cmp64_x64(void *ax, void *bx);
+int cmp256_x64(void *ax, void *bx);
 void shiftr64_x64(void *ax);
 int mult64_x64(void *ax, void *bx, void *cx);
 
@@ -248,6 +249,7 @@ int add64_x86(void *ax, void *bx, void *cx);
 int sub64_x86(void *ax, void *bx, void *cx);
 void negate64_x86(void *ax);
 int cmp64_x86(void *ax, void *bx);
+int cmp256_x86(void *ax, void *bx);
 void shiftr64_x86(void *ax);
 int mult64_x86(void *ax, void *bx, void *cx);
 
@@ -268,6 +270,7 @@ int add64(void *ax, void *bx, void *cx);
 int sub64(void *ax, void *bx, void *cx);
 void negate64(void *ax);
 int cmp64(void *ax, void *bx);
+int cmp256(void *ax, void *bx);
 void shiftr64(void *ax);
 int mult64(void *ax, void *bx, void *cx);
 int multi_add(void *ax, void *bx, void *cx, int bytelen);
