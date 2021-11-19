@@ -18,6 +18,8 @@
 
 #include <stdio.h>
 
+#define BUFFER_SIZE     4096
+
 /* Global definitions level of print enabled in console */
 #define PCONSOLE_NUL   0  /* no print logs in console */
 #define PCONSOLE_ERR   1  /* allows perr*() in console */
@@ -50,8 +52,8 @@ FILE *Pstdoutfp;  /* file pointer for writing stdout logs */
 FILE *Pdebugfp;   /* file pointer for writing debug logs */
 
 /* Global flags, when set, indicate operational functionality */
-char Ptimestamp;  /* prefix logs with timestamp */
-char Pconsole;    /* console output loglevel */
+int Ptimestamp;  /* prefix logs with timestamp */
+int Pconsole;    /* console output loglevel */
 
 /* Global log counters */
 volatile unsigned Nstderrs;  /* counter for number of stderr logs */
@@ -72,6 +74,8 @@ void pdebug(char *fmt, ...);
 void pprog(char *msg, char *unit, long cur, long end);
 int existsnz(char *fname);
 int exists(char *fname);
+int ftouch(char *fname);
+int fcopy(char *srcname, char *dstname);
 int write_data(void *buff, int len, char *fname);
 int read_data(void *buff, int len, char *fname);
 

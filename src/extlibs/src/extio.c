@@ -397,6 +397,44 @@ int exists(char *fname)
    return 1;
 }
 
+/**
+ * Touch a file, result in either creation or opening and closing.
+ * Returns 0 on success, else error code. */
+int ftouch(char *fname)
+{
+   FILE *fp;
+
+   fp = fopen(fname, "ab");
+   if (fp == NULL) return errno;
+   fclose(fp);
+
+   return 0;
+}
+
+/**
+ * Copy a file from one location, *srcname, to another, *dstname.
+ * Returns 0 on success, else error code. */
+int fcopy(char *srcname, char *dstname)
+{
+   char buf[BUFFER_SIZE];
+   FILE *rfp, *wfp;
+   size_t nBytes;
+   int ecode = 0;
+
+   rfp = fopen(srcname, "rb");
+   wfp = fopen(dstname, "wb");
+   if (rfp == NULL || wfp == NULL) return errno;
+   while((nBytes = fread(buf, 1, BUFFER_SIZE, rfp))) {
+      if (fwrite(buf, 1, nBytes, wfp) != nBytes) break;
+   }
+   if (ferror(rfp) || ferror(wfp)) ecode = errno;
+
+   fclose(rfp);
+   fclose(wfp);
+
+   return ecode;
+}
+
 /* Write data buff[len] to file, fname.
  * Returns write count or -1 on error. */
 int write_data(void *buff, int len, char *fname)
