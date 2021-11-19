@@ -100,7 +100,7 @@ extern "C" {
 
 /* Global flag to abort any inet support function loops.
  * Set non-zero to activate. */
-int Shutdown;
+volatile int SockAbort;
 
 /* OS specific function prototypes */
 int http_get(char *url, char *fname);
