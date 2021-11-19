@@ -18,6 +18,7 @@
 
 
 #include "extio.h"
+#include <errno.h>
 #include <limits.h>  /* for determining CPUID* datatypes */
 #include <stdarg.h>  /* for va_list in print functions */
 #include <string.h>  /* for strerror*() functions */
@@ -31,6 +32,10 @@
 /* when POSIX localtime_r() is not available... */
 #ifndef localtime_r  /* ... provide fallback */
 #define localtime_r(T, DT) DT=localtime(T)
+#endif
+
+#ifdef DEBUG
+int Pconsole = PCONSOLE_DEBUG;
 #endif
 
 /* macro definition for cleaner code duplication in print functions */
