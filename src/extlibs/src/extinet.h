@@ -32,7 +32,7 @@
    #define sock_err_is_waiting(_e) \
       ( _e == WSAEWOULDBLOCK || _e == WSAEALREADY || _e == WSAEINVAL )
    #define sock_close(_sd)          closesocket(_sd)
-   #define sock_sleep()             Sleep(1000)
+   #define sock_sleep()             Sleep(1)
 
    #ifdef __cplusplus
    extern "C" {
@@ -97,10 +97,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/* Global flag to abort any inet support function loops.
- * Set non-zero to activate. */
-volatile int SockAbort;
 
 /* OS specific function prototypes */
 int http_get(char *url, char *fname);

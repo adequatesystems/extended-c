@@ -126,7 +126,7 @@ SOCKET sock_connect_ip(unsigned long ip, unsigned short port, double timeout)
    sock_set_nonblock(sd);
    time(&start);
 
-   while (!SockAbort && connect(sd, (struct sockaddr *) &addr, addrlen)) {
+   while (connect(sd, (struct sockaddr *) &addr, addrlen)) {
       ecode = get_sock_err();
       if (sock_err_is_success(ecode)) return sd;
       if (sock_err_is_waiting(ecode)) {
@@ -151,7 +151,6 @@ int sock_recv(SOCKET sd, void *pkt, int len, int flags, double timeout)
 
    time(&start);
    for(n = 0; n < len; ) {
-      if (SockAbort) return 1;
       /* check socket for pending data */
       count = (int) recv(sd, ((char *) pkt) + n, len - n, flags);
       if (count > 0) n += count;  /* count recv'd bytes */
@@ -175,7 +174,6 @@ int sock_send(SOCKET sd, void *pkt, int len, int flags, double timeout)
 
    time(&start);
    for(n = 0; n < len; ) {
-      if (SockAbort) return 1;
       /* check socket for pending data */
       count = (int) send(sd, ((char *) pkt) + n, len - n, flags);
       if (count > 0) n += count;  /* count sent bytes */

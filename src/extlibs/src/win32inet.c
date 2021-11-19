@@ -98,21 +98,21 @@ int http_get(char *url, char *fname)
       WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME,
       WINHTTP_NO_PROXY_BYPASS, 0);
    /* open http connection */
-   if (!SockAbort && hSession) hConnect = WinHttpConnect(hSession, domain, port, 0);
+   if (hSession) hConnect = WinHttpConnect(hSession, domain, port, 0);
    /* open http request */
-   if (!SockAbort && hConnect) {
+   if (hConnect) {
       hRequest = WinHttpOpenRequest(hConnect, L"GET", path, NULL,
          WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES,
          strncmp(proto, "https", sizeof(proto)) ? WINHTTP_FLAG_SECURE : 0);
    }
    /* send request */
-   if (!SockAbort && hRequest) {
+   if (hRequest) {
       bResults = WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS,
          0, WINHTTP_NO_REQUEST_DATA, 0, 0, 0);
       if (bResults) bResults = WinHttpReceiveResponse(hRequest, NULL);
    }
    /* retrieve data */
-   if (!SockAbort && bResults) {
+   if (bResults) {
       do {
          bytesAvailable = 0;
          WinHttpQueryDataAvailable(hRequest, &bytesAvailable);
@@ -122,7 +122,7 @@ int http_get(char *url, char *fname)
          if(WinHttpReadData(hRequest, buf, bytesAvailable, &bytesRead)) {
             if(fwrite(buf, (size_t) bytesRead, 1, fp) != 1) break;
          }
-      } while (!SockAbort && bytesAvailable > 0);
+      } while (bytesAvailable > 0);
    }
 
    /* cleanup */
