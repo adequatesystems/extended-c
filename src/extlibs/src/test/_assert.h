@@ -61,6 +61,7 @@
          for (int _i = 0; _i < (int) (BYTES / _TYPESIZE); _i++) { \
             printf("0x%llx, ", (unsigned long long) (ARRAY)[_i]); } \
          printf("}\n"); \
+         fflush(stdout); \
       } while (0)
    #define ASSERT_DEBUG(...)  PRINT(__VA_ARGS__)
    #define ASSERT_OP2_MSG(OP,A,B,C,MSG) \
