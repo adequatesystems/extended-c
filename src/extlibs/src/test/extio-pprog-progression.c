@@ -17,6 +17,7 @@ int main()
    pprog(prog_name2, NULL, 0, 3);
    for (i = 0; i < 5; time(&now), i = difftime(now, then)) {
       if (difftime(now, last)) {
+         time(&last);
          pprog(prog_name, NULL, i, 0);
          pprog(prog_name2, NULL, i, 3);
       }
