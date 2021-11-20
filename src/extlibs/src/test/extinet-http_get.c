@@ -10,6 +10,6 @@ int main()
    ASSERT_GT(http_get("https://invalid@domain.name", NULL), 0);
    ASSERT_EQ(http_get("https://www.mochimap.net/startnodes.lst", NULL), 0);
    ASSERT_EQ(remove("startnodes.lst"), 0);
-   ASSERT_EQ(http_get("google.com", "google.html"), 0);
-   ASSERT_EQ(remove("google.html"), 0);
+   ASSERT_EQ(http_get("example.com", "example.html"), 0);
+   ASSERT_EQ(remove("example.html"), 0);
 }

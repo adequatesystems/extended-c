@@ -4,11 +4,11 @@
 
 int main()
 {  /* check; send and receive support functions operate as expected */
-   char *request = "GET / HTTP/1.1\r\nHost: google.com\r\n\r\n";
+   char *request = "GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
    char response[4096] = "";
    SOCKET sd;
 
-   sd = sock_connect_addr("google.com", 80, 3);
+   sd = sock_connect_addr("example.com", 80, 3);
    ASSERT_NE_MSG(sd, INVALID_SOCKET, "connection is required for testing");
    ASSERT_EQ_MSG(sock_send(sd, request, (int) strlen(request), 0, 5), 0,
       "sock_send() should successfully send request packet");
