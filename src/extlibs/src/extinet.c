@@ -111,21 +111,25 @@ SOCKET sock_connect_ip(unsigned long ip, unsigned short port, double timeout)
    time_t start;
    SOCKET sd;
    int ecode;
-
+printf("sock_connect_ip(): 1\n");
+for (int i = 0; i < 1000; i++) sock_sleep();
    /* AF_INET = IPv4 */
    if((sd = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
       return INVALID_SOCKET;
    }
-
+printf("sock_connect_ip(): 2\n");
+for (int i = 0; i < 1000; i++) sock_sleep();
    memset((char *) &addr, 0, sizeof(addr));
    addr.sin_addr.s_addr = ip;
    addr.sin_family = AF_INET;  /* AF_UNIX */
    /* Convert short integer to network byte order */
    addr.sin_port = htons(port);
-
+printf("sock_connect_ip(): 3\n");
+for (int i = 0; i < 1000; i++) sock_sleep();
    sock_set_nonblock(sd);
    time(&start);
-
+printf("sock_connect_ip(): 4\n");
+for (int i = 0; i < 1000; i++) sock_sleep();
    while (connect(sd, (struct sockaddr *) &addr, addrlen)) {
       ecode = get_sock_err();
       if (sock_err_is_success(ecode)) return sd;
@@ -134,7 +138,8 @@ SOCKET sock_connect_ip(unsigned long ip, unsigned short port, double timeout)
          sock_sleep();  /* socket is waiting patiently */
       }
    }
-
+printf("sock_connect_ip(): 5\n");
+for (int i = 0; i < 1000; i++) sock_sleep();
    /* cleanup */
    sock_close(sd);
    return INVALID_SOCKET;
