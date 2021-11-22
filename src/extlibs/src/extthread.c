@@ -171,11 +171,4 @@ int thread_multiwait(int count, ThreadId tidlist[])
 }
 
 
-
-void put64(void *buff, void *val)
-{
-   ((int *) buff)[0] = ((int *) val)[0];
-   ((int *) buff)[1] = ((int *) val)[1];
-}
-
 #endif  /* end _EXTENDED_THREAD_C_ */
