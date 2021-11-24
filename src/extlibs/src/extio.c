@@ -427,15 +427,19 @@ int fcopy(char *srcname, char *dstname)
    int ecode = 0;
 
    rfp = fopen(srcname, "rb");
-   wfp = fopen(dstname, "wb");
-   if (rfp == NULL || wfp == NULL) return errno;
-   while((nBytes = fread(buf, 1, BUFFER_SIZE, rfp))) {
-      if (fwrite(buf, 1, nBytes, wfp) != nBytes) break;
+   if (rfp == NULL) ecode = errno ? errno : EIO;
+   else {
+      wfp = fopen(dstname, "wb");
+      if (wfp == NULL) ecode = errno ? errno : EIO;
+      else {
+         do {  /* perform copy operation */
+            nBytes = fread(buf, 1, BUFFER_SIZE, rfp);
+         } while(nBytes && fwrite(buf, 1, nBytes, wfp) != nBytes);
+         if (ferror(rfp) || ferror(wfp)) ecode = errno ? errno : EIO;
+         fclose(wfp);
+      }
+      fclose(rfp);
    }
-   if (ferror(rfp) || ferror(wfp)) ecode = errno;
-
-   fclose(rfp);
-   fclose(wfp);
 
    return ecode;
 }
