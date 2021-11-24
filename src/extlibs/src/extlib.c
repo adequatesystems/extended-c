@@ -168,10 +168,10 @@ void shuffle(void *list, size_t size, size_t count)
  * - recommended to seed PRNG before use with srand16() */
 void shufflenz(void *list, size_t size, size_t count)
 {
-   unsigned char *listp = (unsigned char *) list;
+   char *listp = ((char *) list) + (size * count) - size;
 
    /* reduce count for every zero value at the end of the list */
-   while(iszero(&listp[count - 1], size)) count--;
+   for( ; count > 0 && iszero(listp, size); listp -= size, count--);
    shuffle(list, size, count);
 }  /* end shufflenz() */
 
