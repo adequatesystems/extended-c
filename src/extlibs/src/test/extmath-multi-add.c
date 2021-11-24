@@ -1,6 +1,7 @@
 
 #include "_assert.h"
 #include "../extint.h"
+#include "../extmath.h"
 
 int main()
 {  /* check; returned carry, and final result */
