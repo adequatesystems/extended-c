@@ -19,6 +19,8 @@
 
 
 #include "extlib.h"
+#include "extmath.h"  /* for iszero() in *nz() functions */
+#include "extstring.h"  /* for mem*() in extract*() functions */
 
 /* Private number generator seeds for rand16fast() and rand16() */
 volatile word32 Lseed = 1;
@@ -135,5 +137,110 @@ word32 rand16(void)
    return (Lseed2 ^ (Lseed3 << 16) ^ Lseed4) >> 16;
 }
 
+/**
+ * Shuffle a list[count] of size byte elements using Durstenfeld's
+ * implementation of the Fisher-Yates shuffling algorithm.
+ * NOTES:
+ * - shuffle count is bound to 16 bits due to rand16() modulo
+ * - recommended to seed PRNG before use with srand16() */
+void shuffle(void *list, size_t size, size_t count)
+{
+   unsigned char *listp = (unsigned char *) list;
+   unsigned char *elemp, *swapp;
+
+   if (count < 2) return;  /* list is not worth shuffling */
+   elemp = &listp[(count - 1) * size];
+   for( ; count > 1; count--, elemp -= size) {
+      /* for every element (in reverse order), swap with random
+       * element whose index is less than the current */
+      swapp = &listp[(rand16() % count) * size];
+      memswap(elemp, swapp, size);
+   }
+}  /* end shuffle() */
+
+/**
+ * Shuffle a list[count] of non-zero, size byte elements using
+ * Durstenfeld's implementation of the Fisher-Yates shuffling
+ * algorithm.
+ * NOTES:
+ * - A zero value marks the end of list.
+ * - shuffle count is bound to 16 bits due to rand16() modulo
+ * - recommended to seed PRNG before use with srand16() */
+void shufflenz(void *list, size_t size, size_t count)
+{
+   unsigned char *listp = (unsigned char *) list;
+
+   /* reduce count for every zero value at the end of the list */
+   while(iszero(&listp[count - 1], size)) count--;
+   shuffle(list, size, count);
+}  /* end shufflenz() */
+
+/**
+ * Search a list[count] of size byte elements for a value.
+ * Returns NULL if not found, else a pointer to value.
+void *search(void *value, void *list, size_t size, size_t count)
+{
+   unsigned char listp = (unsigned char *) list;
+
+   for( ; count--; listp += size) {
+      if(memcmp(value, listp, size)) continue;
+      return ((void *) listp);
+   }
+
+   return NULL;
+}  // end search() */
+
+/**
+ * Search a list[count] of non-zero, size byte elements for a value.
+ * Returns NULL if not found, else a pointer to value.
+ * NOTE: A zero value marks the end of list.
+void *searchnz(void *value, void *list, size_t size, size_t count)
+{
+   unsigned char listp = (unsigned char *) list;
+
+   for( ; count-- && iszero(listp, size); listp += size) {
+      if(memcmp(value, listp, size)) continue;
+      return ((void *) listp);
+   }
+
+   return NULL;
+}  // end searchnz() */
+
+/**
+ * Extract a value from a list[count] of non-zero, size byte elements.
+ * Returns NULL if not found, else pointer to value.
+void *extractnz(void *value, void *list, size_t size, size_t count)
+{
+   char *end = &((char *) list)[size * count];
+   char *last = end - size;
+   void *found;
+
+   found = searchnz(value, list, size, count);
+   if (found == NULL) return NULL;
+   if (found < ((size_t) end - size)) {
+      memmove(found, ((char *) found)[size], (size_t) (end - found));
+   }  // set final element zero
+   memset(last, 0, size);
+
+   return value;
+}  // end extractnz() */
+
+/**
+ * Append a non-zero, size byte value to a list[count].
+ * Returns NULL if list is full, else pointer to value.
+void *appendnz(void *value, void *list, size_t size, size_t count)
+{
+   char *listp = (char *) list;
+
+   if (value == NULL || iszero(value, size)) return NULL;
+   for( ; listp < &listp[size * count]; listp += size) {
+      if (iszero(listp, size)) {
+         memset(listp, value, size);
+         return ((void *) listp);
+      }
+   }
+
+   return NULL;
+}  // end appendnz() */
 
 #endif  /* end EXTENDED_UTILITIES_C */

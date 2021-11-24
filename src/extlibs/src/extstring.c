@@ -14,7 +14,6 @@
 
 
 #include "extstring.h"  /* header file */
-#include "extint.h"     /* for rand16fast() */
 
 #define MEMSWAPCHUNK 1024  /* 1 KiB temp resource for swapping memory */
 
@@ -42,26 +41,6 @@ void memswap(void *ax, void *bx, size_t count)
       memcpy(pb, temp, count);
    }
 }  /* end memswap() */
-
-/* Shuffle a list[count] of size byte elements using Durstenfeld's
- * implementation of the Fisher-Yates shuffling algorithm.
- * NOTES:
- * - shuffle count is bound to 16 bits due to rand16fast() modulo
- * - seed PRNG before use with srand16fast(seed) */
-void shuffle(void *list, size_t size, size_t count)
-{
-   unsigned char *listp = (unsigned char *) list;
-   unsigned char *elemp, *swapp;
-
-   if (count < 2) return;  /* list is not worth shuffling */
-   elemp = &listp[(count - 1) * size];
-   for( ; count > 1; count--, elemp -= size) {
-      /* for every element (in reverse order), swap with random
-       * element whose index is less than the current */
-      swapp = &listp[(rand16fast() % count) * size];
-      memswap(elemp, swapp, size);
-   }
-}  /* end shuffle() */
 
 
 #endif /* end _EXTENDED_STRING_C_ */

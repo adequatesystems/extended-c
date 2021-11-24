@@ -46,6 +46,8 @@ void srand16(word32 x, word32 y, word32 z);
 void get_rand16(word32 *x, word32 *y, word32 *z);
 word32 rand16fast(void);
 word32 rand16(void);
+void shuffle(void *list, size_t size, size_t count);
+void shufflenz(void *list, size_t size, size_t count);
 
 #ifdef __cplusplus
 }

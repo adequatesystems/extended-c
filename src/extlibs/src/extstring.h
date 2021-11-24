@@ -24,7 +24,6 @@ extern "C" {
 
 /* Function prototypes for extstring.c */
 void memswap(void *ax, void *bx, size_t count);
-void shuffle(void *list, size_t size, size_t count);
 
 #ifdef __cplusplus
 }
