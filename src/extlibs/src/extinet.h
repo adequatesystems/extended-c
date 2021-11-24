@@ -98,6 +98,7 @@ int sock_cleanup(void);
 int sock_set_nonblock(SOCKET sd);
 int sock_set_blocking(SOCKET sd);
 SOCKET sock_connect_ip(unsigned long ip, unsigned short port, double timeout);
+SOCKET sock_connect_addr(char *addr, unsigned short port, double timeout);
 int sock_recv(SOCKET sd, void *pkt, int len, int flags, double timeout);
 int sock_send(SOCKET sd, void *pkt, int len, int flags, double timeout);
 

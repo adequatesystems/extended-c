@@ -325,7 +325,7 @@ int sock_set_blocking(SOCKET sd)
 /**
  * Initialize an outgoing connection with ip on port.
  * Returns non-blocking SOCKET on success, or INVALID_SOCKET on error.
- * NOTE: sock_startup() MUST be called to enable socket support. */
+ * NOTE: MUST call sock_startup() to enable socket support. */
 SOCKET sock_connect_ip(unsigned long ip, unsigned short port, double timeout)
 {
    static socklen_t addrlen = (socklen_t) sizeof(struct sockaddr_in);
@@ -362,6 +362,17 @@ SOCKET sock_connect_ip(unsigned long ip, unsigned short port, double timeout)
 
    return sd;
 }  /* end sock_connect_ip() */
+
+/**
+ * Initialize an outgoing connection with a network host address on port.
+ * Returns non-blocking SOCKET on success, or INVALID_SOCKET on error.
+ * NOTE: MUST call sock_startup() to enable socket support. */
+SOCKET sock_connect_addr(char *addr, unsigned short port, double timeout)
+{
+   unsigned long ip = aton(addr);
+
+   return sock_connect_ip(ip, port, timeout);
+}  /* end sock_connect_addr() */
 
 /**
  * Receive a packet of data from SOCKET sd into pkt[len].
