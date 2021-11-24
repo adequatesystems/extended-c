@@ -282,12 +282,13 @@ int sock_startup(void)
  * Returns 0. */
 int sock_cleanup(void)
 {
-   while (Sockinuse--) {
+   while(Sockinuse) {
 
 #ifdef _WIN32  /* assume Windows */
       WSACleanup();
 #endif  /* end Windows */
 
+      Sockinuse--;
    }
 
    return Sockinuse;
