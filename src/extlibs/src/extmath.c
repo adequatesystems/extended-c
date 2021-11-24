@@ -15,6 +15,7 @@
 
 #include "extmath.h"
 #include "extint.h"
+#include "extlib.h"
 
 
 #ifdef WORD64_MAX  /* x64 guard */
@@ -123,14 +124,6 @@ int mult64_x64(void *ax, void *bx, void *cx)
 
 #endif  /* end WORD64_MAX */
 
-
-/**
- * Place a 64-bit unsigned *val, in *buff. */
-void put64_x86(void *buff, void *val)
-{
-   ((word32 *) buff)[0] = ((word32 *) val)[0];
-   ((word32 *) buff)[1] = ((word32 *) val)[1];
-}
 
 /**
  * Check if buff is all zeros. Returns 1 on true, else 0. */

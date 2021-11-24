@@ -42,6 +42,14 @@ void put64_x64(void *buff, void *val)
 #endif  /* end WORD64_MAX */
 
 
+/**
+ * Place a 64-bit unsigned *val, in *buff. */
+void put64_x86(void *buff, void *val)
+{
+   ((word32 *) buff)[0] = ((word32 *) val)[0];
+   ((word32 *) buff)[1] = ((word32 *) val)[1];
+}
+
 /* Returns a 16-bit unsigned value from buff. */
 word16 get16(void *buff)
 {
