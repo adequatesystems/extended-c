@@ -8,9 +8,6 @@
  * Revised: 12 November 2021
  *
  * NOTES:
- * - to abort all "in progress" inet connections in, for example,
- *   the case of a shutdown or cleanup routine, the Shutdown flag
- *   should be set to a non-zero value.
  * - where applications are designed for compatibility with win32
  *   systems, call sock_startup() and sock_cleanup(), in the init
  *   and the cleanup routines of an application.
@@ -24,10 +21,10 @@
 #ifdef _WIN32  /* assume Windows */
 
    #pragma comment(lib, "ws2_32.lib")
-   #include <winsock2.h>
+   #include <winsock2.h>  /* for socket handling */
    #include <ws2tcpip.h>  /* for socklen_t */
 
-   #define get_sock_err()           WSAGetLastError()
+   #define sock_err                 WSAGetLastError()
    #define sock_err_is_success(_e)  ( _e == WSAEISCONN )
    #define sock_err_is_waiting(_e) \
       ( _e == WSAEWOULDBLOCK || _e == WSAEALREADY || _e == WSAEINVAL )
@@ -41,14 +38,9 @@
    /* Global winsock variables */
    WSADATA Sockdata;
    WORD Sockverreq;
-   int Sockstarted;
 
    /* Function prototypes */
    int http_get(char *url, char *fname);
-   int sock_startup(void);
-   int sock_cleanup(void);
-   int sock_set_nonblock(SOCKET sd);
-   int sock_set_blocking(SOCKET sd);
 
    #ifdef __cplusplus
    }
@@ -63,13 +55,11 @@
    #include <sys/socket.h>
    #include <unistd.h>
 
-   #define get_sock_err()           ( errno )
+   #define sock_err                 errno
    #define sock_err_is_success(_e)  ( _e == EISCONN )
    #define sock_err_is_waiting(_e)  ( _e == EINPROGRESS || _e == EALREADY )
    #define sock_close(_sd)          close(_sd)
    #define sock_sleep()             usleep(1000)
-   #define sock_startup()           do { /* nothing */ } while(0)
-   #define sock_cleanup()           do { /* nothing */ } while(0)
 
 #endif
 
@@ -89,25 +79,24 @@
 #define INVALID_SOCKET (SOCKET)(~0)
 #endif
 
-/* Create a cokect connection with an addres, *_addr, on port, _port. */
-#define sock_connect_addr(_addr, _port, _timeout) \
-   sock_connect_ip(aton(_addr), _port, _timeout)
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* OS specific function prototypes */
-int http_get(char *url, char *fname);
-int sock_set_nonblock(SOCKET sd);
-int sock_set_blocking(SOCKET sd);
+/* Global flag indicating sockets are in use. */
+volatile int Sockinuse;
 
 /* Function prototypes */
+int http_get(char *url, char *fname);
 int phostinfo(void);
 char *ntoa(void *n, char *a);
 unsigned long aton(char *a);
 unsigned long get_sock_ip(SOCKET sd);
+int sock_startup(void);
+int sock_cleanup(void);
+int sock_set_nonblock(SOCKET sd);
+int sock_set_blocking(SOCKET sd);
 SOCKET sock_connect_ip(unsigned long ip, unsigned short port, double timeout);
 int sock_recv(SOCKET sd, void *pkt, int len, int flags, double timeout);
 int sock_send(SOCKET sd, void *pkt, int len, int flags, double timeout);
