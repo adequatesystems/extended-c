@@ -8,6 +8,7 @@ int main()
    char response[4096] = "";
    SOCKET sd;
 
+   sock_startup();  /* enables socket support */
    sd = sock_connect_addr("example.com", 80, 3);
    ASSERT_NE_MSG(sd, INVALID_SOCKET, "connection is required for testing");
    ASSERT_EQ_MSG(sock_send(sd, request, (int) strlen(request), 0, 5), 0,
@@ -20,4 +21,5 @@ int main()
    sock_close(sd);
    ASSERT_EQ_MSG(sock_send(sd, request, (int) strlen(request), 0, 5), (-1),
       "sock_send() should timeout, socket is closed");
+   sock_cleanup();
 }

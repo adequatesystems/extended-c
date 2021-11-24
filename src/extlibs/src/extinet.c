@@ -182,23 +182,22 @@ int phostinfo(void)
 
    /* get local machine name and IP address */
    result = gethostname(hostname, sizeof(hostname));
-   if(result == 0) host = gethostbyname(hostname);
-   printf("Local Machine Info\n");
+   if (result == 0) host = gethostbyname(hostname);
    if (host) {
+      printf("Local Machine Info\n");
       printf("  Machine name: %s\n", host->h_name ? host->h_name : "unknown");
       for (i = 0; host->h_aliases[i]; i++) {
          printf("     alt. name: %s\n", host->h_aliases[i]);
       }
       for (i = 0; host->h_addr_list[i]; i++) {
          addrstr = inet_ntoa(*((struct in_addr *) (host->h_addr_list[i])));
-         if (host->h_addrtype == AF_INET) {
-            printf("  IPv4 address: %s\n", addrstr);
-         } else printf("  Unknown address: %s\n", addrstr);
+         printf("  %s address: %s\n",
+            host->h_addrtype == AF_INET ? "IPv4" : "Unknown", addrstr);
       }
-   } else printf("  Machine name: unknown\n  IPv4 address: unknown\n");
+   }
 
    printf("\n");
-   return 0;
+   return result;
 }  /* end phostinfo() */
 
 /**
