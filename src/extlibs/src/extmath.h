@@ -15,8 +15,8 @@
 #ifndef EXTENDED_MATH_H
 #define EXTENDED_MATH_H  /* include guard */
 
+
 #include <math.h>
-#include "extint.h"
 
 
 #ifdef __cplusplus
@@ -47,6 +47,7 @@ int cmp256_x86(void *ax, void *bx);
 void shiftr64_x86(void *ax);
 int mult64_x86(void *ax, void *bx, void *cx);
 
+/* Function prototypes */
 int iszero(void *buff, int len);
 int add64(void *ax, void *bx, void *cx);
 int sub64(void *ax, void *bx, void *cx);

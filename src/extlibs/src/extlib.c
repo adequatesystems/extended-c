@@ -1,5 +1,5 @@
 /**
- * extint.c - Extended integer support
+ * extlib.c - Extended general utilities support
  *
  * Copyright (c) 2018-2021 Adequate Systems, LLC. All Rights Reserved.
  * For more information, please refer to ../LICENSE
@@ -14,17 +14,31 @@
  *
 */
 
-#ifndef _EXTENDED_INTEGER_C_
-#define _EXTENDED_INTEGER_C_  /* include guard */
+#ifndef EXTENDED_UTILITIES_C
+#define EXTENDED_UTILITIES_C  /* include guard */
 
 
-#include "extint.h"
+#include "extlib.h"
 
 /* Private number generator seeds for rand16fast() and rand16() */
 volatile word32 Lseed = 1;
 volatile word32 Lseed2 = 1;
 volatile word32 Lseed3 = 362436069;
 volatile word32 Lseed4 = 123456789;
+
+
+#ifdef WORD64_MAX  /* x64 guard */
+
+/**
+ * Place a 64-bit unsigned *val, in *buff.
+ * NOTE: uses 64-bit operations. */
+void put64_x64(void *buff, void *val)
+{
+   *((word64 *) buff) = *((word64 *) val);
+}
+
+#endif  /* end WORD64_MAX */
+
 
 /* Returns a 16-bit unsigned value from buff. */
 word16 get16(void *buff)
@@ -121,133 +135,5 @@ word32 rand16(void)
    return (Lseed2 ^ (Lseed3 << 16) ^ Lseed4) >> 16;
 }
 
-/**
- * Check if buff is all zeros. Returns 1 on true, else 0. */
-int iszero(void *buff, int len)
-{
-#ifdef WORD64_MAX
-   return iszero_x64(buff, len);
-#else
-   return iszero_x86(buff, len);
-#endif
-}  /* end iszero() */
 
-/**
- * 64-bit addition of *ax and *bx. Result in *cx. Returns carry. */
-int add64(void *ax, void *bx, void *cx)
-{
-#ifdef WORD64_MAX
-   return add64_x64(ax, bx, cx);
-#else
-   return add64_x86(ax, bx, cx);
-#endif
-}  /* end add64() */
-
-/**
- * 64-bit subtraction of *bx from *ax. Result in *cx. Returns carry. */
-int sub64(void *ax, void *bx, void *cx)
-{
-#ifdef WORD64_MAX
-   return sub64_x64(ax, bx, cx);
-#else
-   return sub64_x86(ax, bx, cx);
-#endif
-}  /* end sub64() */
-
-/**
- * Swap sign on 64-bit *ax. Equivalent to *ax multiplied by -1. */
-void negate64(void *ax)
-{
-#ifdef WORD64_MAX
-   negate64_x64(ax);
-#else
-   negate64_x86(ax);
-#endif
-}  /* end negate64() */
-
-
-/**
- * 64-bit unsigned compare *ax to *bx.
- * Returns 1 if *ax > *bx, -1 if *ax < *bx, or 0 if *ax == *bx. */
-int cmp64(void *ax, void *bx)
-{
-#ifdef WORD64_MAX
-   return cmp64_x64(ax, bx);
-#else
-   return cmp64_x86(ax, bx);
-#endif
-}  /* end cmp64() */
-
-/**
- * 256-bit unsigned compare *ax to *bx.
- * Returns 1 if *ax > *bx, -1 if *ax < *bx, or 0 if *ax == *bx. */
-int cmp256(void *ax, void *bx)
-{
-#ifdef WORD64_MAX
-   return cmp256_x64(ax, bx);
-#else
-   return cmp256_x86(ax, bx);
-#endif
-}  /* end cmp256() */
-
-/**
- * 64-bit shift *ax one to the right. */
-void shiftr64(void *ax)
-{
-#ifdef WORD64_MAX
-   shiftr64_x64(ax);
-#else
-   shiftr64_x86(ax);
-#endif
-}  /* end shiftr64() */
-
-/**
- * 64-bit multiplication of *ax and *bx. Place result in *cx.
- * Returns 1 if overflow, else 0. */
-int mult64(void *ax, void *bx, void *cx)
-{
-#ifdef WORD64_MAX
-   return mult64_x64(ax, bx, cx);
-#else
-   return mult64_x86(ax, bx, cx);
-#endif
-}  /* end mult64() */
-
-/* Multi-byte addition of ax[bytelen] and bx[bytelen].
- * Place result in cx[bytelen].  Returns carry. */
-int multi_add(void *ax, void *bx, void *cx, int bytelen)
-{
-   word8 *a, *b, *c;
-   int t, carry = 0;
-
-   if(bytelen < 1) return 0;
-
-   a = ax; b = bx; c = cx;
-   for( ; bytelen; a++, b++, c++, bytelen--) {
-      t = *a + *b + carry;
-      carry = t >> 8;
-      *c = t;
-   }
-   return carry;
-}
-
-/* Multi-byte subtraction of b[bytelen] from a[bytelen].
- * Place result in c[bytelen].  Returns carry. */
-int multi_sub(void *ax, void *bx, void *cx, int bytelen)
-{
-   word8 *a, *b, *c;
-   int t, carry = 0;
-
-   if(bytelen < 1) return 0;
-
-   a = ax; b = bx; c = cx;
-   for( ; bytelen; a++, b++, c++, bytelen--) {
-      t = *a - *b - carry;
-      carry = (t >> 8) & 1;
-      *c = t;
-   }
-   return carry;
-}
-
-
-#endif  /* end _EXTENDED_INTEGER_C_ */
+#endif  /* end EXTENDED_UTILITIES_C */
