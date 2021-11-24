@@ -1,6 +1,6 @@
 
 #include "_assert.h"
-#include "../extint.h"
+#include "../extlib.h"
 
 int main()
 {  /* check; random numbers do not exceed WORD16_MAX, and final seed */

@@ -1,6 +1,6 @@
 
 #include "_assert.h"
-#include "../extint.h"
+#include "../extlib.h"
 
 int main()
 {  /* check put16() places 16-bit unsigned value in array */

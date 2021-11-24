@@ -1,6 +1,6 @@
 
 #include "_assert.h"
-#include "../extint.h"
+#include "../extlib.h"
 
 int main()
 {  /* check get32() returns 32-bit unsigned value */

@@ -1,6 +1,6 @@
 
 #include "_assert.h"
-#include "../extint.h"
+#include "../extlib.h"
 
 int main()
 {  /* check put64() places 64-bit unsigned value in array */
