@@ -41,7 +41,7 @@
 /**
  * Perform a http(s) GET request to a file, fname.
  * Returns 0 on success, else error code. */
-int http_get(char *url, char *fname)
+int http_get(char *url, char *fname, int timeout)
 {
 #ifdef _WIN32  /* assume Windows */
    static const char *default_fname = "index.html";
@@ -106,8 +106,12 @@ int http_get(char *url, char *fname)
    hSession = WinHttpOpen(L"Adequate Systems, LLC. Software",
       WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME,
       WINHTTP_NO_PROXY_BYPASS, 0);
-   /* open http connection */
-   if (hSession) hConnect = WinHttpConnect(hSession, domain, port, 0);
+   /* open http connection -- setting timeout parameter */
+   if (hSession) {
+      timeout = timeout * 1000;  /* convert timeout to milliseconds */
+      WinHttpSetTimeouts(hSession, timeout, timeout, timeout, timeout);
+      hConnect = WinHttpConnect(hSession, domain, port, 0);
+   }
    /* open http request */
    if (hConnect) {
       hRequest = WinHttpOpenRequest(hConnect, L"GET", path, NULL,
@@ -157,15 +161,15 @@ int http_get(char *url, char *fname)
    /* url is required... obviously */
    if (url == NULL) return 8;
 
-   /* try cURL */
-   sprintf(cmd, "curl -sL%s %.256s %.336s >/dev/null 2>&1",
-      fname ? "o" : "O", fname ? fname : "", url);
-   if(system(cmd) == 0) return 0;
+   /* try cURL -- naturally tries only once */
+   sprintf(cmd, "curl -sLm %d %.2s %.256s %.336s",
+      timeout, fname ? "-o" : "-O", fname ? fname : "", url);
+   if (system(cmd) == 0) return 0;
 
-   /* try wGET */
-   sprintf(cmd, "wget -q%s %.256s %.336s >/dev/null 2>&1",
-      fname ? "O" : "", fname ? fname : "", url);
-   if(system(cmd) == 0) return 0;
+   /* try wGET -- forcefully tries only once */
+   sprintf(cmd, "wget -qT %d -t 1 %.2s %.256s %.336s",
+      timeout, fname ? "-O" : "", fname ? fname : "", url);
+   if (system(cmd) == 0) return 0;
 
    return 1;
 #endif  /* end UNIXLIKE */

@@ -88,7 +88,7 @@ extern "C" {
 volatile int Sockinuse;
 
 /* Function prototypes */
-int http_get(char *url, char *fname);
+int http_get(char *url, char *fname, int timeout);
 int phostinfo(void);
 char *ntoa(void *n, char *a);
 unsigned long aton(char *a);
