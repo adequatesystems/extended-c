@@ -22,12 +22,14 @@
 #define MAXPROGRESS  16
 #define ANYPCONFIGLEVEL (Pconfig.perr.level | Pconfig.plog.level \
    | Pconfig.pbug.level | Pconfig.err.level | Pconfig.out.level)
-#define BUILDVMSG(vmsg, fmt, args) \
+#define PVFPRINTF(stdcfg, ll, msg, fmt, ap) \
    do { \
-      va_start(args, fmt); \
-      vsprintf(&vmsg[strlen(vmsg)], fmt, args); \
-      va_end(args); \
-      vmsg[PMESSAGE_MAX - 1] = '\0'; \
+      va_start(ap, fmt); vsprintf(&msg[strlen(msg)], fmt, ap); va_end(ap); \
+      msg[PMESSAGE_MAX - 1] = '\0'; \
+      if (Pconfig.perr.level >= ll) pcfg(&(Pconfig.perr), vmsg); \
+      if (Pconfig.plog.level >= ll) pcfg(&(Pconfig.plog), vmsg); \
+      if (Pconfig.pbug.level >= ll) pcfg(&(Pconfig.pbug), vmsg); \
+      if (stdcfg.level >= ll) pcfg(&(stdcfg), vmsg); \
    } while(0)
 
 
@@ -38,10 +40,10 @@ Mutex Pbugex = MUTEX_INITIALIZER;
 Mutex Pstdex = MUTEX_INITIALIZER;
 PCONFIGCONTAINER Pconfig = {
    .perr = { .ex = &Perrex, .level = PLEVEL_ERR, .pre = "Error: " },
-   .plog = { .ex = &Plogex, .level = PLEVEL_LOG, .pre = "" },
+   .plog = { .ex = &Plogex, .level = PLEVEL_LOG },
    .pbug = { .ex = &Pbugex, .level = PLEVEL_BUG, .pre = "DEBUG; " },
    .err = { .fd = 2, .ex = &Pstdex, .level = PLEVEL_ERR, .pre = "Error: " },
-   .out = { .fd = 1, .ex = &Pstdex, .level = PLEVEL_LOG, .pre = "" }
+   .out = { .fd = 1, .ex = &Pstdex, .level = PLEVEL_LOG }
 };
 
 
@@ -79,7 +81,7 @@ static inline char *timestamp(char *dest, size_t count)
 
    time(tp);
    localtime_r(tp, dtp);
-   strftime(dest, count, "%FT%T%z; ", dtp);
+   strftime(dest, count, "%FT%T%z ", dtp);
 
    return dest;
 }  /* end timestamp() */
@@ -88,6 +90,7 @@ static inline char *timestamp(char *dest, size_t count)
  * Print a log using a specific configuration, pointed to by *cfg. */
 static inline void pcfg (PCONFIG *cfg, char *msg)
 {
+   char rclear[] = "\33[0K";
    char tstr[28] = "";
 
    /* skip configurations without a writing destination or... */
@@ -104,8 +107,9 @@ static inline void pcfg (PCONFIG *cfg, char *msg)
    cfg->nlogs++;
    /* print to file pointer, guarded */
    if (cfg->time) fprintf(cfg->fp, "%s", timestamp(tstr, 28));
-   if (cfg->pre[0]) fprintf(cfg->fp, "%s", cfg->pre);
-   fprintf(cfg->fp, "%s", msg);
+   if (cfg->pre) fprintf(cfg->fp, "%s", cfg->pre);
+   if (cfg->fp != stdout && cfg->fp != stderr) rclear[0] = '\0';
+   fprintf(cfg->fp, "%s%s\n", msg, rclear);
    fflush(cfg->fp);
 
    /* end exclusive write */
@@ -219,16 +223,12 @@ int perrno(int errnum, const char *fmt, ...)
    /* ignore NULL fmt's and NUL log level scenarios */
    if (fmt == NULL || ANYPCONFIGLEVEL < PLEVEL_ERR) return ecode;
 
+   /* build variable message and print to all (incl. stderr) */
    if (errnum >= 0) {
-      strerror_r(errnum, vmsg, 64);
-      strncat(vmsg, ". ", 64 - strlen(vmsg));
+      strerror_r(errnum, vmsg, sizeof(vmsg)); \
+      strncat(vmsg, "; ", sizeof(vmsg) - strlen(vmsg)); \
    }
-   BUILDVMSG(vmsg, fmt, args);
-   /* print to stderr, perr, plog, and pbug file pointers */
-   if (Pconfig.perr.level >= PLEVEL_ERR) pcfg(&(Pconfig.perr), vmsg);
-   if (Pconfig.plog.level >= PLEVEL_ERR) pcfg(&(Pconfig.plog), vmsg);
-   if (Pconfig.pbug.level >= PLEVEL_ERR) pcfg(&(Pconfig.pbug), vmsg);
-   if (Pconfig.err.level >= PLEVEL_ERR) pcfg(&(Pconfig.err), vmsg);
+   PVFPRINTF(Pconfig.err, PLEVEL_ERR, vmsg, fmt, args);
 
    return ecode;
 }  /* end perrno() */
@@ -244,12 +244,8 @@ int perr(const char *fmt, ...)
    /* ignore NULL fmt's and NUL log level scenarios */
    if (fmt == NULL || ANYPCONFIGLEVEL < PLEVEL_ERR) return 1;
 
-   BUILDVMSG(vmsg, fmt, args);
-   /* print to stderr, perr, plog, and pbug file pointers */
-   if (Pconfig.perr.level >= PLEVEL_ERR) pcfg(&(Pconfig.perr), vmsg);
-   if (Pconfig.plog.level >= PLEVEL_ERR) pcfg(&(Pconfig.plog), vmsg);
-   if (Pconfig.pbug.level >= PLEVEL_ERR) pcfg(&(Pconfig.pbug), vmsg);
-   if (Pconfig.err.level >= PLEVEL_ERR) pcfg(&(Pconfig.err), vmsg);
+   /* build variable message and print to all (incl. stderr) */
+   PVFPRINTF(Pconfig.err, PLEVEL_ERR, vmsg, fmt, args);
 
    return 1;
 }  /* end perr() */
@@ -265,12 +261,8 @@ int plog(const char *fmt, ...)
    /* ignore NULL fmt's and NUL log level scenarios */
    if (fmt == NULL || ANYPCONFIGLEVEL < PLEVEL_LOG) return 0;
 
-   BUILDVMSG(vmsg, fmt, args);
-   /* print to stdout, plog, and pbug file pointers */
-   if (Pconfig.perr.level >= PLEVEL_LOG) pcfg(&(Pconfig.perr), vmsg);
-   if (Pconfig.plog.level >= PLEVEL_LOG) pcfg(&(Pconfig.plog), vmsg);
-   if (Pconfig.pbug.level >= PLEVEL_LOG) pcfg(&(Pconfig.pbug), vmsg);
-   if (Pconfig.out.level >= PLEVEL_LOG) pcfg(&(Pconfig.out), vmsg);
+   /* build variable message and print to all (incl. stdout) */
+   PVFPRINTF(Pconfig.out, PLEVEL_LOG, vmsg, fmt, args);
 
    return 0;
 }  /* end plog() */
@@ -286,12 +278,8 @@ int pbug(const char *fmt, ...)
    /* ignore NULL fmt's and NUL log level scenarios */
    if (fmt == NULL || ANYPCONFIGLEVEL < PLEVEL_BUG) return 0;
 
-   BUILDVMSG(vmsg, fmt, args);
-   /* print to stdout, plog, and pbug file pointers */
-   if (Pconfig.perr.level >= PLEVEL_BUG) pcfg(&(Pconfig.perr), vmsg);
-   if (Pconfig.plog.level >= PLEVEL_BUG) pcfg(&(Pconfig.plog), vmsg);
-   if (Pconfig.pbug.level >= PLEVEL_BUG) pcfg(&(Pconfig.pbug), vmsg);
-   if (Pconfig.out.level >= PLEVEL_BUG) pcfg(&(Pconfig.out), vmsg);
+   /* build variable message and print to all (incl. stdout) */
+   PVFPRINTF(Pconfig.out, PLEVEL_BUG, vmsg, fmt, args);
 
    return 0;
 }  /* end pdebug() */

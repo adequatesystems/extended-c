@@ -32,12 +32,12 @@
 /* Print configuration. Log format:
  * [time(ptime=1)]; <pre><msg>[: details(func dependant)] */
 typedef struct {
-   int fd;        /* File descriptor for writing logs */
-   FILE *fp;      /* File pointer for writing logs */
-   void *ex;      /* Mutex lock pointer for exclusive writes */
-   char level;    /* Log level, PLEVEL_NUL for no logs */
-   char time;     /* Prefix logs with timestamp, 0 for no timestamp */
-   char pre[48];  /* Prefix for logs (appends to timestamp) */
+   int fd;     /* File descriptor for writing logs */
+   FILE *fp;   /* File pointer for writing logs */
+   void *ex;   /* Mutex lock pointer for exclusive writes */
+   char level; /* Log level, PLEVEL_NUL for no logs */
+   char time;  /* Prefix logs with timestamp, 0 for no timestamp */
+   char *pre;  /* Prefix for logs (appends to timestamp) */
    unsigned nlogs;  /* Counts number of logs */
 } PCONFIG;
 

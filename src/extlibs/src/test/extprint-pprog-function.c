@@ -1,6 +1,6 @@
 
 #include "_assert.h"
-#include "../extio.h"
+#include "../extprint.h"
 #include <time.h>
 
 int main()
@@ -11,7 +11,6 @@ int main()
    double i;
 
    last = time(&then);
-   Pconsole = PCONSOLE_LOG;
    /* print progress over 5 seconds, lazy spin loops */
    pprog(prog_name, "B", 0, 0);
    pprog(prog_name2, NULL, 0, 3);
