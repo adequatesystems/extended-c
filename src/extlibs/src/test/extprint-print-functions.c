@@ -14,14 +14,11 @@ int main()
    int year, month, day, hour, minute, second;
 
    /* check initialized value of nlogs */
-   ASSERT_EQ2_MSG(Pconfig.perr.nlogs, Pconfig.err.nlogs, 0,
+   ASSERT_EQ2_MSG(Perrcfg.nlogs, Pstderrcfg.nlogs, 0,
       "nlogs should initialize Zero (0)");
-   ASSERT_EQ2_MSG(Pconfig.plog.nlogs, Pconfig.out.nlogs, 0,
+   ASSERT_EQ2_MSG(Plogcfg.nlogs, Pstdoutcfg.nlogs, 0,
       "nlogs should initialize Zero (0)");
-   ASSERT_EQ_MSG(Pconfig.pbug.nlogs, 0, "nlogs should initialize Zero (0)");
-
-   Pconfig.err.pre = "Prefix: ";
-
+   ASSERT_EQ_MSG(Pbugcfg.nlogs, 0, "nlogs should initialize Zero (0)");
 
    /* check return values of print functions */
    ASSERT_EQ2_MSG(perrno(-1, NULL), 2, perrno(-1, ""),
@@ -33,31 +30,31 @@ int main()
    ASSERT_EQ2_MSG(pbug(NULL), 0, pbug(""), "pbug() should return 0");
 
    /* check file pointers where assigned for err/out Pconfig's */
-   ASSERT_EQ_MSG(Pconfig.err.fp, stderr, "err.fp should be assigned stderr");
-   ASSERT_EQ_MSG(Pconfig.out.fp, stdout, "out.fp should be assigned stdout");
+   ASSERT_EQ_MSG(Pstderrcfg.fp, stderr, "err.fp should be assigned stderr");
+   ASSERT_EQ_MSG(Pstdoutcfg.fp, stdout, "out.fp should be assigned stdout");
 
    /* check nlogs incremented appropriately on default settings */
-   ASSERT_EQ_MSG(Pconfig.perr.nlogs, 0,
+   ASSERT_EQ_MSG(Perrcfg.nlogs, 0,
       "perr.nlogs should not increment on default settings");
-   ASSERT_EQ_MSG(Pconfig.plog.nlogs, 0,
+   ASSERT_EQ_MSG(Plogcfg.nlogs, 0,
       "plog.nlogs should not increment on default settings");
-   ASSERT_EQ_MSG(Pconfig.pbug.nlogs, 0,
+   ASSERT_EQ_MSG(Pbugcfg.nlogs, 0,
       "pbug.nlogs should not increment on default settings");
-   ASSERT_EQ_MSG(Pconfig.err.nlogs, 3,
+   ASSERT_EQ_MSG(Pstderrcfg.nlogs, 3,
       "nlogs should have incremented to 3 on default settings");
-   ASSERT_EQ_MSG(Pconfig.out.nlogs, 1,
+   ASSERT_EQ_MSG(Pstdoutcfg.nlogs, 1,
       "nlogs should have incremented to 1 on default settings");
 
    /* (re)assign file pointers */
-   Pconfig.err.fd = 0; Pconfig.err.fp = NULL;
-   Pconfig.out.fd = 0; Pconfig.out.fp = NULL;
-   Pconfig.perr.fp = fopen("perr.tmp", "w+");
-   Pconfig.perr.time = 1;
+   Pstderrcfg.fd = 0; Pstderrcfg.fp = NULL;
+   Pstdoutcfg.fd = 0; Pstdoutcfg.fp = NULL;
+   Perrcfg.fp = fopen("perr.tmp", "w+");
+   Perrcfg.time = 1;
 
    /* check print function prints to perr.tmp */
    perrno(0, "%s", printable);
-   rewind(Pconfig.perr.fp);
-   fread(input, 1, 1024, Pconfig.perr.fp);
+   rewind(Perrcfg.fp);
+   fread(input, 1, 1024, Perrcfg.fp);
    input[1023] = '\0';
    /* check timestamp format */
    ASSERT_EQ_MSG(
@@ -71,15 +68,15 @@ int main()
    ASSERT_LE2(0, minute, 59);
    ASSERT_LE2(0, second, 59);
    /* check default prefix is printed appropriately */
-   inputp = strstr(input, Pconfig.perr.pre);
-   ASSERT_STR(inputp, Pconfig.perr.pre, strlen(Pconfig.perr.pre));
-   inputp += strlen(Pconfig.perr.pre); /* fast-forward input pointer */
+   inputp = strstr(input, Perrcfg.pre);
+   ASSERT_STR(inputp, Perrcfg.pre, strlen(Perrcfg.pre));
+   inputp += strlen(Perrcfg.pre); /* fast-forward input pointer */
    /* check remaining log is as expected */
    ASSERT_STR(inputp, expect, strlen(expect));
 
    /* cleanup */
-   if (Pconfig.perr.fp) {
-      fclose(Pconfig.perr.fp);
+   if (Perrcfg.fp) {
+      fclose(Perrcfg.fp);
       remove("perr.tmp");
    }
 }

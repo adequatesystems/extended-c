@@ -41,21 +41,13 @@ typedef struct {
    unsigned nlogs;  /* Counts number of logs */
 } PCONFIG;
 
-typedef struct {
-   PCONFIG perr;
-   PCONFIG plog;
-   PCONFIG pbug;
-   PCONFIG err;
-   PCONFIG out;
-} PCONFIGCONTAINER;
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* Global print configuration struct */
-PCONFIGCONTAINER Pconfig;
+/* Global print configurations */
+PCONFIG Perrcfg, Plogcfg, Pbugcfg, Pstderrcfg, Pstdoutcfg;
 
 /* Function prototypes for extio.c */
 int perrno(int errnum, const char *fmt, ...);

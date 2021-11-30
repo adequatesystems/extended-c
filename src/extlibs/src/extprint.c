@@ -20,31 +20,30 @@
 
 
 #define MAXPROGRESS  16
-#define ANYPCONFIGLEVEL (Pconfig.perr.level | Pconfig.plog.level \
-   | Pconfig.pbug.level | Pconfig.err.level | Pconfig.out.level)
+#define ANYPCONFIGLEVEL (Perrcfg.level | Plogcfg.level \
+   | Pbugcfg.level | Pstderrcfg.level | Pstdoutcfg.level)
 #define PVFPRINTF(stdcfg, ll, msg, fmt, ap) \
    do { \
       va_start(ap, fmt); vsprintf(&msg[strlen(msg)], fmt, ap); va_end(ap); \
       msg[PMESSAGE_MAX - 1] = '\0'; \
-      if (Pconfig.perr.level >= ll) pcfg(&(Pconfig.perr), vmsg); \
-      if (Pconfig.plog.level >= ll) pcfg(&(Pconfig.plog), vmsg); \
-      if (Pconfig.pbug.level >= ll) pcfg(&(Pconfig.pbug), vmsg); \
+      if (Perrcfg.level >= ll) pcfg(&(Perrcfg), vmsg); \
+      if (Plogcfg.level >= ll) pcfg(&(Plogcfg), vmsg); \
+      if (Pbugcfg.level >= ll) pcfg(&(Pbugcfg), vmsg); \
       if (stdcfg.level >= ll) pcfg(&(stdcfg), vmsg); \
    } while(0)
 
 
-/* Apply runtime defaults */
+/* Define private mutex's for print functions and console */
 Mutex Perrex = MUTEX_INITIALIZER;
 Mutex Plogex = MUTEX_INITIALIZER;
 Mutex Pbugex = MUTEX_INITIALIZER;
 Mutex Pstdex = MUTEX_INITIALIZER;
-PCONFIGCONTAINER Pconfig = {
-   .perr = { .ex = &Perrex, .level = PLEVEL_ERR, .pre = "Error: " },
-   .plog = { .ex = &Plogex, .level = PLEVEL_LOG },
-   .pbug = { .ex = &Pbugex, .level = PLEVEL_BUG, .pre = "DEBUG; " },
-   .err = { .fd = 2, .ex = &Pstdex, .level = PLEVEL_ERR, .pre = "Error: " },
-   .out = { .fd = 1, .ex = &Pstdex, .level = PLEVEL_LOG }
-};
+/* Apply runtime print configuration defaults */
+PCONFIG Perrcfg = { .ex = &Perrex, .level = PLEVEL_ERR, .pre = "Error: " };
+PCONFIG Plogcfg = { .ex = &Plogex, .level = PLEVEL_LOG };
+PCONFIG Pbugcfg = { .ex = &Pbugex, .level = PLEVEL_BUG, .pre = "DEBUG; " };
+PCONFIG Pstderrcfg = { .fd = 2, .ex = &Pstdex, .level = PLEVEL_ERR };
+PCONFIG Pstdoutcfg = { .fd = 1, .ex = &Pstdex, .level = PLEVEL_LOG };
 
 
 /* strerror_r() is specified by POSIX.1-2001... */
@@ -141,7 +140,7 @@ void pprog(char *name, char *unit, long cur, long end)
    int i, n;
 
    /* bail if NUL console printing or no progress */
-   if (Pconfig.out.level == PLEVEL_NUL || (!name && !count)) return;
+   if (Pstdoutcfg.level == PLEVEL_NUL || (!name && !count)) return;
 
    /* determine update type */
    time(&now);
@@ -228,7 +227,7 @@ int perrno(int errnum, const char *fmt, ...)
       strerror_r(errnum, vmsg, sizeof(vmsg)); \
       strncat(vmsg, "; ", sizeof(vmsg) - strlen(vmsg)); \
    }
-   PVFPRINTF(Pconfig.err, PLEVEL_ERR, vmsg, fmt, args);
+   PVFPRINTF(Pstderrcfg, PLEVEL_ERR, vmsg, fmt, args);
 
    return ecode;
 }  /* end perrno() */
@@ -245,7 +244,7 @@ int perr(const char *fmt, ...)
    if (fmt == NULL || ANYPCONFIGLEVEL < PLEVEL_ERR) return 1;
 
    /* build variable message and print to all (incl. stderr) */
-   PVFPRINTF(Pconfig.err, PLEVEL_ERR, vmsg, fmt, args);
+   PVFPRINTF(Pstderrcfg, PLEVEL_ERR, vmsg, fmt, args);
 
    return 1;
 }  /* end perr() */
@@ -262,7 +261,7 @@ int plog(const char *fmt, ...)
    if (fmt == NULL || ANYPCONFIGLEVEL < PLEVEL_LOG) return 0;
 
    /* build variable message and print to all (incl. stdout) */
-   PVFPRINTF(Pconfig.out, PLEVEL_LOG, vmsg, fmt, args);
+   PVFPRINTF(Pstdoutcfg, PLEVEL_LOG, vmsg, fmt, args);
 
    return 0;
 }  /* end plog() */
@@ -279,7 +278,7 @@ int pbug(const char *fmt, ...)
    if (fmt == NULL || ANYPCONFIGLEVEL < PLEVEL_BUG) return 0;
 
    /* build variable message and print to all (incl. stdout) */
-   PVFPRINTF(Pconfig.out, PLEVEL_BUG, vmsg, fmt, args);
+   PVFPRINTF(Pstdoutcfg, PLEVEL_BUG, vmsg, fmt, args);
 
    return 0;
 }  /* end pdebug() */
