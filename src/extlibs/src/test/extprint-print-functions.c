@@ -80,6 +80,6 @@ int main()
    /* cleanup */
    if (Pconfig.perr.fp) {
       fclose(Pconfig.perr.fp);
-      remove("pbug.tmp");
+      remove("perr.tmp");
    }
 }
