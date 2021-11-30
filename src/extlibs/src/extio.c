@@ -20,35 +20,15 @@
 #include "extio.h"
 #include <errno.h>
 #include <limits.h>  /* for determining CPUID* datatypes */
-#include <stdarg.h>  /* for va_list in print functions */
-#include <string.h>  /* for strerror*() functions */
+#include <string.h>  /* for string manipulation functions */
 #include <time.h>    /* for use in timestamp() */
 
-/* when POSIX strerror_r() is not available... */
-#ifndef strerror_r  /* ... provide fallback */
-#define strerror_r(ECODE, STR, LEN) strncpy(STR, strerror(ECODE), LEN)
+#ifdef _WIN32
+#include <direct.h>  /* for _mkdir() */
+#else
+#include <sys/stat.h>  /* for mkdir() */
+#define _mkdir(_path)   mkdir(_path, 0777)
 #endif
-
-/* when POSIX localtime_r() is not available... */
-#ifndef localtime_r  /* ... provide fallback */
-#define localtime_r(T, DT) DT=localtime(T)
-#endif
-
-#ifdef DEBUG
-int Pconsole = PCONSOLE_DEBUG;
-#endif
-
-/* macro definition for cleaner code duplication in print functions */
-#define PFPRINTF(FP, PRE, POST, FMT, ARGP) \
-   if (FP != NULL) { \
-      fprintf(FP, "%s", PRE); \
-      va_start(ARGP, FMT); \
-      vfprintf(FP, FMT, ARGP); \
-      va_end(ARGP); \
-      fprintf(FP, "%s", POST); \
-   }
-
-#define MAXPROGRESS   16
 
 /* determine suitable CPUID* datatype with 32-bit width */
 #if ULONG_MAX == 0xFFFFFFFFUL
@@ -167,213 +147,6 @@ int cpu_hyper_threads(void)
    return hyperthreads;
 }  /* end cpu_hyper_threads() */
 
-/* Convert current time (seconds since Epoch) into string timestamp
- * based on ISO 8061 format, as local time. Result is placed in
- * char *dest, if provided, else uses static char *cp.
- * Returns char* to converted result. */
-static inline char *timestamp(char *dest, size_t count)
-{
-   struct tm dt, *dtp = &dt;
-   time_t t, *tp = &t;
-
-   time(tp);
-   localtime_r(tp, dtp);
-   strftime(dest, count, "%FT%T%z; ", dtp);
-
-   return dest;
-}  /* end timestamp() */
-
-/* Print an error message (with ecode description) to Pstderrfp,
- * Pstdoutfp and/or stderr. */
-void perrno(int ecode, char *fmt, ...)
-{
-   char prestr[128] = "";
-   char poststr[128] = ": ";
-   va_list argp;
-
-   /* ignore NULL fmt's */
-   if(fmt == NULL) return;
-
-   /* counter */
-   Nstderrs++;
-   /* build prefix */
-   if (Ptimestamp) timestamp(prestr, 128);
-   strncat(prestr, PPREFIX_ERR, 128 - strlen(prestr));
-   /* build appended error description */
-   strerror_r(ecode, &poststr[strlen(poststr)], 128);
-   strncat(poststr, "\n", 128 - strlen(poststr));
-   /* print log to stderr, stdout, and debug files, where enabled */
-   PFPRINTF(Pstderrfp, prestr, poststr, fmt, argp);
-   PFPRINTF(Pstdoutfp, prestr, poststr, fmt, argp);
-   PFPRINTF(Pdebugfp, prestr, poststr, fmt, argp);
-   /* ensure console level is appropriate and not already written to */
-   if (Pconsole < PCONSOLE_ERR || Pstderrfp == stderr ||
-      Pstdoutfp == stderr || Pdebugfp == stderr) return;
-   PFPRINTF(stderr, prestr, poststr, fmt, argp);
-   fflush(stderr);
-   /* refresh any progress */
-   pprog_update();
-}  /* end perrno() */
-
-/* Print an error message to Pstderrfp, Pstdoutfp and/or stderr. */
-void perr(char *fmt, ...)
-{
-   char prestr[128] = "";
-   va_list argp;
-
-   /* ignore NULL fmt's */
-   if(fmt == NULL) return;
-
-   /* counter */
-   Nstderrs++;
-   /* build prefix */
-   if (Ptimestamp) timestamp(prestr, 128);
-   strncat(prestr, PPREFIX_ERR, 128 - strlen(prestr));
-   /* print log to stderr, stdout, and debug files, where enabled */
-   PFPRINTF(Pstderrfp, prestr, "\n", fmt, argp);
-   PFPRINTF(Pstdoutfp, prestr, "\n", fmt, argp);
-   PFPRINTF(Pdebugfp, prestr, "\n", fmt, argp);
-   /* ensure console level is appropriate and not already written to */
-   if (Pconsole < PCONSOLE_ERR || Pstderrfp == stderr ||
-      Pstdoutfp == stderr || Pdebugfp == stderr) return;
-   PFPRINTF(stderr, prestr, "\n", fmt, argp);
-   fflush(stderr);
-   /* refresh any progress */
-   pprog_update();
-}  /* end perr() */
-
-/* Print a log message to Pstdoutfp and/or stdout. */
-void plog(char *fmt, ...)
-{
-   char prestr[128] = "";
-   va_list argp;
-
-   /* ignore NULL fmt's */
-   if(fmt == NULL) return;
-
-   /* counter */
-   Nstdouts++;
-   /* build prefix */
-   if (Ptimestamp) timestamp(prestr, 128);
-   strncat(prestr, PPREFIX_LOG, 128 - strlen(prestr));
-   /* print log to stdout, and debug files, where enabled */
-   PFPRINTF(Pstdoutfp, prestr, "\n", fmt, argp);
-   PFPRINTF(Pdebugfp, prestr, "\n", fmt, argp);
-   /* ensure console level is appropriate and not already written to */
-   if (Pconsole < PCONSOLE_LOG || Pstdoutfp == stdout ||
-      Pdebugfp == stdout) return;
-   PFPRINTF(stdout, prestr, "\n", fmt, argp);
-   fflush(stdout);
-   /* refresh any progress */
-   pprog_update();
-}  /* end plog() */
-
-/* Print a debug message to file pointer Logdebugfp and/or stdout. */
-void pdebug(char *fmt, ...)
-{
-   char prestr[128] = "";
-   va_list argp;
-
-   /* ignore NULL fmt's */
-   if(fmt == NULL) return;
-
-   /* counter */
-   Ndebugs++;
-   /* build prefix */
-   if (Ptimestamp) timestamp(prestr, 128);
-   strncat(prestr, PPREFIX_DEBUG, 128 - strlen(prestr));
-   /* print log to debug files, where enabled */
-   PFPRINTF(Pdebugfp, prestr, "\n", fmt, argp);
-   /* ensure console level is appropriate and not already written to */
-   if (Pconsole < PCONSOLE_DEBUG || Pdebugfp == stdout) return;
-   PFPRINTF(stdout, prestr, "\n", fmt, argp);
-   fflush(stdout);
-   /* refresh any progress */
-   pprog_update();
-}  /* end pdebug() */
-
-void pprog(char *msg, char *unit, long cur, long end)
-{
-   static char metric[9][3] = { "", "K", "M", "G", "T", "P", "E", "Z", "Y" };
-   static char spinner[] = "-\\|/";
-   static struct _prog {
-      float pc, ps;
-      long tscur, cur, end, eta, time;
-      char msg[48], unit[16];
-      time_t ts, started;
-   } prog[MAXPROGRESS], p;
-   static size_t proglen = sizeof(*prog);
-   static int count = 0;
-   double diff;
-   time_t now;
-   int i, n;
-
-   /* bail if NUL console printing or no progress */
-   if (Pconsole == PCONSOLE_NUL || (!msg && !count)) return;
-
-   /* determine update type */
-   time(&now);
-   if (msg) {
-      for (i = 0; i <= count && i < MAXPROGRESS; i++) {
-         if (prog[i].msg[0] == '\0') {
-            /* create progress */
-            prog[i].started = prog[i].ts = now;
-            strncpy(prog[i].msg, msg, 48);
-            if (unit) strncpy(prog[i].unit, unit, 16);
-            if (cur) prog[i].cur = cur;
-            if (end) prog[i].end = end;
-            count++;
-            break;
-         } else if (strncmp(prog[i].msg, msg, 48) == 0) {
-            prog[i].time = difftime(now, prog[i].started);
-            if (cur < 0 && end < 0) {
-               /* remove progress */
-               if (count <= i) memset(&prog[i], 0, proglen);
-               else memmove(&prog[i], &prog[i + 1], proglen * (count - i));
-               i = count; while(i--) printf("\n\33[2K");
-               printf("\33[%dA", count--);
-            } else {
-               /* update progress */
-               if (cur) prog[i].cur = cur;
-               if (end) prog[i].end = end;
-               diff = difftime(now, prog[i].ts);
-               if (diff) {
-                  prog[i].ps = (prog[i].cur - prog[i].tscur) / diff;
-                  prog[i].tscur = prog[i].cur;
-                  prog[i].ts = now;
-               }
-               if (prog[i].end > 0) {
-                  /* calculate ETA and completion */
-                  prog[i].pc = 100.0 * prog[i].cur / prog[i].end;
-                  if (prog[i].ps) {
-                     prog[i].eta = (prog[i].end - prog[i].cur) / prog[i].ps;
-                  }
-               }
-            }
-            break;
-         }
-      }
-   }
-
-   /* display update */
-   if (count) {
-      printf("\33[2K");
-      for (n = i = 0, p = prog[0]; i < count; n = 0, i++, p = prog[i]) {
-         while(p.ps > 1000 && n++ < 9) p.ps /= 1000;
-         printf("\n\33[2K%c %s... ", spinner[(int) p.time % 4], p.msg);
-         if (p.pc > 0) {  /* print w/ percentage */
-            printf("%.02f%% (%.2f%s%s/s) | ETA: %lds | Elapsed: %lds",
-               p.pc, p.ps, metric[n], p.unit, p.eta, p.time);
-         } else {  /* print w/o percentage */
-            printf("%ld (%.2f%s%s/s) | Elapsed: %lds",
-               p.cur, p.ps, metric[n], p.unit, p.time);
-         }
-      }
-      printf("\r\33[%dA", i);
-      fflush(stdout);
-   }
-}
-
 /* Check if a file exists and contains data. Attribution: Thanks David!
  * Returns 1 if file exists non-zero, else 0. */
 int existsnz(char *fname)
@@ -400,6 +173,30 @@ int exists(char *fname)
    fclose(fp);
 
    return 1;
+}
+
+/**
+ * Create directory at dirpath, including parents where specified.
+ * Returns 0 on success (or if directory exists), else errno. */
+int mkdir_p(const char *dirpath)
+{
+   char path[FILENAME_MAX] = { 0 };
+   char *dirpathp = (char *) dirpath;
+   size_t len = 0;
+
+   if (dirpath == NULL) return EFAULT;
+   if (strlen(dirpath) >= FILENAME_MAX - 1) return E2BIG;
+
+   do {
+      dirpathp = strpbrk(++dirpathp, "\\/");
+      if (dirpathp == NULL) len = strlen(dirpath);
+      else len = dirpathp - dirpath;
+      strncpy(path, dirpath, len);
+      path[len] = '\0';  /* ensure nul-termination */
+      if (_mkdir(path) && errno != EEXIST) return errno;
+   } while(len < strlen(dirpath));
+
+   return 0;
 }
 
 /**

@@ -1,0 +1,300 @@
+/**
+ * extprint.c - Extended print and logging support
+ *
+ * Copyright (c) 2018-2021 Adequate Systems, LLC. All Rights Reserved.
+ * For more information, please refer to ../LICENSE
+ *
+ * Date: 1 January 2018
+ * Revised: 30 November 2021
+ *
+*/
+
+#ifndef EXTENDED_PRINT_C
+#define EXTENDED_PRINT_C  /* include guard */
+
+
+#include "extprint.h"
+#include "extthread.h"  /* for mutex support */
+#include <stdarg.h>  /* for va_list support */
+#include <string.h>  /* for strerror* functions */
+
+
+#define MAXPROGRESS  16
+#define ANYPCONFIGLEVEL (Pconfig.perr.level | Pconfig.plog.level \
+   | Pconfig.pbug.level | Pconfig.err.level | Pconfig.out.level)
+#define BUILDVMSG(vmsg, fmt, args) \
+   do { \
+      va_start(args, fmt); \
+      vsprintf(&vmsg[strlen(vmsg)], fmt, args); \
+      va_end(args); \
+      vmsg[PMESSAGE_MAX - 1] = '\0'; \
+   } while(0)
+
+
+/* Apply runtime defaults */
+Mutex Perrex = MUTEX_INITIALIZER;
+Mutex Plogex = MUTEX_INITIALIZER;
+Mutex Pbugex = MUTEX_INITIALIZER;
+Mutex Pstdex = MUTEX_INITIALIZER;
+PCONFIGCONTAINER Pconfig = {
+   .perr = { .ex = &Perrex, .level = PLEVEL_ERR, .pre = "Error: " },
+   .plog = { .ex = &Plogex, .level = PLEVEL_LOG, .pre = "" },
+   .pbug = { .ex = &Pbugex, .level = PLEVEL_BUG, .pre = "DEBUG; " },
+   .err = { .fd = 2, .ex = &Pstdex, .level = PLEVEL_ERR, .pre = "Error: " },
+   .out = { .fd = 1, .ex = &Pstdex, .level = PLEVEL_LOG, .pre = "" }
+};
+
+
+/* strerror_r() is specified by POSIX.1-2001... */
+#if ! defined(_POSIX_C_SOURCE) || _POSIX_C_SOURCE < 200112L
+
+/**
+ * Fallback function for strerror_r() where unavailable. */
+static inline void strerror_r(int errnum, char *buf, size_t buflen)
+{  /* ... provides fallback, when unavailable */
+   static Mutex lock = MUTEX_INITIALIZER;  /* statically initialized Mutex */
+
+   /* a NULL buf or a bufflen of zero (0) is inappropriate */
+   if (buf == NULL || buflen == 0) return;
+   /* secure the integrity of strerror()'s static string */
+   mutex_lock(&lock);
+   strncpy(buf, strerror(errnum), buflen);
+   mutex_unlock(&lock);
+   /* ensure buf is ALWAYS nul-terminated */
+   buf[buflen - 1] = '\0';
+}  /* end strerror_r() */
+
+#endif
+
+
+/**
+ * Convert current time (seconds since Epoch) into string timestamp
+ * based on ISO 8061 format, as local time. Result is placed in
+ * char *dest, if provided, else uses static char *cp.
+ * Returns char* to converted result, *dest. */
+static inline char *timestamp(char *dest, size_t count)
+{
+   struct tm dt, *dtp = &dt;
+   time_t t, *tp = &t;
+
+   time(tp);
+   localtime_r(tp, dtp);
+   strftime(dest, count, "%FT%T%z; ", dtp);
+
+   return dest;
+}  /* end timestamp() */
+
+/**
+ * Print a log using a specific configuration, pointed to by *cfg. */
+static inline void pcfg (PCONFIG *cfg, char *msg)
+{
+   char tstr[28] = "";
+
+   /* skip configurations without a writing destination or... */
+   if (cfg->fp == NULL) {  /* ... set writing destination from fd, if set */
+      if (cfg->fd == 1) cfg->fp = stdout;
+      else if (cfg->fd == 2) cfg->fp = stderr;
+      else return;
+   }
+
+   /* start eclusive write */
+   mutex_lock((Mutex *) cfg->ex);
+
+   /* increment log counter */
+   cfg->nlogs++;
+   /* print to file pointer, guarded */
+   if (cfg->time) fprintf(cfg->fp, "%s", timestamp(tstr, 28));
+   if (cfg->pre[0]) fprintf(cfg->fp, "%s", cfg->pre);
+   fprintf(cfg->fp, "%s", msg);
+   fflush(cfg->fp);
+
+   /* end exclusive write */
+   mutex_unlock((Mutex *) cfg->ex);
+
+   /* reprint any current progress bars */
+   if (cfg->fd) pprog_reprint();
+}
+
+/**
+ * Print or update progress bar "name".
+ * pprog_reprint() to update all progress bars.
+ * pprog_done(name) to remove a progress bar. */
+void pprog(char *name, char *unit, long cur, long end)
+{
+   static Mutex progex = MUTEX_INITIALIZER;
+   static char metric[9][3] = { "", "K", "M", "G", "T", "P", "E", "Z", "Y" };
+   static char spinner[] = "-\\|/";
+   static struct _prog {
+      float pc, ps;
+      long tscur, cur, end, eta, time;
+      char name[48], unit[16];
+      time_t ts, started;
+   } prog[MAXPROGRESS], p;
+   static size_t proglen = sizeof(*prog);
+   static int count = 0;
+   double diff;
+   time_t now;
+   int i, n;
+
+   /* bail if NUL console printing or no progress */
+   if (Pconfig.out.level == PLEVEL_NUL || (!name && !count)) return;
+
+   /* determine update type */
+   time(&now);
+   if (name) {
+      mutex_lock(&progex);
+      for (i = 0; i <= count && i < MAXPROGRESS; i++) {
+         if (prog[i].name[0] == '\0') {
+            /* create progress */
+            prog[i].started = prog[i].ts = now;
+            strncpy(prog[i].name, name, 48);
+            if (unit) strncpy(prog[i].unit, unit, 16);
+            if (cur) prog[i].cur = cur;
+            if (end) prog[i].end = end;
+            count++;
+            break;
+         } else if (strncmp(prog[i].name, name, 48) == 0) {
+            prog[i].time = difftime(now, prog[i].started);
+            if (cur < 0 && end < 0) {
+               /* remove progress */
+               if (count <= i) memset(&prog[i], 0, proglen);
+               else memmove(&prog[i], &prog[i + 1], proglen * (count - i));
+               i = count; while(i--) printf("\n\33[2K");
+               printf("\33[%dA", count--);
+            } else {
+               /* update progress */
+               if (cur) prog[i].cur = cur;
+               if (end) prog[i].end = end;
+               diff = difftime(now, prog[i].ts);
+               if (diff) {
+                  prog[i].ps = (prog[i].cur - prog[i].tscur) / diff;
+                  prog[i].tscur = prog[i].cur;
+                  prog[i].ts = now;
+               }
+               if (prog[i].end > 0) {
+                  /* calculate ETA and completion */
+                  prog[i].pc = 100.0 * prog[i].cur / prog[i].end;
+                  if (prog[i].ps) {
+                     prog[i].eta = (prog[i].end - prog[i].cur) / prog[i].ps;
+                  }
+               }
+            }
+            break;
+         }
+      }
+      mutex_unlock(&progex);
+   }
+
+   /* display update */
+   if (count) {
+      mutex_lock(&Pstdex);
+      printf("\33[2K");
+      for (n = i = 0, p = prog[0]; i < count; n = 0, i++, p = prog[i]) {
+         while(p.ps > 1000 && n++ < 9) p.ps /= 1000;
+         printf("\n\33[2K%c %s... ", spinner[(int) p.time % 4], p.name);
+         if (p.pc > 0) {  /* print w/ percentage */
+            printf("%.02f%% (%.2f%s%s/s) | ETA: %lds | Elapsed: %lds",
+               p.pc, p.ps, metric[n], p.unit, p.eta, p.time);
+         } else {  /* print w/o percentage */
+            printf("%ld (%.2f%s%s/s) | Elapsed: %lds",
+               p.cur, p.ps, metric[n], p.unit, p.time);
+         }
+      }
+      printf("\r\33[%dA", i);
+      fflush(stdout);
+      mutex_unlock(&Pstdex);
+   }
+}
+
+/**
+ * Print an error message (with description of errnum) using
+ * Pconfigs: stderr, perr, plog and pbug.
+ * Returns 2 if errnum is less than 0, else 1. */
+int perrno(int errnum, const char *fmt, ...)
+{
+   int ecode = errnum < 0 ? 2 : 1;
+   char vmsg[PMESSAGE_MAX] = "";
+   va_list args;
+
+   /* ignore NULL fmt's and NUL log level scenarios */
+   if (fmt == NULL || ANYPCONFIGLEVEL < PLEVEL_ERR) return ecode;
+
+   if (errnum >= 0) {
+      strerror_r(errnum, vmsg, 64);
+      strncat(vmsg, ". ", 64 - strlen(vmsg));
+   }
+   BUILDVMSG(vmsg, fmt, args);
+   /* print to stderr, perr, plog, and pbug file pointers */
+   if (Pconfig.perr.level >= PLEVEL_ERR) pcfg(&(Pconfig.perr), vmsg);
+   if (Pconfig.plog.level >= PLEVEL_ERR) pcfg(&(Pconfig.plog), vmsg);
+   if (Pconfig.pbug.level >= PLEVEL_ERR) pcfg(&(Pconfig.pbug), vmsg);
+   if (Pconfig.err.level >= PLEVEL_ERR) pcfg(&(Pconfig.err), vmsg);
+
+   return ecode;
+}  /* end perrno() */
+
+/**
+ * Print an error message using Pconfigs: stderr, perr, plog and pbug.
+ * Returns 0. */
+int perr(const char *fmt, ...)
+{
+   char vmsg[PMESSAGE_MAX] = "";
+   va_list args;
+
+   /* ignore NULL fmt's and NUL log level scenarios */
+   if (fmt == NULL || ANYPCONFIGLEVEL < PLEVEL_ERR) return 1;
+
+   BUILDVMSG(vmsg, fmt, args);
+   /* print to stderr, perr, plog, and pbug file pointers */
+   if (Pconfig.perr.level >= PLEVEL_ERR) pcfg(&(Pconfig.perr), vmsg);
+   if (Pconfig.plog.level >= PLEVEL_ERR) pcfg(&(Pconfig.plog), vmsg);
+   if (Pconfig.pbug.level >= PLEVEL_ERR) pcfg(&(Pconfig.pbug), vmsg);
+   if (Pconfig.err.level >= PLEVEL_ERR) pcfg(&(Pconfig.err), vmsg);
+
+   return 1;
+}  /* end perr() */
+
+/**
+ * Print a log message using Pconfigs: stdout, plog and pbug.
+ * Returns 0. */
+int plog(const char *fmt, ...)
+{
+   char vmsg[PMESSAGE_MAX] = "";
+   va_list args;
+
+   /* ignore NULL fmt's and NUL log level scenarios */
+   if (fmt == NULL || ANYPCONFIGLEVEL < PLEVEL_LOG) return 0;
+
+   BUILDVMSG(vmsg, fmt, args);
+   /* print to stdout, plog, and pbug file pointers */
+   if (Pconfig.perr.level >= PLEVEL_LOG) pcfg(&(Pconfig.perr), vmsg);
+   if (Pconfig.plog.level >= PLEVEL_LOG) pcfg(&(Pconfig.plog), vmsg);
+   if (Pconfig.pbug.level >= PLEVEL_LOG) pcfg(&(Pconfig.pbug), vmsg);
+   if (Pconfig.out.level >= PLEVEL_LOG) pcfg(&(Pconfig.out), vmsg);
+
+   return 0;
+}  /* end plog() */
+
+/**
+ * Print a debug message using Pconfigs: stdout and pbug.
+ * Returns 0. */
+int pbug(const char *fmt, ...)
+{
+   char vmsg[PMESSAGE_MAX] = "";
+   va_list args;
+
+   /* ignore NULL fmt's and NUL log level scenarios */
+   if (fmt == NULL || ANYPCONFIGLEVEL < PLEVEL_BUG) return 0;
+
+   BUILDVMSG(vmsg, fmt, args);
+   /* print to stdout, plog, and pbug file pointers */
+   if (Pconfig.perr.level >= PLEVEL_BUG) pcfg(&(Pconfig.perr), vmsg);
+   if (Pconfig.plog.level >= PLEVEL_BUG) pcfg(&(Pconfig.plog), vmsg);
+   if (Pconfig.pbug.level >= PLEVEL_BUG) pcfg(&(Pconfig.pbug), vmsg);
+   if (Pconfig.out.level >= PLEVEL_BUG) pcfg(&(Pconfig.out), vmsg);
+
+   return 0;
+}  /* end pdebug() */
+
+
+#endif  /* end EXTENDED_PRINT_C */
