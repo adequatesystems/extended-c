@@ -3,7 +3,7 @@
 #include "../extio.h"
 
 int main()
-{  /* check exists() returns both falsey and truthy for associated files */
-   ASSERT_EQ(exists("non-existant-file.log"), 0);
-   ASSERT_EQ(exists(__FILE__), 1);
+{  /* check fexists() returns both falsey and truthy for associated files */
+   ASSERT_EQ(fexists("non-existant-file.log"), 0);
+   ASSERT_EQ(fexists(__FILE__), 1);
 }

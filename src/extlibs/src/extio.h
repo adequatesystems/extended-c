@@ -12,13 +12,11 @@
  *
 */
 
-#ifndef _EXTENDED_INPUTOUTPUT_H_
-#define _EXTENDED_INPUTOUTPUT_H_  /* include guard */
+#ifndef EXTENDED_IO_H
+#define EXTENDED_IO_H  /* include guard */
 
 
 #include <stdio.h>
-
-#define BUFFER_SIZE     4096
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,11 +27,11 @@ char *cpu_vendor(void);
 int cpu_logical_cores(void);
 int cpu_actual_cores(void);
 int cpu_hyper_threads(void);
-int existsnz(char *fname);
-int exists(char *fname);
-int mkdir_p(const char *dirpath);
+int fexists(char *fname);
+int fexistsnz(char *fname);
 int ftouch(char *fname);
-int fcopy(char *srcname, char *dstname);
+int fcopy(char *srcpath, char *dstpath);
+int mkdir_p(char *dirpath);
 int write_data(void *buff, int len, char *fname);
 int read_data(void *buff, int len, char *fname);
 
@@ -42,4 +40,4 @@ int read_data(void *buff, int len, char *fname);
 #endif
 
 
-#endif  /* end _EXTENDED_INPUTOUTPUT_H_ */
+#endif  /* end EXTENDED_IO_H */

@@ -1,53 +1,52 @@
 /**
- * extio.c - Extended Input/Output support
- *
- * Copyright (c) 2018-2021 Adequate Systems, LLC. All Rights Reserved.
- * For more information, please refer to ../LICENSE
- *
- * Date: 1 January 2018
- * Revised: 7 November 2021
- *
- * NOTES:
- * - For implementation of additional CPUID features;
- *    https://en.wikipedia.org/wiki/CPUID
- *
+ * @file extio.c
+ * @headerfile extio.h extio
+ * @date 1 Jan 2018 (Revised 1 Dec 2021)
+ * @brief Source file providing extended IO support.
+ * @copyright © Adequate Systems LLC, 2018-2021. All Rights Reserved.
+ * <br />For more information, please refer to ../LICENSE
 */
 
-#ifndef _EXTENDED_INPUTOUTPUT_C_
-#define _EXTENDED_INPUTOUTPUT_C_  /* include guard */
+#ifndef EXTENDED_IO_C
+#define EXTENDED_IO_C  /* include guard */
 
 
 #include "extio.h"
-#include <errno.h>
-#include <limits.h>  /* for determining CPUID* datatypes */
-#include <string.h>  /* for string manipulation functions */
-#include <time.h>    /* for use in timestamp() */
+#include <errno.h>   /* for access to errno and error codes */
+#include <limits.h>  /* for isolated 32-bit unsigned datatypes */
+#include <string.h>  /* for string manipulation and comparison */
 
 #ifdef _WIN32
 #include <direct.h>  /* for _mkdir() */
 #else
 #include <sys/stat.h>  /* for mkdir() */
-#define _mkdir(_path)   mkdir(_path, 0777)
+#define _mkdir(_path)   mkdir(_path, 0777)  /* compatibility */
 #endif
 
-/* determine suitable CPUID* datatype with 32-bit width */
+/* Internal 32-bit word datatype for CPUID* handling */
 #if ULONG_MAX == 0xFFFFFFFFUL
    /* long is preferred 32-bit word */
-   typedef unsigned long int  CPUIDLeaf, CPUIDRegister;
+   typedef unsigned long int  CPUIDLeaf, CPUIDReg;
 #elif UINT_MAX == 0xFFFFFFFFU
    /* int is preferred 32-bit word */
-   typedef unsigned int       CPUIDLeaf, CPUIDRegister;
+   typedef unsigned int       CPUIDLeaf, CPUIDReg;
 #endif
 
-/* CPUIDInfo struct for holding cpuid information */
+/**
+ * @private
+ * Internal CPUIDInfo struct for holding cpuid information.
+*/
 typedef struct {
-   CPUIDRegister EAX;
-   CPUIDRegister EBX;
-   CPUIDRegister ECX;
-   CPUIDRegister EDX;
+   CPUIDReg EAX;
+   CPUIDReg EBX;
+   CPUIDReg ECX;
+   CPUIDReg EDX;
 } CPUIDInfo;
 
-/* Inline cpuid function */
+/**
+ * @private
+ * Internal inline cpuid function for extended informatio.
+*/
 static inline CPUIDInfo cpuidex(CPUIDLeaf leaf, CPUIDLeaf leafex) {
    CPUIDInfo info = { 0 };
 
@@ -77,28 +76,43 @@ static inline CPUIDInfo cpuidex(CPUIDLeaf leaf, CPUIDLeaf leafex) {
    return info;
 }  /* end cpuidex() */
 
-/* Inline cpuid function for calls without extended information */
+/**
+ * @private
+ * Internal inline cpuid function for standard information.
+*/
 static inline CPUIDInfo cpuid(CPUIDLeaf leaf)
 {
    return cpuidex(leaf, 0);
 }  /* end cpuid() */
 
-/* Obtain CPU Vendor information */
+/**
+ * @brief Detect CPU vendor.
+ *
+ * Determine the CPU vendor used by the system
+ * (e.g. AuthenticAMD, GenuineIntel, etc.).
+ * @return A nul-terminated char* representing the CPU vendor.
+*/
 char *cpu_vendor(void)
 {
    static char vendor[16] = { -1 };
 
    if (vendor[0] < 0) {
       CPUIDInfo info = cpuid(0);
-      ((CPUIDRegister *) vendor)[0] = info.EBX;
-      ((CPUIDRegister *) vendor)[1] = info.EDX;
-      ((CPUIDRegister *) vendor)[2] = info.ECX;
+      ((CPUIDReg *) vendor)[0] = info.EBX;
+      ((CPUIDReg *) vendor)[1] = info.EDX;
+      ((CPUIDReg *) vendor)[2] = info.ECX;
    }
 
    return vendor;
 }  /* end cpu_vendor() */
 
-/* Obtain logical CPU cores */
+/**
+ * @brief Detect number of logical CPU cores.
+ *
+ * Determine the number of logical CPU cores
+ * (incl. hyper threads) available to the system.
+ * @return Number of logical CPU cores.
+*/
 int cpu_logical_cores(void)
 {
    static int cores = -1;
@@ -111,7 +125,13 @@ int cpu_logical_cores(void)
    return cores;
 }  /* end cpu_logical_cores() */
 
-/* Obtain Actual CPU cores */
+/**
+ * @brief Detect number of actual CPU cores.
+ *
+ * Determine the number of actual CPU cores
+ * (excl. hyper threads) available to the system.
+ * @return Number of actual CPU cores.
+*/
 int cpu_actual_cores(void)
 {
    static int cores = -1;
@@ -130,7 +150,12 @@ int cpu_actual_cores(void)
    return cores;
 }  /* end cpu_actual_cores() */
 
-/* Determine if hyper threads are enabled */
+/**
+ * @brief Detect CPU hyper threading.
+ *
+ * Determines if hyper threads are enabled on this system.
+ * @return 1 if hyper threads are enabled, else 0.
+*/
 int cpu_hyper_threads(void)
 {
    static int hyperthreads = -1;
@@ -147,9 +172,66 @@ int cpu_hyper_threads(void)
    return hyperthreads;
 }  /* end cpu_hyper_threads() */
 
-/* Check if a file exists and contains data. Attribution: Thanks David!
- * Returns 1 if file exists non-zero, else 0. */
-int existsnz(char *fname)
+/**
+ * @brief Copy a file.
+ *
+ * Copy a file from one location, srcpath, to another, dstpath.
+ * @param srcpath Path of the source file.
+ * @param dstpath Path of the destination file.
+ * @return 0 on success, or 1 on error (check errno for details).
+*/
+int fcopy(char *srcpath, char *dstpath)
+{
+   char buf[BUFSIZ];
+   FILE *sfp, *dfp;
+   size_t nBytes;
+   int ecode = 1;
+
+   /* open source file */
+   sfp = fopen(srcpath, "rb");
+   if (sfp != NULL) {
+      /* open destination file */
+      dfp = fopen(dstpath, "wb");
+      if (dfp != NULL) {
+         /* transfer bytes in BUFSIZ chunks (set by stdio) */
+         do {  /* nBytes represents number of bytes read */
+            nBytes = fread(buf, 1, BUFSIZ, sfp);
+         } while(nBytes && nBytes == fwrite(buf, 1, nBytes, dfp));
+         /* if no file errors, set operation success (0) */
+         if (ferror(sfp) == 0 && ferror(dfp) == 0) ecode = 0;
+         fclose(dfp);
+      }
+      fclose(sfp);
+   }
+
+   return ecode;
+}  /* end fcopy() */
+
+/**
+ * @relatesalso fexistsnz
+ * @brief Check if a file exists and contains data.
+ *
+ * Checks if a file exists by opening it in "read-only" mode.
+ * @return 1 if file exists, else 0.
+*/
+int fexists(char *fname)
+{
+   FILE *fp;
+
+   fp = fopen(fname, "rb");
+   if(!fp) return 0;
+   fclose(fp);
+
+   return 1;
+}  /* end fexists() */
+
+/**
+ * @brief Check if a file exists and contains data.
+ * @return 1 if file exists and contains data, else 0.
+ * @note Attribution: Thanks David!
+ * @relatesalso fexists
+*/
+int fexistsnz(char *fname)
 {
    FILE *fp;
    long len;
@@ -161,100 +243,59 @@ int existsnz(char *fname)
    fclose(fp);
 
    return len ? 1 : 0;
-}
-
-/* Check if a file exists. Returns 1 if file exists, else 0. */
-int exists(char *fname)
-{
-   FILE *fp;
-
-   fp = fopen(fname, "rb");
-   if(!fp) return 0;
-   fclose(fp);
-
-   return 1;
-}
+}  /* end fexistsnz() */
 
 /**
- * Create directory at dirpath, including parents where specified.
- * Returns 0 on success (or if directory exists), else errno. */
-int mkdir_p(const char *dirpath)
-{
-   char path[FILENAME_MAX] = { 0 };
-   char *dirpathp = (char *) dirpath;
-   size_t len = 0;
-
-   if (dirpath == NULL) return EFAULT;
-   if (strlen(dirpath) >= FILENAME_MAX - 1) return E2BIG;
-
-   do {
-      dirpathp = strpbrk(++dirpathp, "\\/");
-      if (dirpathp == NULL) len = strlen(dirpath);
-      else len = dirpathp - dirpath;
-      strncpy(path, dirpath, len);
-      path[len] = '\0';  /* ensure nul-termination */
-      if (_mkdir(path) && errno != EEXIST) return errno;
-   } while(len < strlen(dirpath));
-
-   return 0;
-}
-
-/**
- * Touch a file, result in either creation or opening and closing.
- * Returns 0 on success, else error code. */
+ * @brief Touch a file.
+ *
+ * Opens the file, `fname`, in "append" mode, and immediately closes it.
+ * @return 0 on success, else 1 on error (check errno for details).
+ * @note Performs no other operations on the file.
+*/
 int ftouch(char *fname)
 {
    FILE *fp;
 
    fp = fopen(fname, "ab");
-   if (fp == NULL) return errno;
+   if (fp == NULL) return 1;
    fclose(fp);
 
    return 0;
-}
+}  /* end ftouch() */
 
 /**
- * Copy a file from one location, *srcname, to another, *dstname.
- * Returns 0 on success, else error code. */
-int fcopy(char *srcname, char *dstname)
+ * @brief Create a directory at dirpath (including any parent directories).
+ *
+ * Immitates the shell command @verbatim mkdir -p <dirpath> @endverbatim
+ * @return 0 on success, or 1 on error (check errno for details).
+ * @note Where `dirpath` already exists, `mkdir_p()` always succeeds.
+ * @warning The length of `dirpath` (incl. terminator) MUST be less
+ * than `FILENAME_MAX`, otherwise `mkdir_p()` will fail with `errno`
+ * set to `ENAMETOOLONG`.
+*/
+int mkdir_p(char *dirpath)
 {
-   char buf[BUFFER_SIZE];
-   FILE *rfp, *wfp;
-   size_t nBytes;
-   int ecode = 0;
+   char path[FILENAME_MAX] = { 0 };
+   char *dirpathp = dirpath;
+   size_t len = 0;
+   int ecode = 1;
 
-   rfp = fopen(srcname, "rb");
-   if (rfp == NULL) ecode = errno ? errno : EIO;
-   else {
-      wfp = fopen(dstname, "wb");
-      if (wfp == NULL) ecode = errno ? errno : EIO;
-      else {
-         do {  /* perform copy operation */
-            nBytes = fread(buf, 1, BUFFER_SIZE, rfp);
-         } while(nBytes && fwrite(buf, 1, nBytes, wfp) != nBytes);
-         if (ferror(rfp) || ferror(wfp)) ecode = errno ? errno : EIO;
-         fclose(wfp);
-      }
-      fclose(rfp);
-   }
+   if (dirpath == NULL) errno = EINVAL;
+   else if (strlen(dirpath) + 1 >= FILENAME_MAX) errno = ENAMETOOLONG;
+   else do {
+      /* split (excl. preceding path separator)... */
+      dirpathp = strpbrk(++dirpathp, "\\/");
+      if (dirpathp == NULL) len = strlen(dirpath);
+      else len = dirpathp - dirpath;
+      /* ... and rebuild directory path... */
+      strncpy(path, dirpath, len);
+      path[len] = '\0';  /* ensure nul-termination */
+      /* ... creating parent directories, and ignoring EEXIST */
+      ecode = (_mkdir(path) && errno != EEXIST) ? 1 : 0;
+   } while(ecode == 0 && len < strlen(dirpath));
 
    return ecode;
 }
-
-/* Write data buff[len] to file, fname.
- * Returns write count or -1 on error. */
-int write_data(void *buff, int len, char *fname)
-{
-   FILE *fp;
-   size_t count;
-
-   fp = fopen(fname, "wb");
-   if(fp == NULL) return -1;
-   count = fwrite(buff, 1, len, fp);
-   fclose(fp);
-
-   return (int) count;
-}  /* end write_data() */
 
 /* Read data from file, fname, into buff[len].
  * Returns read count or -1 on error. */
@@ -272,5 +313,20 @@ int read_data(void *buff, int len, char *fname)
    return (int) count;
 }  /* end read_data() */
 
+/* Write data buff[len] to file, fname.
+ * Returns write count or -1 on error. */
+int write_data(void *buff, int len, char *fname)
+{
+   FILE *fp;
+   size_t count;
 
-#endif  /* end _EXTENDED_INPUTOUTPUT_C_ */
+   fp = fopen(fname, "wb");
+   if(fp == NULL) return -1;
+   count = fwrite(buff, 1, len, fp);
+   fclose(fp);
+
+   return (int) count;
+}  /* end write_data() */
+
+
+#endif  /* end EXTENDED_IO_C */
