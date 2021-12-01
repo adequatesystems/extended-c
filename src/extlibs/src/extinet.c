@@ -188,19 +188,19 @@ int phostinfo(void)
    result = gethostname(hostname, sizeof(hostname));
    if (result == 0) host = gethostbyname(hostname);
    if (host) {
-      printf("Local Machine Info\n");
-      printf("  Machine name: %s\n", host->h_name ? host->h_name : "unknown");
+      printf("Local Machine Info\33[0K\n");
+      printf("  Machine name: %s\33[0K\n", host->h_name ? host->h_name : "unknown");
       for (i = 0; host->h_aliases[i]; i++) {
-         printf("     alt. name: %s\n", host->h_aliases[i]);
+         printf("     alt. name: %s\33[0K\n", host->h_aliases[i]);
       }
       for (i = 0; host->h_addr_list[i]; i++) {
          addrstr = inet_ntoa(*((struct in_addr *) (host->h_addr_list[i])));
-         printf("  %s address: %s\n",
+         printf("  %s address: %s\33[0K\n",
             host->h_addrtype == AF_INET ? "IPv4" : "Unknown", addrstr);
       }
    }
 
-   printf("\n");
+   printf("\33[2K\n");
    return result;
 }  /* end phostinfo() */
 
