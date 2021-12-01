@@ -124,7 +124,6 @@ static inline void pcfg (PCONFIG *cfg, char *msg)
  * pprog_done(name) to remove a progress bar. */
 void pprog(char *name, char *unit, long cur, long end)
 {
-   static Mutex progex = MUTEX_INITIALIZER;
    static char metric[9][3] = { "", "K", "M", "G", "T", "P", "E", "Z", "Y" };
    static char spinner[] = "-\\|/";
    static struct _prog {
@@ -142,12 +141,23 @@ void pprog(char *name, char *unit, long cur, long end)
    /* bail if NUL console printing or no progress */
    if (Pstdoutcfg.level == PLEVEL_NUL || (!name && !count)) return;
 
+   mutex_lock(&Pstdex);
+
    /* determine update type */
    time(&now);
    if (name) {
-      mutex_lock(&progex);
       for (i = 0; i <= count && i < MAXPROGRESS; i++) {
-         if (prog[i].name[0] == '\0') {
+         if (cur < 0 && end < 0) {
+            /* check for and remove progress */
+            if (strncmp(prog[i].name, name, 48) == 0) {
+               if (i < (count - 1)) {
+                  memmove(&prog[i], &prog[count - 1], proglen);
+               } else memset(&prog[i], 0, proglen);
+               i = count; while(i--) printf("\n\33[2K");
+               printf("\33[%dA", count--);
+               break;
+            }
+         } else if (prog[i].name[0] == '\0') {
             /* create progress */
             prog[i].started = prog[i].ts = now;
             strncpy(prog[i].name, name, 48);
@@ -158,39 +168,29 @@ void pprog(char *name, char *unit, long cur, long end)
             break;
          } else if (strncmp(prog[i].name, name, 48) == 0) {
             prog[i].time = difftime(now, prog[i].started);
-            if (cur < 0 && end < 0) {
-               /* remove progress */
-               if (count <= i) memset(&prog[i], 0, proglen);
-               else memmove(&prog[i], &prog[i + 1], proglen * (count - i));
-               i = count; while(i--) printf("\n\33[2K");
-               printf("\33[%dA", count--);
-            } else {
-               /* update progress */
-               if (cur) prog[i].cur = cur;
-               if (end) prog[i].end = end;
-               diff = difftime(now, prog[i].ts);
-               if (diff) {
-                  prog[i].ps = (prog[i].cur - prog[i].tscur) / diff;
-                  prog[i].tscur = prog[i].cur;
-                  prog[i].ts = now;
-               }
-               if (prog[i].end > 0) {
-                  /* calculate ETA and completion */
-                  prog[i].pc = 100.0 * prog[i].cur / prog[i].end;
-                  if (prog[i].ps) {
-                     prog[i].eta = (prog[i].end - prog[i].cur) / prog[i].ps;
-                  }
+            /* update progress */
+            if (cur) prog[i].cur = cur;
+            if (end) prog[i].end = end;
+            diff = difftime(now, prog[i].ts);
+            if (diff) {
+               prog[i].ps = (prog[i].cur - prog[i].tscur) / diff;
+               prog[i].tscur = prog[i].cur;
+               prog[i].ts = now;
+            }
+            if (prog[i].end > 0) {
+               /* calculate ETA and completion */
+               prog[i].pc = 100.0 * prog[i].cur / prog[i].end;
+               if (prog[i].ps) {
+                  prog[i].eta = (prog[i].end - prog[i].cur) / prog[i].ps;
                }
             }
             break;
          }
       }
-      mutex_unlock(&progex);
    }
 
    /* display update */
    if (count) {
-      mutex_lock(&Pstdex);
       printf("\33[2K");
       for (n = i = 0, p = prog[0]; i < count; n = 0, i++, p = prog[i]) {
          while(p.ps > 1000 && n++ < 9) p.ps /= 1000;
@@ -205,8 +205,9 @@ void pprog(char *name, char *unit, long cur, long end)
       }
       printf("\r\33[%dA", i);
       fflush(stdout);
-      mutex_unlock(&Pstdex);
    }
+
+   mutex_unlock(&Pstdex);
 }
 
 /**
@@ -281,7 +282,7 @@ int pbug(const char *fmt, ...)
    PVFPRINTF(Pstdoutcfg, PLEVEL_BUG, vmsg, fmt, args);
 
    return 0;
-}  /* end pdebug() */
+}  /* end pbug() */
 
 
 #endif  /* end EXTENDED_PRINT_C */
