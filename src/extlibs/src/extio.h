@@ -1,22 +1,10 @@
-/**
- * extio.h - Extended Input/Output support header
- *
- * Copyright (c) 2021 Adequate Systems, LLC. All Rights Reserved.
- * For more information, please refer to ../LICENSE
- *
- * Date: 14 September 2021
- * Revised: 4 November 2021
- *
- * NOTES:
- * - "extends" the C Standard Library header file stdio.h
- *
-*/
 
-#ifndef EXTENDED_IO_H
-#define EXTENDED_IO_H  /* include guard */
+#ifndef EXTENDED_INPUTOUTPUT_H
+#define EXTENDED_INPUTOUTPUT_H  /* include guard */
 
 
 #include <stdio.h>
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,9 +12,9 @@ extern "C" {
 
 /* Function prototypes for extio.c */
 char *cpu_vendor(void);
-int cpu_logical_cores(void);
-int cpu_actual_cores(void);
-int cpu_hyper_threads(void);
+char *cpu_brand(void);
+int cpu_cores(void);
+int cpu_cache(void);
 int fexists(char *fname);
 int fexistsnz(char *fname);
 int ftouch(char *fname);
@@ -40,4 +28,4 @@ int read_data(void *buff, int len, char *fname);
 #endif
 
 
-#endif  /* end EXTENDED_IO_H */
+#endif  /* end EXTENDED_INPUTOUTPUT_H */

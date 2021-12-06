@@ -1,176 +1,209 @@
 /**
  * @file extio.c
- * @headerfile extio.h extio
+ * @headerfile extio.h <extio.h>
  * @date 1 Jan 2018 (Revised 1 Dec 2021)
  * @brief Source file providing extended IO support.
  * @copyright © Adequate Systems LLC, 2018-2021. All Rights Reserved.
  * <br />For more information, please refer to ../LICENSE
 */
 
-#ifndef EXTENDED_IO_C
-#define EXTENDED_IO_C  /* include guard */
+#ifndef EXTENDED_INPUTOUTPUT_C
+#define EXTENDED_INPUTOUTPUT_C  /* include guard */
 
 
 #include "extio.h"
 #include <errno.h>   /* for access to errno and error codes */
-#include <limits.h>  /* for isolated 32-bit unsigned datatypes */
 #include <string.h>  /* for string manipulation and comparison */
 
 #ifdef _WIN32
-#include <direct.h>  /* for _mkdir() */
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h> /* for GetSystemInfo() (_WIN32 ONLY) */
+#include <direct.h>  /* for _mkdir() (_WIN32 ONLY) */
+#include <intrin.h>  /* for __cpuidex() (_WIN32 ONLY) */
 #else
-#include <sys/stat.h>  /* for mkdir() */
-#define _mkdir(_path)   mkdir(_path, 0777)  /* compatibility */
-#endif
-
-/* Internal 32-bit word datatype for CPUID* handling */
-#if ULONG_MAX == 0xFFFFFFFFUL
-   /* long is preferred 32-bit word */
-   typedef unsigned long int  CPUIDLeaf, CPUIDReg;
-#elif UINT_MAX == 0xFFFFFFFFU
-   /* int is preferred 32-bit word */
-   typedef unsigned int       CPUIDLeaf, CPUIDReg;
+#include <sys/stat.h>  /* for mkdir() (UNIXLIKE ONLY) */
+#include <unistd.h>  /* for sysconf() (UNIXLIKE ONLY) */
 #endif
 
 /**
- * @private
- * Internal CPUIDInfo struct for holding cpuid information.
-*/
-typedef struct {
-   CPUIDReg EAX;
-   CPUIDReg EBX;
-   CPUIDReg ECX;
-   CPUIDReg EDX;
-} CPUIDInfo;
+ * @private */
+typedef unsigned int reg32;
 
 /**
- * @private
- * Internal inline cpuid function for extended informatio.
-*/
-static inline CPUIDInfo cpuidex(CPUIDLeaf leaf, CPUIDLeaf leafex) {
-   CPUIDInfo info = { 0 };
-
-#ifdef _WIN32
-   __asm
-   {
-      mov    esi, info
-      mov    eax, leaf
-      mov    ecx, leafex
-      cpuid
-      mov    dword ptr [esi +  0], eax
-      mov    dword ptr [esi +  4], ebx
-      mov    dword ptr [esi +  8], ecx
-      mov    dword ptr [esi + 12], edx
-   }
-#else
-   asm volatile (
-      "cpuid" :
-         "=a" (info.EAX),
-         "=b" (info.EBX),
-         "=c" (info.ECX),
-         "=d" (info.EDX)
-      : "a" (leaf), "c" (leafex)
-   );
-#endif
-
-   return info;
-}  /* end cpuidex() */
-
-/**
- * @private
- * Internal inline cpuid function for standard information.
-*/
-static inline CPUIDInfo cpuid(CPUIDLeaf leaf)
+ * @private */
+static inline void cpuid_call(reg32 regs[], reg32 func, reg32 subfunc)
 {
-   return cpuidex(leaf, 0);
+   #ifdef _WIN32
+      __cpuidex((int *) regs, (int) func, (int) subfunc);
+   #else
+      asm volatile ("cpuid"
+         : "=a" (regs[0]), "=b" (regs[1]), "=c" (regs[2]), "=d" (regs[3])
+         : "0" (func), "1" (0), "2" (subfunc)
+      );
+   #endif
+}
+
+/**
+ * @brief Get cpuid information.
+ *
+ * Calls cpuid with appropriate function and subfunction parameters,
+ * placing the result in regs[] on success.
+ * @returns 1 on success, else 0 if cpuid is unsupported or if the
+ * function parameter exceeds the maximum supported parameter. */
+static inline int cpuid(reg32 regs[], reg32 func, reg32 subfunc)
+{
+   static const reg32 EXT_FUNC_MASK = 0x80000000U;
+   static int support = (-1);
+   static reg32 hfp_ex = 0;
+   static reg32 hfp = 0;
+   reg32 _eax, _ebx;
+
+   /* in the unlikely event that cpuid is not supported in this
+    * environment, we run the risk of undefined behaviour... */
+   if (support < 0) {
+      _eax = _ebx = 0;
+   #if defined (_WIN64) || defined(__x86_64__)
+      support = 1;  /* assumed support on x86_64 systems*/
+   #elif _WIN32 /* assume x86_32 Windows */
+      __asm {
+         pushfd;           /* save EFLAGS */
+         pushfd;           /* store EFLAGS */
+         xor dword ptr [esp],200000h; /* invert the ID bit in stored EFLAGS */
+         popfd;            /* load stored EFLAGS (id bit inverted) */
+         pushfd;           /* store EFLAGS again (id maybe inverted) */
+         pop eax;          /* eax= modified EFLAGS (id maybe inverted) */
+         xor eax,[esp];    /* eax= whichever bits were changed */
+         popfd;            /* restore original EFLAGS */
+         and eax,200000h;  /* eax= zero if no support, else non-zero */
+         mov support, eax; /* pass eax to support */
+	   }
+   #else  /* assume x86_32 UNIXLIKE */
+      asm volatile (
+         "pushfl\n\t"         /* save EFLAGS */
+         "pushfl\n\t"         /* store EFLAGS */
+         "popl\t%0\n\t"       /* _eax= stored EFLAGS */
+         "movl\t%0, %1\n\t"   /* _ebx= stored EFLAGS */
+         "xorl\t$0x200000, %0\n\t" /* invert the ID bit in stored EFLAGS */
+         "pushl\t%0\n\t"      /* store modified EFLAGS (ID bit inverted) */
+         "popfl\n\t"          /* load stored EFLAGS (ID bit inverted) */
+         "pushfl\n\t"         /* store EFLAGS again (ID bit inverted?) */
+         "popl\t%0\n\t"       /* _eax= modified EFLAGS (ID bit inverted?) */
+         "popfl\n\t"          /* restore original EFLAGS */
+         "xorl\t%1, %0\n\t"   /* _eax= whichever bits were changed */
+         "andl\t$0x200000, %0\n\t" /* _eax= zero if no support */
+         "movl\t%0, %2\n\t"   /* pass _eax to support */
+         : "=&r" (_eax), "=&r" (_ebx), "=&r" (support)
+      );
+   #endif  /* end UNIXLIKE */
+      /* ... also, in the lesser unlikely event that a function
+       * parameter is not supported, it should be indicated... */
+      if (support) {
+         /* obtain highest "extended" function parameter */
+         cpuid_call(regs, EXT_FUNC_MASK, 0);
+         hfp_ex = regs[0];
+         /* obtain highest "standard" function parameter */
+         cpuid_call(regs, 0, 0);
+         hfp = regs[0];
+      }
+   }
+
+   /* only execute cpuid() calls where support is available, and... */
+   if (support) {
+      /* ... func is within highest function parameter */
+      if (func & EXT_FUNC_MASK) {
+         if (func > hfp_ex) return 0;
+      } else if (func > hfp) return 0;
+      cpuid_call(regs, func, subfunc);
+      return 1;
+   }
+
+   return 0;
 }  /* end cpuid() */
 
 /**
- * @brief Detect CPU vendor.
- *
- * Determine the CPU vendor used by the system
- * (e.g. AuthenticAMD, GenuineIntel, etc.).
- * @return A nul-terminated char* representing the CPU vendor.
-*/
+ * @brief Get the Processor Vendor String (a.k.a. Manufacturer ID).
+ * @returns Pointer to a static processor vendor string.
+ * @note If CPUID does NOT support the processor vendor string,
+ * vendor= "NotSupported" */
 char *cpu_vendor(void)
 {
-   static char vendor[16] = { -1 };
+   static char vendor[13] = { 0 };
+   reg32 regs[4] = { 0 };
 
-   if (vendor[0] < 0) {
-      CPUIDInfo info = cpuid(0);
-      ((CPUIDReg *) vendor)[0] = info.EBX;
-      ((CPUIDReg *) vendor)[1] = info.EDX;
-      ((CPUIDReg *) vendor)[2] = info.ECX;
+   if (vendor[0] == 0) {
+      if (cpuid(regs, 0, 0)) {
+         ((reg32 *) vendor)[0] = regs[1];  /* EBX */
+         ((reg32 *) vendor)[1] = regs[3];  /* EDX */
+         ((reg32 *) vendor)[2] = regs[2];  /* ECX */
+      } else strncpy(vendor, "NotSupported", 13);
    }
 
    return vendor;
-}  /* end cpu_vendor() */
+}  /* end cpuid_vendor() */
 
 /**
- * @brief Detect number of logical CPU cores.
- *
- * Determine the number of logical CPU cores
- * (incl. hyper threads) available to the system.
- * @return Number of logical CPU cores.
-*/
-int cpu_logical_cores(void)
+ * @brief Get the Processor Brand String.
+ * @returns Pointer to a static processor brand string.
+ * @note If CPUID does NOT support the processor brand string,
+ * brand= "Processor not supported..." */
+char *cpu_brand(void)
 {
-   static int cores = -1;
+   static reg32 brand[12] = { 0 };
+   static char *brandp;
+   char *cp;
 
-   if (cores < 0) {
-      CPUIDInfo info = cpuid(1);
-      cores = (info.EBX >> 16) & 0xff;
+   if (brand[0] == 0) {
+      if (cpuid(brand, 0x80000004, 0)) {
+         cpuid(&brand[0], 0x80000002, 0);
+         cpuid(&brand[4], 0x80000003, 0);
+         cpuid(&brand[8], 0x80000004, 0);
+      } else strncpy((char *) brand, "Processor not supported...", 48);
+      /* find first non-space character */
+      cp = (char *) brand;
+      while (*cp == ' ') cp++;
+      brandp = cp;
+   }
+
+   return brandp;
+}  /* end cpu_brand() */
+
+/**
+ * @brief Get the number of logical cores available for use.
+ * @returns Number of logical cores available for use.
+ * @note Includes Hyper Threads. */
+int cpu_cores(void)
+{
+   static int cores = 0;
+
+   if (cores == 0) {
+   #ifdef _WIN32
+      SYSTEM_INFO sysinfo;
+      GetSystemInfo(&sysinfo);
+      cores = (int) sysinfo.dwNumberOfProcessors;
+   #else
+      cores = (int) sysconf(_SC_NPROCESSORS_ONLN);
+   #endif
    }
 
    return cores;
-}  /* end cpu_logical_cores() */
+}  /* end cpu_cores() */
 
 /**
- * @brief Detect number of actual CPU cores.
- *
- * Determine the number of actual CPU cores
- * (excl. hyper threads) available to the system.
- * @return Number of actual CPU cores.
-*/
-int cpu_actual_cores(void)
+ * @brief Get the L2 cache available to the processor cores.
+ * @returns Amount of cache, in Kilobytes, or 0 on error. */
+int cpu_cache(void)
 {
-   static int cores = -1;
+   static int cache = -1;
+   reg32 regs[4] = { 0 };
 
-   if (cores < 0) {
-      /* use vendor dependant CPU information, else logical cores */
-      if (strncmp(cpu_vendor(), "GenuineIntel", 16) == 0) {
-         CPUIDInfo info = cpuid(4);
-         cores = ((info.EAX >> 26) & 0x3f) + 1;
-      } else if (!strncmp(cpu_vendor(), "AuthenticAMD", 16)) {
-         CPUIDInfo info = cpuid(0x80000008);
-         cores = ((info.ECX & 0xff)) + 1;
-      } else return cpu_logical_cores();
+   if (cache < 0) {
+      if (cpuid(regs, 0x80000006, 0)) {
+         cache = (regs[2] >> 16) & 0xffff;  /* ECX */
+      } else cache = 0;
    }
 
-   return cores;
-}  /* end cpu_actual_cores() */
-
-/**
- * @brief Detect CPU hyper threading.
- *
- * Determines if hyper threads are enabled on this system.
- * @return 1 if hyper threads are enabled, else 0.
-*/
-int cpu_hyper_threads(void)
-{
-   static int hyperthreads = -1;
-
-   if (hyperthreads < 0) {
-      CPUIDInfo info = cpuid(1);
-      /* first check if capable of hyper-threading... */
-      if (info.EDX & (1 << 28)) {
-         /* ... then verify hyper-threading is enabled */
-         hyperthreads = cpu_actual_cores() < cpu_logical_cores();
-      } else hyperthreads = 0;
-   }
-
-   return hyperthreads;
-}  /* end cpu_hyper_threads() */
+   return cache;
+}  /* end cpu_cache() */
 
 /**
  * @brief Copy a file.
@@ -178,8 +211,7 @@ int cpu_hyper_threads(void)
  * Copy a file from one location, srcpath, to another, dstpath.
  * @param srcpath Path of the source file.
  * @param dstpath Path of the destination file.
- * @return 0 on success, or 1 on error (check errno for details).
-*/
+ * @return 0 on success, or 1 on error (check errno for details). */
 int fcopy(char *srcpath, char *dstpath)
 {
    char buf[BUFSIZ];
@@ -208,12 +240,10 @@ int fcopy(char *srcpath, char *dstpath)
 }  /* end fcopy() */
 
 /**
- * @relatesalso fexistsnz
  * @brief Check if a file exists and contains data.
  *
  * Checks if a file exists by opening it in "read-only" mode.
- * @return 1 if file exists, else 0.
-*/
+ * @return 1 if file exists, else 0. */
 int fexists(char *fname)
 {
    FILE *fp;
@@ -228,9 +258,7 @@ int fexists(char *fname)
 /**
  * @brief Check if a file exists and contains data.
  * @return 1 if file exists and contains data, else 0.
- * @note Attribution: Thanks David!
- * @relatesalso fexists
-*/
+ * @note Attribution: Thanks David! */
 int fexistsnz(char *fname)
 {
    FILE *fp;
@@ -250,8 +278,7 @@ int fexistsnz(char *fname)
  *
  * Opens the file, `fname`, in "append" mode, and immediately closes it.
  * @return 0 on success, else 1 on error (check errno for details).
- * @note Performs no other operations on the file.
-*/
+ * @note Performs no other operations on the file. */
 int ftouch(char *fname)
 {
    FILE *fp;
@@ -269,10 +296,9 @@ int ftouch(char *fname)
  * Immitates the shell command @verbatim mkdir -p <dirpath> @endverbatim
  * @return 0 on success, or 1 on error (check errno for details).
  * @note Where `dirpath` already exists, `mkdir_p()` always succeeds.
- * @warning The length of `dirpath` (incl. terminator) MUST be less
- * than `FILENAME_MAX`, otherwise `mkdir_p()` will fail with `errno`
- * set to `ENAMETOOLONG`.
-*/
+ * @warning The length of `dirpath` (including the nul-terminator)
+ * MUST be less than `FILENAME_MAX`, otherwise `mkdir_p()` will
+ * fail with `errno` set to `ENAMETOOLONG`. */
 int mkdir_p(char *dirpath)
 {
    char path[FILENAME_MAX] = { 0 };
@@ -291,7 +317,11 @@ int mkdir_p(char *dirpath)
       strncpy(path, dirpath, len);
       path[len] = '\0';  /* ensure nul-termination */
       /* ... creating parent directories, and ignoring EEXIST */
+   #ifdef _WIN32
       ecode = (_mkdir(path) && errno != EEXIST) ? 1 : 0;
+   #else
+      ecode = (mkdir(path, 0777) && errno != EEXIST) ? 1 : 0;
+   #endif
    } while(ecode == 0 && len < strlen(dirpath));
 
    return ecode;
@@ -329,4 +359,4 @@ int write_data(void *buff, int len, char *fname)
 }  /* end write_data() */
 
 
-#endif  /* end EXTENDED_IO_C */
+#endif  /* end EXTENDED_INPUTOUTPUT_C */
