@@ -56,12 +56,10 @@ static inline int cpuid(reg32 regs[], reg32 func, reg32 subfunc)
    static int support = (-1);
    static reg32 hfp_ex = 0;
    static reg32 hfp = 0;
-   reg32 _eax, _ebx;
 
    /* in the unlikely event that cpuid is not supported in this
     * environment, we run the risk of undefined behaviour... */
    if (support < 0) {
-      _eax = _ebx = 0;
    #if defined (_WIN64) || defined(__x86_64__)
       support = 1;  /* assumed support on x86_64 systems*/
    #elif _WIN32 /* assume x86_32 Windows */
@@ -78,6 +76,7 @@ static inline int cpuid(reg32 regs[], reg32 func, reg32 subfunc)
          mov support, eax; /* pass eax to support */
 	   }
    #else  /* assume x86_32 UNIXLIKE */
+      reg32 _eax, _ebx;
       asm volatile (
          "pushfl\n\t"         /* save EFLAGS */
          "pushfl\n\t"         /* store EFLAGS */
