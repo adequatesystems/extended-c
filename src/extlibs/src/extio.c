@@ -254,9 +254,8 @@ int fcopy(char *srcpath, char *dstpath)
 }  /* end fcopy() */
 
 /**
- * @brief Check if a file exists and contains data.
- *
- * Checks if a file exists by opening it in "read-only" mode.
+ * @brief Check if a file exists.
+ * @param fname Name of file to check
  * @return 1 if file exists, else 0.
 */
 int fexists(char *fname)
@@ -272,6 +271,7 @@ int fexists(char *fname)
 
 /**
  * @brief Check if a file exists and contains data.
+ * @param fname Name of file to check
  * @return 1 if file exists and contains data, else 0.
  * @note Attribution: Thanks David!
 */
@@ -292,7 +292,8 @@ int fexistsnz(char *fname)
 /**
  * @brief Touch a file.
  *
- * Opens the file, `fname`, in "append" mode, and immediately closes it.
+ * Opens @a fname in "append" mode, and immediately closes it.
+ * @param fname Name of file to touch
  * @return 0 on success, else 1 on error (check errno for details).
  * @note Performs no other operations on the file.
 */
@@ -311,6 +312,7 @@ int ftouch(char *fname)
  * @brief Create a directory at dirpath (including any parent directories).
  *
  * Immitates the shell command @verbatim mkdir -p <dirpath> @endverbatim
+ * @param dirpath Path of directory to be created
  * @return 0 on success, or 1 on error (check errno for details).
  * @note Where `dirpath` already exists, `mkdir_p()` always succeeds.
  * @warning The length of `dirpath` (including the nul-terminator)
@@ -345,8 +347,14 @@ int mkdir_p(char *dirpath)
    return ecode;
 }
 
-/* Read data from file, fname, into buff[len].
- * Returns read count or -1 on error.
+/**
+ * @brief Read data directly into a buffer.
+ *
+ * Reads, at most, @a len bytes from @a fname into @a buff
+ * @param buff Buffer pointer to place read bytes
+ * @param len Maximum number of bytes to read
+ * @param fname Name of file to read from
+ * @returns Number of bytes read into buff, or (-1) on error
 */
 int read_data(void *buff, int len, char *fname)
 {
@@ -362,8 +370,14 @@ int read_data(void *buff, int len, char *fname)
    return (int) count;
 }  /* end read_data() */
 
-/* Write data buff[len] to file, fname.
- * Returns write count or -1 on error.
+/**
+ * @brief Write data from a buffer, directly to file.
+ *
+ * Writes, at most, @a len bytes from @a buff to @a fname
+ * @param buff Buffer pointer of bytes to write
+ * @param len Maximum number of bytes to write
+ * @param fname Name of file to write to
+ * @returns Number of bytes written, or (-1) on error.
 */
 int write_data(void *buff, int len, char *fname)
 {
