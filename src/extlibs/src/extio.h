@@ -1,3 +1,9 @@
+/**
+ * @file extio.h
+ * @brief Extended input/output support.
+ * @copyright © Adequate Systems LLC, 2018-2021. All Rights Reserved.
+ * <br />For license information, please refer to ../LICENSE
+*/
 
 #ifndef EXTENDED_INPUTOUTPUT_H
 #define EXTENDED_INPUTOUTPUT_H  /* include guard */

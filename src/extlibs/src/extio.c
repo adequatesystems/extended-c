@@ -1,10 +1,8 @@
 /**
- * @file extio.c
+ * @private
  * @headerfile extio.h <extio.h>
- * @date 1 Jan 2018 (Revised 1 Dec 2021)
- * @brief Source file providing extended IO support.
  * @copyright © Adequate Systems LLC, 2018-2021. All Rights Reserved.
- * <br />For more information, please refer to ../LICENSE
+ * <br />For license information, please refer to ../LICENSE
 */
 
 #ifndef EXTENDED_INPUTOUTPUT_C
@@ -25,17 +23,25 @@
 #include <unistd.h>  /* for sysconf() (UNIXLIKE ONLY) */
 #endif
 
+
 /**
- * @private */
+ * @private
+ * @brief Self contained 32-bit word datatype
+*/
 typedef unsigned int reg32;
 
 /**
- * @private */
+ * @private
+ * @brief cpuid function call
+*/
 static inline void cpuid_call(reg32 regs[], reg32 func, reg32 subfunc)
-{
-   #ifdef _WIN32
+{  /* ... architecture dependant calls for cpuid */
+   #if defined(__arm__) || defined(__aarch64__) || defined(__powerpc__)
+      /* unsupported architectures - clear registers */
+      regs[0] = regs[1] = regs[2] = regs[3] = 0;
+   #elif defined( _WIN32)  /* MSVC */
       __cpuidex((int *) regs, (int) func, (int) subfunc);
-   #else
+   #else  /* assume gcc */
       asm volatile ("cpuid"
          : "=a" (regs[0]), "=b" (regs[1]), "=c" (regs[2]), "=d" (regs[3])
          : "0" (func), "1" (0), "2" (subfunc)
@@ -44,12 +50,14 @@ static inline void cpuid_call(reg32 regs[], reg32 func, reg32 subfunc)
 }
 
 /**
+ * @private
  * @brief Get cpuid information.
  *
  * Calls cpuid with appropriate function and subfunction parameters,
  * placing the result in regs[] on success.
  * @returns 1 on success, else 0 if cpuid is unsupported or if the
- * function parameter exceeds the maximum supported parameter. */
+ * function parameter exceeds the maximum supported parameter
+*/
 static inline int cpuid(reg32 regs[], reg32 func, reg32 subfunc)
 {
    static const reg32 EXT_FUNC_MASK = 0x80000000U;
@@ -60,9 +68,9 @@ static inline int cpuid(reg32 regs[], reg32 func, reg32 subfunc)
    /* in the unlikely event that cpuid is not supported in this
     * environment, we run the risk of undefined behaviour... */
    if (support < 0) {
-   #if defined (_WIN64) || defined(__x86_64__)
+   #if defined(_WIN64) || defined(__x86_64__)
       support = 1;  /* assumed support on x86_64 systems*/
-   #elif _WIN32 /* assume x86_32 Windows */
+   #elif defined(_WIN32) /* assume x86_32 Windows */
       __asm {
          pushfd;           /* save EFLAGS */
          pushfd;           /* store EFLAGS */
@@ -75,7 +83,7 @@ static inline int cpuid(reg32 regs[], reg32 func, reg32 subfunc)
          and eax,200000h;  /* eax= zero if no support, else non-zero */
          mov support, eax; /* pass eax to support */
 	   }
-   #else  /* assume x86_32 UNIXLIKE */
+   #elif defined(__unix__)  /* assume x86_32 unix */
       reg32 _eax, _ebx;
       asm volatile (
          "pushfl\n\t"         /* save EFLAGS */
@@ -93,7 +101,9 @@ static inline int cpuid(reg32 regs[], reg32 func, reg32 subfunc)
          "movl\t%0, %2\n\t"   /* pass _eax to support */
          : "=&r" (_eax), "=&r" (_ebx), "=&r" (support)
       );
-   #endif  /* end UNIXLIKE */
+   #else  /* assume no support */
+      support = 0;
+   #endif
       /* ... also, in the lesser unlikely event that a function
        * parameter is not supported, it should be indicated... */
       if (support) {
@@ -123,7 +133,8 @@ static inline int cpuid(reg32 regs[], reg32 func, reg32 subfunc)
  * @brief Get the Processor Vendor String (a.k.a. Manufacturer ID).
  * @returns Pointer to a static processor vendor string.
  * @note If CPUID does NOT support the processor vendor string,
- * vendor= "NotSupported" */
+ * vendor= "NotSupported"
+*/
 char *cpu_vendor(void)
 {
    static char vendor[13] = { 0 };
@@ -144,7 +155,8 @@ char *cpu_vendor(void)
  * @brief Get the Processor Brand String.
  * @returns Pointer to a static processor brand string.
  * @note If CPUID does NOT support the processor brand string,
- * brand= "Processor not supported..." */
+ * brand= "Processor not supported..."
+*/
 char *cpu_brand(void)
 {
    static reg32 brand[12] = { 0 };
@@ -169,7 +181,8 @@ char *cpu_brand(void)
 /**
  * @brief Get the number of logical cores available for use.
  * @returns Number of logical cores available for use.
- * @note Includes Hyper Threads. */
+ * @note Includes Hyper Threads.
+*/
 int cpu_cores(void)
 {
    static int cores = 0;
@@ -189,7 +202,8 @@ int cpu_cores(void)
 
 /**
  * @brief Get the L2 cache available to the processor cores.
- * @returns Amount of cache, in Kilobytes, or 0 on error. */
+ * @returns Amount of cache, in Kilobytes, or 0 on error.
+*/
 int cpu_cache(void)
 {
    static int cache = -1;
@@ -210,7 +224,8 @@ int cpu_cache(void)
  * Copy a file from one location, srcpath, to another, dstpath.
  * @param srcpath Path of the source file.
  * @param dstpath Path of the destination file.
- * @return 0 on success, or 1 on error (check errno for details). */
+ * @return 0 on success, or 1 on error (check errno for details).
+*/
 int fcopy(char *srcpath, char *dstpath)
 {
    char buf[BUFSIZ];
@@ -242,7 +257,8 @@ int fcopy(char *srcpath, char *dstpath)
  * @brief Check if a file exists and contains data.
  *
  * Checks if a file exists by opening it in "read-only" mode.
- * @return 1 if file exists, else 0. */
+ * @return 1 if file exists, else 0.
+*/
 int fexists(char *fname)
 {
    FILE *fp;
@@ -257,7 +273,8 @@ int fexists(char *fname)
 /**
  * @brief Check if a file exists and contains data.
  * @return 1 if file exists and contains data, else 0.
- * @note Attribution: Thanks David! */
+ * @note Attribution: Thanks David!
+*/
 int fexistsnz(char *fname)
 {
    FILE *fp;
@@ -277,7 +294,8 @@ int fexistsnz(char *fname)
  *
  * Opens the file, `fname`, in "append" mode, and immediately closes it.
  * @return 0 on success, else 1 on error (check errno for details).
- * @note Performs no other operations on the file. */
+ * @note Performs no other operations on the file.
+*/
 int ftouch(char *fname)
 {
    FILE *fp;
@@ -297,7 +315,8 @@ int ftouch(char *fname)
  * @note Where `dirpath` already exists, `mkdir_p()` always succeeds.
  * @warning The length of `dirpath` (including the nul-terminator)
  * MUST be less than `FILENAME_MAX`, otherwise `mkdir_p()` will
- * fail with `errno` set to `ENAMETOOLONG`. */
+ * fail with `errno` set to `ENAMETOOLONG`.
+*/
 int mkdir_p(char *dirpath)
 {
    char path[FILENAME_MAX] = { 0 };
@@ -327,7 +346,8 @@ int mkdir_p(char *dirpath)
 }
 
 /* Read data from file, fname, into buff[len].
- * Returns read count or -1 on error. */
+ * Returns read count or -1 on error.
+*/
 int read_data(void *buff, int len, char *fname)
 {
    FILE *fp;
@@ -343,7 +363,8 @@ int read_data(void *buff, int len, char *fname)
 }  /* end read_data() */
 
 /* Write data buff[len] to file, fname.
- * Returns write count or -1 on error. */
+ * Returns write count or -1 on error.
+*/
 int write_data(void *buff, int len, char *fname)
 {
    FILE *fp;
