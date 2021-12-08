@@ -138,17 +138,19 @@ static inline void pvfprintf
       mutex_lock(&Pstdlock);
 
       /* begin file pointer print... */
-      /* if (cfg && cfg->time) fprintf(fp, "%s", timestamp(timestr, 28)); */
+      /* if (Ptime) fprintf(fp, "%s", timestamp(timestr, 28)); */
       if (cfg && cfg->prefix) fprintf(fp, "%s", cfg->prefix);
       /* printf fmt in sections separated by newline characters */
-      while((nextp = strchr(fmtp, '\n'))) {
+      while((nextp = strpbrk(fmtp, "\r\n"))) {
          strncpy(fmt_part, fmtp, nextp - fmtp);
          fmt_part[nextp - fmtp] = '\0';
          /* print section without newline */
          vfprintf(fp, fmt_part, args2);
-         /* clear right of cursor before printing newline */
-         fprintf(fp, "\33[K\n");
-         fmtp = nextp + 1;
+         /* clear right of cursor and print character */
+         if (nextp != fmt && nextp[-1] != '\r') {
+            fprintf(fp, "\33[K%c", *(nextp++));
+         } else fprintf(fp, "%c", *(nextp++));
+         fmtp = nextp;
       }
       /* print remaining fmt */
       vprintf(fmtp, args2);

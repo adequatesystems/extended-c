@@ -44,7 +44,7 @@ int main()
    ASSERT_EQ2_MSG(plog(NULL), 0, plog(""),
       "plog() should return 0, regardless of format");
    ASSERT_EQ2_MSG(pdebug(NULL), 0, pdebug(""),
-      "pbug() should return 0, regardless of format");
+      "pdebug() should return 0, regardless of format");
 
    /* check nlogs incremented appropriately on default settings */
    ASSERT_EQ_MSG(get_perr_counter(), 3,
