@@ -1,12 +1,8 @@
 /**
- * extprint.c - Extended print and logging support header
- *
- * Copyright (c) 2018-2021 Adequate Systems, LLC. All Rights Reserved.
- * For more information, please refer to ../LICENSE
- *
- * Date: 1 January 2018
- * Revised: 30 November 2021
- *
+ * @file extprint.h
+ * @brief Extended print/logging support.
+ * @copyright © Adequate Systems LLC, 2018-2021. All Rights Reserved.
+ * <br />For license information, please refer to ../LICENSE
 */
 
 #ifndef EXTENDED_PRINT_H
@@ -16,45 +12,64 @@
 #include <stdio.h>
 
 
-/* Global Log Level definitions */
-#define PLEVEL_NUL   0  /* Disables logs */
-#define PLEVEL_ERR   1  /* Enables error type logs */
-#define PLEVEL_LOG   2  /* Enables log/error type logs */
-#define PLEVEL_BUG   3  /* Enables debug/log/error type logs */
+/**
+ * @brief No logging print level.
+ * @details Disables logging from print functions,
+ * when used with set_print_level()
+*/
+#define PLEVEL_NONE  0
 
-#define PMESSAGE_MAX 1024
+/**
+ * @brief Error logging print level.
+ * @details Enables logs to @a stderr from perrno(), and perr(),
+ * when used with set_print_level()
+ * @details Applies settings to perrno() and perr() configuration
+ * when used with any other set_print_*() function
+*/
+#define PLEVEL_ERR   1
 
-/* Function redirects for print progress bar function */
-#define pprog_reprint()    pprog(NULL, NULL, 0L, 0L)
-#define pprog_done(name)   pprog(name, NULL, -1L, -1L)
+/**
+ * @brief Standard logging print level.
+ * @details Enables logs to @a stderr from perrno(), and perr(),
+ * and to @a stdout from plog(), when used with set_print_level()
+ * @details Applies settings to plog() configuration when
+ * used with any other set_print_*() function
+*/
+#define PLEVEL_LOG   2
 
-
-/* Print configuration. Log format:
- * [time(ptime=1)]; <pre><msg>[: details(func dependant)] */
-typedef struct {
-   int fd;     /* File descriptor for writing logs */
-   FILE *fp;   /* File pointer for writing logs */
-   void *ex;   /* Mutex lock pointer for exclusive writes */
-   char level; /* Log level, PLEVEL_NUL for no logs */
-   char time;  /* Prefix logs with timestamp, 0 for no timestamp */
-   char *pre;  /* Prefix for logs (appends to timestamp) */
-   unsigned nlogs;  /* Counts number of logs */
-} PCONFIG;
+/**
+ * @brief Debug logging print level.
+ * @details Enables logs to @a stderr from perrno(), and perr()
+ * and to @a stdout from plog() and pdebug(), when used with
+ * set_print_level()
+ * @details Applies settings to pdebug() configuration when
+ * used with any other set_print_*() function
+*/
+#define PLEVEL_DEBUG 3
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* Global print configurations */
-PCONFIG Perrcfg, Plogcfg, Pbugcfg, Pstderrcfg, Pstdoutcfg;
-
-/* Function prototypes for extio.c */
+/* Function prototypes for extprint.c */
+void psticky(char *msg);
+void print(const char *fmt, ...);
 int perrno(int errnum, const char *fmt, ...);
 int perr(const char *fmt, ...);
 int plog(const char *fmt, ...);
-int pbug(const char *fmt, ...);
-void pprog(char *msg, char *unit, long cur, long end);
+int pdebug(const char *fmt, ...);
+unsigned get_perr_counter(void);
+unsigned get_plog_counter(void);
+unsigned get_pdebug_counter(void);
+void set_perr_fp(FILE *fp);
+void set_plog_fp(FILE *fp);
+void set_pdebug_fp(FILE *fp);
+void set_perr_prefix(char *prefix);
+void set_plog_prefix(char *prefix);
+void set_pdebug_prefix(char *prefix);
+void set_print_level(char level);
+void set_print_timestamp(char time);
 
 #ifdef __cplusplus
 }

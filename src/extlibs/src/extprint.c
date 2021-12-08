@@ -1,12 +1,8 @@
 /**
- * extprint.c - Extended print and logging support
- *
- * Copyright (c) 2018-2021 Adequate Systems, LLC. All Rights Reserved.
- * For more information, please refer to ../LICENSE
- *
- * Date: 1 January 2018
- * Revised: 30 November 2021
- *
+ * @private
+ * @headerfile extprint.h <extprint.h>
+ * @copyright © Adequate Systems LLC, 2018-2021. All Rights Reserved.
+ * <br />For license information, please refer to ../LICENSE
 */
 
 #ifndef EXTENDED_PRINT_C
@@ -16,44 +12,37 @@
 #include "extprint.h"
 #include "extthread.h"  /* for mutex support */
 #include <stdarg.h>  /* for va_list support */
-#include <string.h>  /* for strerror* functions */
+#include <string.h>  /* for string support */
 
 
-#define MAXPROGRESS  16
-#define ANYPCONFIGLEVEL (Perrcfg.level | Plogcfg.level \
-   | Pbugcfg.level | Pstderrcfg.level | Pstdoutcfg.level)
-#define PVFPRINTF(stdcfg, ll, msg, fmt, ap) \
-   do { \
-      va_start(ap, fmt); vsprintf(&msg[strlen(msg)], fmt, ap); va_end(ap); \
-      msg[PMESSAGE_MAX - 1] = '\0'; \
-      if (Perrcfg.level >= ll) pcfg(&(Perrcfg), vmsg); \
-      if (Plogcfg.level >= ll) pcfg(&(Plogcfg), vmsg); \
-      if (Pbugcfg.level >= ll) pcfg(&(Pbugcfg), vmsg); \
-      if (stdcfg.level >= ll) pcfg(&(stdcfg), vmsg); \
-   } while(0)
+/**
+ * @private
+ * Print configuration struct
+*/
+typedef struct {
+   FILE *fp;      /* file pointer for writing logs to file */
+   Mutex lock;    /* mutex pointer for protected writes to file pointers */
+   char *prefix;  /* pointer to string literal prefix for logs */
+   unsigned num;  /* counts the number of logs */
+} PCONFIG;
 
+/* stdout and stderr share a Mutex for protected writes to terminal */
+Mutex Pstdlock = MUTEX_INITIALIZER;
 
-/* Define private mutex's for print functions and console */
-Mutex Perrex = MUTEX_INITIALIZER;
-Mutex Plogex = MUTEX_INITIALIZER;
-Mutex Pbugex = MUTEX_INITIALIZER;
-Mutex Pstdex = MUTEX_INITIALIZER;
-/* Apply runtime print configuration defaults */
-PCONFIG Perrcfg = { .ex = &Perrex, .level = PLEVEL_ERR, .pre = "Error: " };
-PCONFIG Plogcfg = { .ex = &Plogex, .level = PLEVEL_LOG };
-PCONFIG Pbugcfg = { .ex = &Pbugex, .level = PLEVEL_BUG, .pre = "DEBUG; " };
-PCONFIG Pstderrcfg = { .fd = 2, .ex = &Pstdex, .level = PLEVEL_ERR };
-PCONFIG Pstdoutcfg = { .fd = 1, .ex = &Pstdex, .level = PLEVEL_LOG };
+/* Apply default print configuration on runtime initialization */
+PCONFIG Perr = { .lock = MUTEX_INITIALIZER, .prefix = "Error. " };
+PCONFIG Plog = { .lock = MUTEX_INITIALIZER };
+PCONFIG Pdebug = { .lock = MUTEX_INITIALIZER, .prefix = "DEBUG; " };
+char Plevel = PLEVEL_LOG;
+char Ptime = 0;
 
 
 /* strerror_r() is specified by POSIX.1-2001... */
 #if ! defined(_POSIX_C_SOURCE) || _POSIX_C_SOURCE < 200112L
 
-/**
- * Fallback function for strerror_r() where unavailable. */
 static inline void strerror_r(int errnum, char *buf, size_t buflen)
-{  /* ... provides fallback, when unavailable */
-   static Mutex lock = MUTEX_INITIALIZER;  /* statically initialized Mutex */
+{  /* ... provides fallback, when strerror_r() is unavailable */
+   static Mutex lock = MUTEX_INITIALIZER;
 
    /* a NULL buf or a bufflen of zero (0) is inappropriate */
    if (buf == NULL || buflen == 0) return;
@@ -69,220 +58,351 @@ static inline void strerror_r(int errnum, char *buf, size_t buflen)
 
 
 /**
+ * @private
  * Convert current time (seconds since Epoch) into string timestamp
  * based on ISO 8061 format, as local time. Result is placed in
  * char *dest, if provided, else uses static char *cp.
- * Returns char* to converted result, *dest. */
+ * Returns char* to converted result, *dest.
+*/
 static inline char *timestamp(char *dest, size_t count)
 {
-   struct tm dt, *dtp = &dt;
-   time_t t, *tp = &t;
+   struct tm dt;
+   time_t t;
 
-   time(tp);
-   localtime_r(tp, dtp);
-   strftime(dest, count, "%FT%T%z ", dtp);
+   time(&t);
+   localtime_r(&t, &dt);
+   strftime(dest, count, "%FT%T%z ", &dt);
 
    return dest;
 }  /* end timestamp() */
 
 /**
- * Print a log using a specific configuration, pointed to by *cfg. */
-static inline void pcfg (PCONFIG *cfg, char *msg)
+ * @brief Print a sticky message.
+ *
+ * Prints and "sticks" a message to the bottom of a terminal.
+ * @param msg A string message to stick to terminal
+ * @note To clear sticky message use @code psticky(""); @endcode
+ * @note To reprint sticky message use @code psticky(NULL); @endcode
+ * @note Message is only sticky when using the extended print
+ * logging functions; perrno(), perr(), plog() and pdebug().
+*/
+void psticky(char *msg)
 {
-   char rclear[] = "\33[0K";
-   char tstr[28] = "";
+   static Mutex lock = MUTEX_INITIALIZER;
+   static char sticky[BUFSIZ] = "";
 
-   /* skip configurations without a writing destination or... */
-   if (cfg->fp == NULL) {  /* ... set writing destination from fd, if set */
-      if (cfg->fd == 1) cfg->fp = stdout;
-      else if (cfg->fd == 2) cfg->fp = stderr;
-      else return;
+   /* bail on print level NONE, or NULL update */
+   if (Plevel == PLEVEL_NONE) return;
+   if (msg == NULL && strlen(sticky) == 0) return;
+
+   mutex_lock(&lock);
+
+   /* update sticky message, if specified */
+   if (msg) {
+      strncpy(sticky, msg, BUFSIZ);
+      sticky[BUFSIZ - 1] = '\0';
+   }
+   /* (re)print sticky message */
+   if (sticky[0]) {
+      mutex_lock(&Pstdlock);
+
+      printf("\n\33[K");         /* go down a line */
+      printf("%s", sticky);      /* clear and print sticky */
+      printf("\r\33[1A\33[K");   /* restore cursor position */
+      fflush(stdout);            /* flush stdout */
+
+      mutex_unlock(&Pstdlock);
    }
 
-   /* start eclusive write */
-   mutex_lock((Mutex *) cfg->ex);
-
-   /* increment log counter */
-   cfg->nlogs++;
-   /* print to file pointer, guarded */
-   if (cfg->time) fprintf(cfg->fp, "%s", timestamp(tstr, 28));
-   if (cfg->pre) fprintf(cfg->fp, "%s", cfg->pre);
-   if (cfg->fp != stdout && cfg->fp != stderr) rclear[0] = '\0';
-   fprintf(cfg->fp, "%s%s\n", msg, rclear);
-   fflush(cfg->fp);
-
-   /* end exclusive write */
-   mutex_unlock((Mutex *) cfg->ex);
-
-   /* reprint any current progress bars */
-   if (cfg->fd) pprog_reprint();
+   mutex_unlock(&lock);
 }
 
 /**
- * Print or update progress bar "name".
- * pprog_reprint() to update all progress bars.
- * pprog_done(name) to remove a progress bar. */
-void pprog(char *name, char *unit, long cur, long end)
+ * @private
+ * Multipurpose variable argument list print function that prints
+ * to print configuration, and file pointers when specified.
+ * @note assumes va_start() has already been called
+*/
+static inline void pvfprintf
+(PCONFIG*cfg, FILE *fp, char *fmt, va_list args, char *post)
 {
-   static char metric[9][3] = { "", "K", "M", "G", "T", "P", "E", "Z", "Y" };
-   static char spinner[] = "-\\|/";
-   static struct _prog {
-      float pc, ps;
-      long tscur, cur, end, eta, time;
-      char name[48], unit[16];
-      time_t ts, started;
-   } prog[MAXPROGRESS], p;
-   static size_t proglen = sizeof(*prog);
-   static int count = 0;
-   double diff;
-   time_t now;
-   int i, n;
+   char fmt_part[BUFSIZ], *nextp;
+   char *fmtp = (char *) fmt;
+   char timestr[28] = "";
+   va_list args2;
 
-   /* bail if NUL console printing or no progress */
-   if (Pstdoutcfg.level == PLEVEL_NUL || (!name && !count)) return;
+   if (fp) {
+      /* copy argument list */
+      va_copy(args2, args);
 
-   mutex_lock(&Pstdex);
+      mutex_lock(&Pstdlock);
 
-   /* determine update type */
-   time(&now);
-   if (name) {
-      for (i = 0; i <= count && i < MAXPROGRESS; i++) {
-         if (cur < 0 && end < 0) {
-            /* check for and remove progress */
-            if (strncmp(prog[i].name, name, 48) == 0) {
-               if (i < (count - 1)) {
-                  memmove(&prog[i], &prog[count - 1], proglen);
-               } else memset(&prog[i], 0, proglen);
-               i = count; while(i--) printf("\n\33[2K");
-               printf("\33[%dA", count--);
-               break;
-            }
-         } else if (prog[i].name[0] == '\0') {
-            /* create progress */
-            prog[i].started = prog[i].ts = now;
-            strncpy(prog[i].name, name, 48);
-            if (unit) strncpy(prog[i].unit, unit, 16);
-            if (cur) prog[i].cur = cur;
-            if (end) prog[i].end = end;
-            count++;
-            break;
-         } else if (strncmp(prog[i].name, name, 48) == 0) {
-            prog[i].time = difftime(now, prog[i].started);
-            /* update progress */
-            if (cur) prog[i].cur = cur;
-            if (end) prog[i].end = end;
-            diff = difftime(now, prog[i].ts);
-            if (diff) {
-               prog[i].ps = (prog[i].cur - prog[i].tscur) / diff;
-               prog[i].tscur = prog[i].cur;
-               prog[i].ts = now;
-            }
-            if (prog[i].end > 0) {
-               /* calculate ETA and completion */
-               prog[i].pc = 100.0 * prog[i].cur / prog[i].end;
-               if (prog[i].ps) {
-                  prog[i].eta = (prog[i].end - prog[i].cur) / prog[i].ps;
-               }
-            }
-            break;
-         }
+      /* begin file pointer print... */
+      /* if (cfg && cfg->time) fprintf(fp, "%s", timestamp(timestr, 28)); */
+      if (cfg && cfg->prefix) fprintf(fp, "%s", cfg->prefix);
+      /* printf fmt in sections separated by newline characters */
+      while((nextp = strchr(fmtp, '\n'))) {
+         strncpy(fmt_part, fmtp, nextp - fmtp);
+         fmt_part[nextp - fmtp] = '\0';
+         /* print section without newline */
+         vfprintf(fp, fmt_part, args2);
+         /* clear right of cursor before printing newline */
+         fprintf(fp, "\33[K\n");
+         fmtp = nextp + 1;
       }
+      /* print remaining fmt */
+      vprintf(fmtp, args2);
+      va_end(args2);
+      /* print post string when supplied */
+      if (post) fprintf(fp, ": %s\33[K\n", post);
+      else fprintf(fp, "\33[K\n");
+      fflush(fp);
+      /* ... end file pointer print */
+
+      mutex_unlock(&Pstdlock);
+
+      /* update sticky messages - MUST BE AFTER unlock, to avoid deadlock */
+      psticky(NULL);
    }
 
-   /* display update */
-   if (count) {
-      printf("\33[2K");
-      for (n = i = 0, p = prog[0]; i < count; n = 0, i++, p = prog[i]) {
-         while(p.ps > 1000 && n++ < 9) p.ps /= 1000;
-         printf("\n\33[2K%c %s... ", spinner[(int) p.time % 4], p.name);
-         if (p.pc > 0) {  /* print w/ percentage */
-            printf("%.02f%% (%.2f%s%s/s) | ETA: %lds | Elapsed: %lds",
-               p.pc, p.ps, metric[n], p.unit, p.eta, p.time);
-         } else {  /* print w/o percentage */
-            printf("%ld (%.2f%s%s/s) | Elapsed: %lds",
-               p.cur, p.ps, metric[n], p.unit, p.time);
-         }
-      }
-      printf("\r\33[%dA", i);
-      fflush(stdout);
-   }
+   if (cfg) {
+      mutex_lock(&(cfg->lock));
 
-   mutex_unlock(&Pstdex);
+      /* print to file pointer, if specified */
+      if (cfg->fp) {
+         /* begin print to file pointer... */
+         if (Ptime) fprintf(cfg->fp, "%s", timestamp(timestr, 28));
+         if (cfg->prefix) fprintf(cfg->fp, "%s", cfg->prefix);
+         vfprintf(cfg->fp, fmt, args); va_end(args);
+         if (post) fprintf(cfg->fp, ": %s\n", post);
+         else fprintf(cfg->fp, "\n");
+         fflush(cfg->fp);
+         /* ... end print to file pointer */
+      }
+
+      /* increment counter in print config */
+      cfg->num++;
+
+      mutex_unlock(&(cfg->lock));
+   }
 }
 
 /**
- * Print an error message (with description of errnum) using
- * Pconfigs: stderr, perr, plog and pbug.
- * Returns 2 if errnum is less than 0, else 1. */
-int perrno(int errnum, const char *fmt, ...)
+ * @brief Print a clean message.
+ *
+ * Prints clean messages to stdout by printing a "clear right"
+ * VT100 escape code before all newline characters.
+ * @param fmt A string format (or message) for printing
+ * @param ... Variable arguments supporting the format string
+ * @note Bypasses print level checks.
+*/
+void print(const char *fmt, ...)
 {
-   int ecode = errnum < 0 ? 2 : 1;
-   char vmsg[PMESSAGE_MAX] = "";
    va_list args;
 
-   /* ignore NULL fmt's and NUL log level scenarios */
-   if (fmt == NULL || ANYPCONFIGLEVEL < PLEVEL_ERR) return ecode;
+   /* ignore NULL fmt's */
+   if (fmt == NULL) return;
 
-   /* build variable message and print to all (incl. stderr) */
-   if (errnum >= 0) {
-      strerror_r(errnum, vmsg, sizeof(vmsg)); \
-      strncat(vmsg, "; ", sizeof(vmsg) - strlen(vmsg)); \
+   va_start(args, fmt);
+   pvfprintf(NULL, stdout, (char *) fmt, args, NULL);
+   /* pvfprintf() does va_end() */
+}
+
+/**
+ * @brief Print/log an error message, with description of @a errnum.
+ * @param errnum @a errno or code to use for error description
+ * @param fmt A string format (or message) for printing
+ * @param ... Variable arguments supporting the format string
+ * @returns 1 if @a errnum is less than 0, else 2.
+*/
+int perrno(int errnum, const char *fmt, ...)
+{
+   char errstr[64] = "";
+   va_list args;
+   FILE *fp;
+
+   if (fmt) {
+      /* set stderr if print level is appropriate */
+      fp = (Plevel >= PLEVEL_ERR) ? stderr : NULL;
+      va_start(args, fmt);  /* < MUST OCCUR BEFORE pvfprintf() */
+      if (errnum >= 0) {
+         /* obtain error description and print with print configuration */
+         strerror_r(errnum, errstr, sizeof(errstr));
+         pvfprintf(&Perr, fp, (char *) fmt, args, errstr);
+      } else pvfprintf(&Perr, fp, (char *) fmt, args, NULL);
+      /* pvfprintf() does va_end() */
    }
-   PVFPRINTF(Pstderrcfg, PLEVEL_ERR, vmsg, fmt, args);
 
-   return ecode;
+   return errnum < 0 ? 2 : 1;
 }  /* end perrno() */
 
 /**
- * Print an error message using Pconfigs: stderr, perr, plog and pbug.
- * Returns 0. */
+ * @brief Print/log an error message.
+ * @param fmt A string format (or message) for printing
+ * @param ... Variable arguments supporting the format string
+ * @returns 1 always.
+*/
 int perr(const char *fmt, ...)
 {
-   char vmsg[PMESSAGE_MAX] = "";
    va_list args;
+   FILE *fp;
 
-   /* ignore NULL fmt's and NUL log level scenarios */
-   if (fmt == NULL || ANYPCONFIGLEVEL < PLEVEL_ERR) return 1;
-
-   /* build variable message and print to all (incl. stderr) */
-   PVFPRINTF(Pstderrcfg, PLEVEL_ERR, vmsg, fmt, args);
+   if (fmt) {
+      /* set stderr if print level is appropriate */
+      fp = (Plevel >= PLEVEL_ERR) ? stderr : NULL;
+      va_start(args, fmt);  /* < MUST OCCUR BEFORE pvfprintf() */
+      pvfprintf(&Perr, fp, (char *) fmt, args, NULL);
+      /* pvfprintf() does va_end() */
+   }
 
    return 1;
 }  /* end perr() */
 
 /**
- * Print a log message using Pconfigs: stdout, plog and pbug.
- * Returns 0. */
+ * @brief Print/log a log message.
+ * @param fmt A string format (or message) for printing
+ * @param ... Variable arguments supporting the format string
+ * @returns 0 always.
+*/
 int plog(const char *fmt, ...)
 {
-   char vmsg[PMESSAGE_MAX] = "";
    va_list args;
+   FILE *fp;
 
-   /* ignore NULL fmt's and NUL log level scenarios */
-   if (fmt == NULL || ANYPCONFIGLEVEL < PLEVEL_LOG) return 0;
-
-   /* build variable message and print to all (incl. stdout) */
-   PVFPRINTF(Pstdoutcfg, PLEVEL_LOG, vmsg, fmt, args);
+   if (fmt) {
+      /* set stdout if print level is appropriate */
+      fp = (Plevel >= PLEVEL_LOG) ? stdout : NULL;
+      va_start(args, fmt);  /* < MUST OCCUR BEFORE pvfprintf() */
+      pvfprintf(&Plog, fp, (char *) fmt, args, NULL);
+      /* pvfprintf() does va_end() */
+   }
 
    return 0;
 }  /* end plog() */
 
 /**
- * Print a debug message using Pconfigs: stdout and pbug.
- * Returns 0. */
-int pbug(const char *fmt, ...)
+ * @brief Print/log a debug message.
+ * @param fmt A string format (or message) for printing
+ * @param ... Variable arguments supporting the format string
+ * @returns 0 always.
+*/
+int pdebug(const char *fmt, ...)
 {
-   char vmsg[PMESSAGE_MAX] = "";
    va_list args;
+   FILE *fp;
 
-   /* ignore NULL fmt's and NUL log level scenarios */
-   if (fmt == NULL || ANYPCONFIGLEVEL < PLEVEL_BUG) return 0;
-
-   /* build variable message and print to all (incl. stdout) */
-   PVFPRINTF(Pstdoutcfg, PLEVEL_BUG, vmsg, fmt, args);
+   if (fmt) {
+      /* set stdout if print level is appropriate */
+      fp = (Plevel >= PLEVEL_DEBUG) ? stdout : NULL;
+      va_start(args, fmt);  /* < MUST OCCUR BEFORE pvfprintf() */
+      pvfprintf(&Pdebug, fp, (char *) fmt, args, NULL);
+      /* pvfprintf() does va_end() */
+   }
 
    return 0;
-}  /* end pbug() */
+}  /* end pdebug() */
+
+/**
+ * @brief Get the number of logs counted by perrno() and perr().
+ * @param fp File pointer open in "write" or "append" mode
+ * @returns Number of logs counted by perrno() and perr()
+*/
+unsigned get_perr_counter(void)
+{
+   return Perr.num;
+}
+
+/**
+ * @brief Get the number of logs counted by plog().
+ * @param fp File pointer open in "write" or "append" mode
+ * @returns Number of logs counted by plog()
+*/
+unsigned get_plog_counter(void)
+{
+   return Plog.num;
+}
+
+/**
+ * @brief Get the number of logs counted by pdebug().
+ * @param fp File pointer open in "write" or "append" mode
+ * @returns Number of logs counted by pdebug()
+*/
+unsigned get_pdebug_counter(void)
+{
+   return Pdebug.num;
+}
+
+/**
+ * @brief Set the print/log file pointer for perrno() and perr().
+ * @param fp File pointer open in "write" or "append" mode
+*/
+void set_perr_fp(FILE *fp)
+{
+   Perr.fp = fp;
+}
+
+/**
+ * @brief Set the print/log file pointer for plog().
+ * @param fp File pointer open in "write" or "append" mode
+*/
+void set_plog_fp(FILE *fp)
+{
+   Plog.fp = fp;
+}
+
+/**
+ * @brief Set the print/log file pointer for pdebug().
+ * @param fp File pointer open in "write" or "append" mode
+*/
+void set_pdebug_fp(FILE *fp)
+{
+   Pdebug.fp = fp;
+}
+
+/**
+ * @brief Set the print/log prefix for perrno() and perr().
+ * @param prefix Pointer to desired prefix
+*/
+void set_perr_prefix(char *prefix)
+{
+   Perr.prefix = prefix;
+}
+
+/**
+ * @brief Set the print/log prefix for plog().
+ * @param prefix Pointer to desired prefix
+*/
+void set_plog_prefix(char *prefix)
+{
+   Plog.prefix = prefix;
+}
+
+/**
+ * @brief Set the print/log prefix for pdebug().
+ * @param prefix Pointer to desired prefix
+*/
+void set_pdebug_prefix(char *prefix)
+{
+   Pdebug.prefix = prefix;
+}
+
+/**
+ * @brief Set the print level for printing to terminal.
+ * @param level The print level allowed to print to terminal
+*/
+void set_print_level(char level)
+{
+   Plevel = level;
+}
+
+/**
+ * @brief Set the timestamp flag for prints to file pointers.
+ * @param time Value to apply to the timestamp flag (e.g. 1/0, on/off)
+*/
+void set_print_timestamp(char time)
+{
+   Ptime = time;
+}
 
 
 #endif  /* end EXTENDED_PRINT_C */
