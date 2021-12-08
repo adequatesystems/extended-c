@@ -311,7 +311,13 @@ int pdebug(const char *fmt, ...)
 */
 unsigned get_perr_counter(void)
 {
-   return Perr.num;
+   unsigned counter;
+
+   mutex_lock(&(Perr.lock));
+   counter = Perr.num;
+   mutex_unlock(&(Perr.lock));
+
+   return counter;
 }
 
 /**
@@ -321,7 +327,13 @@ unsigned get_perr_counter(void)
 */
 unsigned get_plog_counter(void)
 {
-   return Plog.num;
+   unsigned counter;
+
+   mutex_lock(&(Plog.lock));
+   counter = Plog.num;
+   mutex_unlock(&(Plog.lock));
+
+   return counter;
 }
 
 /**
@@ -331,7 +343,13 @@ unsigned get_plog_counter(void)
 */
 unsigned get_pdebug_counter(void)
 {
-   return Pdebug.num;
+   unsigned counter;
+
+   mutex_lock(&(Pdebug.lock));
+   counter = Pdebug.num;
+   mutex_unlock(&(Pdebug.lock));
+
+   return counter;
 }
 
 /**
@@ -340,7 +358,9 @@ unsigned get_pdebug_counter(void)
 */
 void set_perr_fp(FILE *fp)
 {
+   mutex_lock(&(Perr.lock));
    Perr.fp = fp;
+   mutex_unlock(&(Perr.lock));
 }
 
 /**
@@ -349,7 +369,9 @@ void set_perr_fp(FILE *fp)
 */
 void set_plog_fp(FILE *fp)
 {
+   mutex_lock(&(Plog.lock));
    Plog.fp = fp;
+   mutex_unlock(&(Plog.lock));
 }
 
 /**
@@ -358,7 +380,9 @@ void set_plog_fp(FILE *fp)
 */
 void set_pdebug_fp(FILE *fp)
 {
+   mutex_lock(&(Pdebug.lock));
    Pdebug.fp = fp;
+   mutex_unlock(&(Pdebug.lock));
 }
 
 /**
@@ -367,7 +391,9 @@ void set_pdebug_fp(FILE *fp)
 */
 void set_perr_prefix(char *prefix)
 {
+   mutex_lock(&(Perr.lock));
    Perr.prefix = prefix;
+   mutex_unlock(&(Perr.lock));
 }
 
 /**
@@ -376,7 +402,9 @@ void set_perr_prefix(char *prefix)
 */
 void set_plog_prefix(char *prefix)
 {
+   mutex_lock(&(Plog.lock));
    Plog.prefix = prefix;
+   mutex_unlock(&(Plog.lock));
 }
 
 /**
@@ -385,7 +413,9 @@ void set_plog_prefix(char *prefix)
 */
 void set_pdebug_prefix(char *prefix)
 {
+   mutex_lock(&(Pdebug.lock));
    Pdebug.prefix = prefix;
+   mutex_unlock(&(Pdebug.lock));
 }
 
 /**
