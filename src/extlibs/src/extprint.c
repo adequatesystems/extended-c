@@ -99,20 +99,19 @@ void psticky(char *msg)
 
    /* update sticky message, if specified */
    if (msg) {
+      /* update sticky message */
       strncpy(sticky, msg, BUFSIZ);
       sticky[BUFSIZ - 1] = '\0';
    }
    /* (re)print sticky message */
-   if (sticky[0]) {
-      mutex_lock(&Pstdlock);
+   mutex_lock(&Pstdlock);
 
-      printf("\n\33[K");         /* go down a line */
-      printf("%s", sticky);      /* clear and print sticky */
-      printf("\r\33[1A\33[K");   /* restore cursor position */
-      fflush(stdout);            /* flush stdout */
+   printf("\n\33[K");         /* go down a line */
+   printf("%s\33[K", sticky); /* print (clean) sticky */
+   printf("\r\33[1A\33[K");   /* restore cursor position */
+   fflush(stdout);            /* flush stdout */
 
-      mutex_unlock(&Pstdlock);
-   }
+   mutex_unlock(&Pstdlock);
 
    mutex_unlock(&lock);
 }
