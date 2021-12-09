@@ -8,4 +8,5 @@ int main()
       "Integer: %d... (carriage return + newline)\r\n"
       "Float: %.3f... (newline only)\n"
       "String: %s... (nothing)", 123, 456.789f, "test");
+   printf("\n");
 }

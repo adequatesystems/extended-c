@@ -11,41 +11,88 @@
 
 #include <stdio.h>
 
+#define MACROSTRING(x)  #x
+#define TOSTRING(x)     MACROSTRING(x)
+#define PTRACE          "[" __FILE__ ":" TOSTRING(__LINE__) "]"
 
 /**
- * @brief No logging print level.
- * @details Disables logging from print functions,
- * when used with set_print_level()
+ * @brief No print level. None. Zip.
+ * @details Indicates no printing
 */
 #define PLEVEL_NONE  0
 
 /**
  * @brief Error logging print level.
- * @details Enables logs to @a stderr from perrno(), and perr(),
- * when used with set_print_level()
- * @details Applies settings to perrno() and perr() configuration
- * when used with any other set_print_*() function
+ * @details Indicates fatal error level printing
 */
-#define PLEVEL_ERR   1
+#define PLEVEL_FATAL   1
+
+/**
+ * @brief Error logging print level.
+ * @details Indicates error level printing
+*/
+#define PLEVEL_ERROR   2
+
+/**
+ * @brief Warning logging print level.
+ * @details Indicates warning level printing
+*/
+#define PLEVEL_WARN 3
 
 /**
  * @brief Standard logging print level.
- * @details Enables logs to @a stderr from perrno(), and perr(),
- * and to @a stdout from plog(), when used with set_print_level()
- * @details Applies settings to plog() configuration when
- * used with any other set_print_*() function
+ * @details Indicates log level printing
 */
-#define PLEVEL_LOG   2
+#define PLEVEL_LOG 4
 
 /**
  * @brief Debug logging print level.
- * @details Enables logs to @a stderr from perrno(), and perr()
- * and to @a stdout from plog() and pdebug(), when used with
- * set_print_level()
- * @details Applies settings to pdebug() configuration when
- * used with any other set_print_*() function
+ * @details Indicates debug level printing
 */
-#define PLEVEL_DEBUG 3
+#define PLEVEL_DEBUG 5
+
+/**
+ * @brief Print/log a FATAL error message.
+ * @param ... arguments you would normally pass to printf()
+ * @returns 2, as integer per print_ext()
+*/
+#define pfatal(...)  print_ext((-1), PLEVEL_FATAL, PTRACE, __VA_ARGS__)
+
+/**
+ * @brief Print/log an error message, with description of @a errnum.
+ * @param E @a errno associated with error log message
+ * @param ... arguments you would normally pass to printf()
+ * @returns 1, as integer per print_ext()
+*/
+#define perrno(E, ...)  print_ext(E, PLEVEL_ERROR, PTRACE, __VA_ARGS__)
+
+/**
+ * @brief Print/log an error message.
+ * @param ... arguments you would normally pass to printf()
+ * @returns 1, as integer per print_ext()
+*/
+#define perr(...)    print_ext((-1), PLEVEL_ERROR, PTRACE, __VA_ARGS__)
+
+/**
+ * @brief Print/log a warning message.
+ * @param ... arguments you would normally pass to printf()
+ * @returns 0, as integer per print_ext()
+*/
+#define pwarn(...)   print_ext((-1), PLEVEL_WARN, PTRACE, __VA_ARGS__)
+
+/**
+ * @brief Print/log a message.
+ * @param ... arguments you would normally pass to printf()
+ * @returns 0, as integer per print_ext()
+*/
+#define plog(...)    print_ext((-1), PLEVEL_LOG, PTRACE, __VA_ARGS__)
+
+/**
+ * @brief Print/log a debug message.
+ * @param ... arguments you would normally pass to printf()
+ * @returns 0, as integer per print_ext()
+*/
+#define pdebug(...)  print_ext((-1), PLEVEL_DEBUG, PTRACE, __VA_ARGS__)
 
 
 #ifdef __cplusplus
@@ -53,23 +100,14 @@ extern "C" {
 #endif
 
 /* Function prototypes for extprint.c */
-void psticky(char *msg);
+unsigned get_num_errs(void);
+unsigned get_num_logs(void);
+int set_output_file(char *fname, char *mode);
+void set_output_level(int level);
+void set_print_level(int level);
 void print(const char *fmt, ...);
-int perrno(int errnum, const char *fmt, ...);
-int perr(const char *fmt, ...);
-int plog(const char *fmt, ...);
-int pdebug(const char *fmt, ...);
-unsigned get_perr_counter(void);
-unsigned get_plog_counter(void);
-unsigned get_pdebug_counter(void);
-void set_perr_fp(FILE *fp);
-void set_plog_fp(FILE *fp);
-void set_pdebug_fp(FILE *fp);
-void set_perr_prefix(char *prefix);
-void set_plog_prefix(char *prefix);
-void set_pdebug_prefix(char *prefix);
-void set_print_level(char level);
-void set_print_timestamp(char time);
+int print_ext(int errnum, int level, char *trace, const char *fmt, ...);
+void psticky(const char *fmt, ...);
 
 #ifdef __cplusplus
 }
