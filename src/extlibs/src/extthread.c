@@ -163,8 +163,8 @@ int thread_multiwait(int count, ThreadId tidlist[])
    int i, temp, ecode;
 
    for(ecode = temp = i = 0; i < count; i++) {
-      temp = thread_wait(tidlist[i]);
-      if(temp && !ecode) ecode = temp;
+      if (tidlist[i]) temp = thread_wait(tidlist[i]);
+      if (temp && !ecode) ecode = temp;
    }
 
    return ecode;
