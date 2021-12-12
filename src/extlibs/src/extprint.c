@@ -185,33 +185,41 @@ int print_ext(int errnum, int level, char *trace, const char *fmt, ...)
    FILE *fp;
    va_list args;
 
+   /* ignore NULL fmt's */
+   if (fmt == NULL) {
+      if (level == PLEVEL_FATAL) return 2;
+      if (level == PLEVEL_ERROR) return 1;
+      return 0;
+   }
+
    /* build print configuration - based on level */
    switch(level) {
       case PLEVEL_FATAL:
-         if (ecode == 0 && (ecode = 2) && fmt == NULL) return ecode;
-         strncat(prefix, trace, sizeof(prefix) - strlen(prefix) - 1);
+         if (!ecode) ecode = 2;
+         strncat(prefix, trace, sizeof(prefix) - 1);
          strncat(prefix, "!!! FATAL ", sizeof(prefix) - strlen(prefix) - 1);
          /* fall through */
       case PLEVEL_ERROR:
-         if (ecode == 0 && (ecode = 1) && fmt == NULL) return ecode;
+         if (!ecode) ecode = 1;
          strncat(prefix, "Error. ", sizeof(prefix) - strlen(prefix) - 1);
          if (errnum >= 0) {
-            strerror_r(errnum, &suffix[2], sizeof(suffix) - 3);
             suffix[0] = ':'; suffix[1] = ' ';
+            strerror_r(errnum, &suffix[2], sizeof(suffix) - 3);
          }
          counterp = &Nprinterrs;
          fp = stderr;
          break;
-      case PLEVEL_DEBUG:
-         strncat(prefix, trace, sizeof(prefix) - strlen(prefix) - 1);
-         strncat(prefix, "DEBUG: ", sizeof(prefix) - strlen(prefix) - 1);
-         /* fall through */
       case PLEVEL_WARN:
+         strncat(prefix, "Warning... ", sizeof(prefix) - 1);
+         counterp = &Nprintlogs;
+         fp = stdout;
+         break;
+      case PLEVEL_DEBUG:
+         strncat(prefix, "DEBUG: ", sizeof(prefix) - 1);
          /* fall through */
       case PLEVEL_LOG:
          /* fall through */
       default:
-         if (fmt == NULL) return ecode;
          counterp = &Nprintlogs;
          fp = stdout;
    }
@@ -224,8 +232,7 @@ int print_ext(int errnum, int level, char *trace, const char *fmt, ...)
    if (Printlevel >= level) {
       mutex_lock(&Printlock);
 
-      strftime(timestamp, sizeof(timestamp) - 1, "%T - ", &dt);
-      fprintf(fp, "%s%s", timestamp, prefix);
+      fprintf(fp, "%s", prefix);
       va_start(args, fmt);
       vfprintf_split_end(fp, fmt, args);
       fprintf(fp, "%s\33[K\n", suffix);

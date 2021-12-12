@@ -13,7 +13,7 @@
 
 #define MACROSTRING(x)  #x
 #define TOSTRING(x)     MACROSTRING(x)
-#define PTRACE          "[" __FILE__ ":" TOSTRING(__LINE__) "]"
+#define PTRACE          "[" __FILE__ ":" TOSTRING(__LINE__) "] "
 
 /**
  * @brief No print level. None. Zip.
