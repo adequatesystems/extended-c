@@ -16,27 +16,23 @@
 #include <time.h>       /* for timestamp support */
 
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+   #include "win32lean.h"
 
-/* localtime_r() is NOT specified under Windows... */
-#define localtime_r(t, tm) localtime_s(tm, t)
+   /* localtime_r() is NOT specified by Windows... */
+   #define localtime_r(t, tm) localtime_s(tm, t)
 
+/* end Windows */
 #endif
 
 
 /* Initialize default configuration at runtime */
-int Printlevel = PLEVEL_LOG;
-int Outputlevel = PLEVEL_DEBUG;
-FILE *Outputfp;
-
-/* Mutually exclusive locks for protected prints and logs */
-Mutex Printlock = MUTEX_INITIALIZER;
-Mutex Outputlock = MUTEX_INITIALIZER;
-
-/* Print/log counters */
 unsigned Nprinterrs;
 unsigned Nprintlogs;
+int Printlevel = PLEVEL_LOG;
+int Outputlevel = PLEVEL_DEBUG;
+Mutex Printlock = MUTEX_INITIALIZER;
+Mutex Outputlock = MUTEX_INITIALIZER;
+FILE *Outputfp;
 
 
 /* strerror_r() is specified by POSIX.1-2001... */
