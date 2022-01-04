@@ -1,7 +1,7 @@
 /**
  * @private
  * @headerfile extprint.h <extprint.h>
- * @copyright © Adequate Systems LLC, 2018-2021. All Rights Reserved.
+ * @copyright © Adequate Systems LLC, 2018-2022. All Rights Reserved.
  * <br />For license information, please refer to ../LICENSE
 */
 
@@ -11,8 +11,18 @@
 
 #include "extprint.h"
 #include "extthread.h"  /* for mutex support */
-#include <stdarg.h>  /* for va_list support */
-#include <string.h>  /* for string support */
+#include <stdarg.h>     /* for va_list support */
+#include <string.h>     /* for string support */
+#include <time.h>       /* for timestamp support */
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
+/* localtime_r() is NOT specified under Windows... */
+#define localtime_r(t, tm) localtime_s(tm, t)
+
+#endif
 
 
 /* Initialize default configuration at runtime */
@@ -46,28 +56,127 @@ static void strerror_r(int errnum, char *buf, size_t buflen)
 
 #endif
 
-
-static void vfprintf_split_end(FILE *fp, const char *fmt, va_list args)
+/**
+ * @private
+ * @brief Move the cursor position around the screen.
+ * @param x number of x axis steps to move, negative for left
+ * @param y number of y axis steps to move, negative for up
+*/
+static void move_cursor(int x, int y)
 {
-   char fmt_part[BUFSIZ], *nextp;
-   char *fmtp = (char *) fmt;
+#ifdef _WIN32
+   COORD coord;
+   CONSOLE_SCREEN_BUFFER_INFO csbi;
+   HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
 
-   /* when printing to screen, it's possible to get garbled text
-    * due to any movement of the cursor (e.g. psticky), so this
-    * splits fmt into lines and clears right after every line */
-   while((nextp = strpbrk(fmtp, "\r\n"))) {
-      strncpy(fmt_part, fmtp, nextp - fmtp);
-      fmt_part[nextp - fmtp] = '\0';
-      /* print section without newline */
-      vfprintf(fp, fmt_part, args);
-      /* clear right of cursor and print character */
-      if (nextp != fmt && nextp[-1] != '\r') {
-         fprintf(fp, "\33[K%c", *(nextp++));
-      } else fprintf(fp, "%c", *(nextp++));
-      fmtp = nextp;
+   if (handle == INVALID_HANDLE_VALUE) return;
+   if (!GetConsoleScreenBufferInfo(handle, &csbi)) return;
+
+   coord.X = csbi.dwCursorPosition.X + x;
+   coord.Y = csbi.dwCursorPosition.Y + y;
+   SetConsoleCursorPosition(handle, coord);
+#else
+   if (x < 0) printf("\x1b[%dD", -(x));
+   else if (x) printf("\x1b[%dC", x);
+   if (y < 0) printf("\x1b[%dA", -(y));
+   else if (y) printf("\x1b[%dB", y);
+#endif
+}
+
+/**
+ * @private
+ * @brief Clear line from cursor right.
+ * @param fp file pointer to location of clear
+*/
+static void clear_right(FILE *fp)
+{
+#ifdef _WIN32
+   COORD coord;
+   HANDLE handle;
+   DWORD cells, count;
+   CONSOLE_SCREEN_BUFFER_INFO csbi;
+
+   if (fp == stdout) handle = GetStdHandle(STD_OUTPUT_HANDLE);
+   else if (fp == stderr) handle = GetStdHandle(STD_ERROR_HANDLE);
+   else return;
+
+   if (handle == INVALID_HANDLE_VALUE) return;
+   if (!GetConsoleScreenBufferInfo(handle, &csbi)) return;
+
+   coord = csbi.dwCursorPosition;
+   cells = csbi.dwSize.X - csbi.dwCursorPosition.X;
+   FillConsoleOutputCharacter(handle, (TCHAR) ' ', cells, coord, &count);
+#else
+   if (fp == stdout || fp == stderr) fprintf(fp, "\x1b[K");
+#endif
+}
+
+/**
+ * @private
+ * @brief Prints a "clear" string, by "clearing right" every newline.
+ *
+ * When printing to screen, it's possible to get garbled
+ * text due to movement of the cursor (e.g. psticky() ), so this
+ * splits str into lines and clears right after every line.
+ * @param fp file pointer to location of output
+ * @param str string to print
+*/
+static void print_clear(FILE *fp, char *str)
+{
+   char *strp = str;
+   char *nextp;
+
+   /* print str in parts separated by any "\r\n" characters */
+   while( (nextp = strpbrk(strp + 1, "\r\n")) ) {
+      fprintf(fp, "%.*s", (int) (nextp - strp), strp);
+      if (nextp[-1] != '\r') clear_right(fp);
+      strp = nextp;
    }
-   vfprintf(fp, fmtp, args);
+   /* print remaining str and clear right */
+   fprintf(fp, "%s", strp);
+}
+
+/**
+ * @private
+ * @brief Prints a "clear" string format, with variable arguments.
+ * @details Writes format string and arguments to intermediate buffer
+ * of size BUFSIZ, and utilizes print_clear() for final output.
+ * @param fp file pointer to location of output
+ * @param fmt string fmt to print
+ * @param ... variable arguments supporting @a fmt
+*/
+static void fprintf_clear(FILE *fp, const char *fmt, ...)
+{
+   char str[BUFSIZ];
+   va_list args;
+
+   va_start(args, fmt);
+   vsnprintf(str, BUFSIZ, fmt, args);
    va_end(args);
+
+   print_clear(fp, str);
+}
+
+/**
+ * @private
+ * @brief Prints a "clear" string format and variable arguments list,
+ * passed from another function.
+ * @details Writes format string and arguments to intermediate buffer
+ * of size BUFSIZ, and utilizes print_clear() for final output.
+ * @param fp file pointer to location of output
+ * @param fmt string fmt to print
+ * @param args variable arguments list supporting @a fmt
+ * @note Expects va_start() to be performed on @a args before calling
+ * and calls va_end() on @a args before returning
+*/
+static void vfprintf_clear_end(FILE *fp, const char *fmt, va_list args)
+{
+   char str[BUFSIZ];
+
+   vsnprintf(str, BUFSIZ, fmt, args);
+   va_end(args);
+
+   print_clear(fp, str);
 }
 
 /**
@@ -157,8 +266,13 @@ void print(const char *fmt, ...)
 {
    va_list args;
 
+   mutex_lock(&Printlock);
+
    va_start(args, fmt);
-   vfprintf_split_end(stdout, fmt, args);
+   vfprintf_clear_end(stdout, fmt, args);
+   fflush(stdout);
+
+   mutex_unlock(&Printlock);
 }
 
 /**
@@ -171,9 +285,9 @@ void print(const char *fmt, ...)
  * @param ... Variable arguments supporting @a fmt
  * @returns 2 for PLEVEL_FATAL, 1 for PLEVEL_ERROR, else 0
  * @note This function is a multipurpose function designed for
- * use through the perrno(), perr(), plog(), and pdebug() MACROS.
+ * use through the extended print MACROS, ie. perr(), plog(), ...
 */
-int print_ext(int errnum, int level, char *trace, const char *fmt, ...)
+int print_ext(int errnum, int level, const char *trace, const char *fmt, ...)
 {
    char timestamp[32] = "";
    char prefix[128] = "";
@@ -234,8 +348,11 @@ int print_ext(int errnum, int level, char *trace, const char *fmt, ...)
 
       fprintf(fp, "%s", prefix);
       va_start(args, fmt);
-      vfprintf_split_end(fp, fmt, args);
-      fprintf(fp, "%s\33[K\n", suffix);
+      vfprintf_clear_end(fp, fmt, args);
+      fprintf(fp, "%s", suffix);
+      clear_right(fp);
+      fprintf(fp, "\n");
+      fflush(fp);
 
       mutex_unlock(&Printlock);
 
@@ -253,6 +370,7 @@ int print_ext(int errnum, int level, char *trace, const char *fmt, ...)
       vfprintf(Outputfp, fmt, args);
       va_end(args);
       fprintf(Outputfp, "%s\n", suffix);
+      fflush(Outputfp);
    }
 
    /* increment appropriate print counter */
@@ -272,13 +390,16 @@ int print_ext(int errnum, int level, char *trace, const char *fmt, ...)
  * @note To clear sticky message use @code psticky(""); @endcode
  * @note To reprint sticky message use @code psticky(NULL); @endcode
  * @note Message is only sticky when using the extended print
- * logging functions; perrno(), perr(), plog() and pdebug().
+ * functions and print MACROS, ie. print(), perr(), plog(), ...
 */
 void psticky(const char *fmt, ...)
 {
    static Mutex lock = MUTEX_INITIALIZER;
    static char sticky[BUFSIZ] = "";
+   static int nls = 0;
    va_list args;
+   char *cp;
+   int i;
 
    /* bail on print level NONE, or NULL update */
    if (Printlevel == PLEVEL_NONE) return;
@@ -287,19 +408,41 @@ void psticky(const char *fmt, ...)
    mutex_lock(&lock);
 
    if (fmt) {
-      /* update sticky message */
-      va_start(args, fmt);
-      vsnprintf(sticky, BUFSIZ, fmt, args);
-      va_end(args);
+      if (!fmt[0]) {
+         mutex_lock(&Printlock);
+
+         /* clear sticky */
+         for(i = 0; i <= nls; i++) {
+            printf("\n");
+            clear_right(stdout);
+         }
+         /* return cursor */
+         move_cursor(0, -(1 + nls));
+
+         mutex_unlock(&Printlock);
+
+         sticky[0] = '\0';
+         nls = 0;
+      } else {
+         /* update sticky message */
+         va_start(args, fmt);
+         vsnprintf(sticky, BUFSIZ, fmt, args);
+         va_end(args);
+
+         /* count newlines in sticky */
+         for(cp = sticky, nls = 0; (cp = strchr(cp, '\n')); cp++, nls++);
+      }
    }
 
    mutex_lock(&Printlock);
 
    /* (re)print sticky message */
-   printf("\n\33[K");         /* go down a line, clear */
-   printf("%s\33[K", sticky); /* print sticky message, clear */
-   printf("\r\33[1A\33[K");   /* restore cursor position, clear */
-   fflush(stdout);            /* flush stdout */
+   fprintf_clear(stdout, "\n%s\r", sticky);
+   /* return cursor */
+   move_cursor(0, -(1 + nls));
+   clear_right(stdout);
+   /* flush output */
+   fflush(stdout);
 
    mutex_unlock(&Printlock);
 

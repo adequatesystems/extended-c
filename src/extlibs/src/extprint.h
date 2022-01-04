@@ -1,7 +1,7 @@
 /**
  * @file extprint.h
  * @brief Extended print/logging support.
- * @copyright © Adequate Systems LLC, 2018-2021. All Rights Reserved.
+ * @copyright © Adequate Systems LLC, 2018-2022. All Rights Reserved.
  * <br />For license information, please refer to ../LICENSE
 */
 
@@ -11,9 +11,11 @@
 
 #include <stdio.h>
 
-#define MACROSTRING(x)  #x
-#define TOSTRING(x)     MACROSTRING(x)
-#define PTRACE          "[" __FILE__ ":" TOSTRING(__LINE__) "] "
+#undef STR
+#undef AS_STR
+#define AS_STR(x) #x
+#define STR(x)    AS_STR(x)
+#define PTRACE    "[" __FILE__ ":" STR(__LINE__) "] "
 
 /**
  * @brief No print level. None. Zip.
@@ -106,7 +108,7 @@ int set_output_file(char *fname, char *mode);
 void set_output_level(int level);
 void set_print_level(int level);
 void print(const char *fmt, ...);
-int print_ext(int errnum, int level, char *trace, const char *fmt, ...);
+int print_ext(int errnum, int level, const char *trace, const char *fmt, ...);
 void psticky(const char *fmt, ...);
 
 #ifdef __cplusplus
