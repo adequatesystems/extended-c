@@ -283,8 +283,11 @@ void print(const char *fmt, ...)
  * @note This function is a multipurpose function designed for
  * use through the extended print MACROS, ie. perr(), plog(), ...
 */
-int print_ext(int errnum, int level, const char *trace, const char *fmt, ...)
+int print_ext
+(int errnum, int level, int line, const char *file, const char *fmt, ...)
 {
+   char *fname = "<unknown>";
+   char trace[FILENAME_MAX] = "";
    char timestamp[32] = "";
    char prefix[128] = "";
    char suffix[64] = "";
@@ -301,6 +304,16 @@ int print_ext(int errnum, int level, const char *trace, const char *fmt, ...)
       if (level == PLEVEL_ERROR) return 1;
       return 0;
    }
+
+   /* derive base filename */
+   if (file) {
+      if (strrchr(file, '\\')) fname = strrchr(file, '\\') + 1;
+      else if (strrchr(file, '/')) fname = strrchr(file, '/') + 1;
+      else fname = (char *) file;
+   }
+
+   /* combine base file and line number in trace */
+   snprintf(trace, FILENAME_MAX, "[%s:%d] ", fname, line);
 
    /* build print configuration - based on level */
    switch(level) {
