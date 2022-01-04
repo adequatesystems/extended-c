@@ -1,12 +1,8 @@
 /**
- * extinet.c - Extended internet support
- *
- * Copyright (c) 2018-2021 Adequate Systems, LLC. All Rights Reserved.
- * For more information, please refer to ../LICENSE
- *
- * Date: 9 January 2018
- * Revised: 12 November 2021
- *
+ * @private
+ * @headerfile extinet.h <extinet.h>
+ * @copyright © Adequate Systems LLC, 2018-2022. All Rights Reserved.
+ * <br />For license information, please refer to ../LICENSE
 */
 
 #ifndef EXTENDED_INTERNET_C
@@ -14,28 +10,27 @@
 
 
 #include "extinet.h"
+#include "exttime.h"
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
 
-
-/* System specific preconfiguration */
-#ifdef _WIN32  /* assume Windows */
+#ifdef _WIN32
 
    #pragma comment(lib, "winhttp.lib")
-   #define HTTPBUFFLEN  1024     /* 1KiB default http_get() buff length */
-   #define WIN32_LEAN_AND_MEAN   /* minimal windows.h include */
-   #include <windows.h>
    #include <winhttp.h>
+   #include <wchar.h>
+   #include "win32lean.h"
 
    WORD Sockverreq = 0x0202;     /* Default winsock version 2.2 */
 
-#else  /* assume UNIXLIKE */
+/* end Windows */
+#elif defined(__unix__)
 
    #include <fcntl.h>   /* for fcntl() */
    #include <stdlib.h>  /* for system() */
 
-#endif  /* end preconfiguration */
+/* end Unix */
+#endif
 
 
 /**
@@ -45,18 +40,19 @@ int http_get(char *url, char *fname, int timeout)
 {
 #ifdef _WIN32  /* assume Windows */
    static const char *default_fname = "index.html";
+   wchar_t wcdomain[FILENAME_MAX], wcpath[FILENAME_MAX];
    HINTERNET hSession, hConnect, hRequest;
-   wchar_t wcdomain[64], wcpath[256];
    DWORD bytesAvailable, bytesRead;
    BOOL bResults;
+   size_t len;
    FILE *fp;
 
    /* INTERNET_DEFAULT_PORT evaluates to 80 for HTTP and 443 for HTTPS */
    unsigned int port = INTERNET_DEFAULT_PORT;
-   char proto[16] = "https";
-   char domain[64] = "\0";
-   char path[256] = "/";
-   char buf[HTTPBUFFLEN];
+   char proto[FILENAME_MAX] = "https";
+   char domain[FILENAME_MAX] = "\0";
+   char path[FILENAME_MAX] = "/";
+   char buf[BUFSIZ];
    char *cp;
 
    /* url is required... obviously */
@@ -89,16 +85,14 @@ int http_get(char *url, char *fname, int timeout)
       cp = strrchr(path, '/');
       if (cp != NULL && cp < &path[strlen(path) - 1]) {
          fname = cp + 1;
-      } else fname = default_fname;
+      } else fname = (char *) default_fname;
    }
    /* convert domain and path to wchar string */
-   mbtowcs(wcdomain, domain, 64);
-   mbtowcs(wcpath, path, 256);
-
+   mbstowcs(wcdomain, domain, FILENAME_MAX);
+   mbstowcs(wcpath, path, FILENAME_MAX);
    /* open file for writing */
    fp = fopen(fname, "wb");
    if (fp == NULL) return 4;
-
    /* init internet handles */
    bResults = FALSE;
    hSession = hConnect = hRequest = NULL;
@@ -110,11 +104,11 @@ int http_get(char *url, char *fname, int timeout)
    if (hSession) {
       timeout = timeout * 1000;  /* convert timeout to milliseconds */
       WinHttpSetTimeouts(hSession, timeout, timeout, timeout, timeout);
-      hConnect = WinHttpConnect(hSession, domain, port, 0);
+      hConnect = WinHttpConnect(hSession, wcdomain, port, 0);
    }
    /* open http request */
    if (hConnect) {
-      hRequest = WinHttpOpenRequest(hConnect, L"GET", path, NULL,
+      hRequest = WinHttpOpenRequest(hConnect, L"GET", wcpath, NULL,
          WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES,
          strncmp(proto, "https", sizeof(proto)) ? WINHTTP_FLAG_SECURE : 0);
    }
@@ -130,7 +124,7 @@ int http_get(char *url, char *fname, int timeout)
          bytesAvailable = 0;
          WinHttpQueryDataAvailable(hRequest, &bytesAvailable);
          /* limit bytes to size of buf */
-         if(bytesAvailable > HTTPBUFFLEN) bytesAvailable = HTTPBUFFLEN;
+         if(bytesAvailable > BUFSIZ) bytesAvailable = BUFSIZ;
          /* read data into buf and write buf to file */
          if(WinHttpReadData(hRequest, buf, bytesAvailable, &bytesRead)) {
             if(fwrite(buf, (size_t) bytesRead, 1, fp) != 1) break;
@@ -151,7 +145,9 @@ int http_get(char *url, char *fname, int timeout)
    }
 
    return 0;
-#else  /* assume UNIXLIKE */
+
+/* end Windows */
+#else
    char cmd[640];
 
    /* If you've got a solution for a POSIX compliant routine for
@@ -161,18 +157,14 @@ int http_get(char *url, char *fname, int timeout)
    /* url is required... obviously */
    if (url == NULL) return 8;
 
-   /* try cURL -- naturally tries only once */
-   sprintf(cmd, "curl -sLm %d %.2s %.256s %.336s",
-      timeout, fname ? "-o" : "-O", fname ? fname : "", url);
-   if (system(cmd) == 0) return 0;
-
-   /* try wGET -- forcefully tries only once */
-   sprintf(cmd, "wget -qT %d -t 1 %.2s %.256s %.336s",
+   sprintf(cmd,  /* try cURL, with wGET as fallback */
+      "curl -sLm %d %.2s %.128s %.128s 2>/dev/null || "
+      "wget -qT %d -t 1 %.2s %.128s %.128s 2>/dev/null",
+      timeout, fname ? "-o" : "-O", fname ? fname : "", url,
       timeout, fname ? "-O" : "", fname ? fname : "", url);
-   if (system(cmd) == 0) return 0;
 
-   return 1;
-#endif  /* end UNIXLIKE */
+   return system(cmd);
+#endif
 }  /* end http_get() */
 
 /**
@@ -357,7 +349,7 @@ SOCKET sock_connect_ip(unsigned long ip, unsigned short port, double timeout)
       if (sock_err_is_success(ecode)) break;
       if (sock_err_is_waiting(ecode) && Sockinuse &&
          (difftime(time(NULL), start) < timeout)) {
-         sock_sleep();  /* socket is waiting patiently */
+         millisleep(1);  /* socket is waiting patiently */
          continue;
       }  /* ... connection is deemed a failure, cleanup... */
       sock_close(sd);
@@ -397,7 +389,7 @@ int sock_recv(SOCKET sd, void *pkt, int len, int flags, double timeout)
       if (count == 0 || !Sockinuse) return 1;  /* end communication */
       if (count > 0) n += count;  /* count recv'd bytes */
       else if(difftime(time(NULL), start) >= timeout) return (-1);
-      else sock_sleep();  /* socket is waiting patiently */
+      else millisleep(1);  /* socket is waiting patiently */
    }
 
    return 0;  /* recv'd packet */
@@ -422,7 +414,7 @@ int sock_send(SOCKET sd, void *pkt, int len, int flags, double timeout)
       if (count == 0 || !Sockinuse) return 1;  /* end communication */
       if (count > 0) n += count;  /* count sent bytes */
       else if(difftime(time(NULL), start) >= timeout) return (-1);
-      else sock_sleep();  /* socket is waiting patiently */
+      else millisleep(1);  /* socket is waiting patiently */
    }
 
    return 0;  /* sent packet */

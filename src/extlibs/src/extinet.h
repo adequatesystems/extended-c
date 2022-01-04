@@ -1,35 +1,27 @@
 /**
- * extinet.h - Extended internet support header
- *
- * Copyright (c) 2021 Adequate Systems, LLC. All Rights Reserved.
- * For more information, please refer to ../LICENSE
- *
- * Date: 16 September 2021
- * Revised: 12 November 2021
- *
- * NOTES:
- * - where applications are designed for compatibility with win32
- *   systems, call sock_startup() and sock_cleanup(), in the init
- *   and the cleanup routines of an application.
- *
+ * @file extinet.h
+ * @brief Extended internet support.
+ * @copyright © Adequate Systems LLC, 2018-2022. All Rights Reserved.
+ * <br />For license information, please refer to ../LICENSE
+ * @note Applications MUST call sock_startup() before using socket
+ * support functions, and may optionally cleanup with sock_cleanup()
 */
 
 #ifndef EXTENDED_INTERNET_H
 #define EXTENDED_INTERNET_H  /* include guard */
 
 
-#ifdef _WIN32  /* assume Windows */
+#ifdef _WIN32
 
    #pragma comment(lib, "ws2_32.lib")
    #include <winsock2.h>  /* for socket handling */
    #include <ws2tcpip.h>  /* for socklen_t */
 
-   #define sock_err                 WSAGetLastError()
+   #define ext_sock_close(_sd)      closesocket(_sd)
+   #define ext_sock_err             ( WSAGetLastError() )
    #define sock_err_is_success(_e)  ( _e == WSAEISCONN )
    #define sock_err_is_waiting(_e) \
       ( _e == WSAEWOULDBLOCK || _e == WSAEALREADY || _e == WSAEINVAL )
-   #define sock_close(_sd)          closesocket(_sd)
-   #define sock_sleep()             Sleep(1)
 
    #ifdef __cplusplus
    extern "C" {
@@ -39,14 +31,12 @@
    WSADATA Sockdata;
    WORD Sockverreq;
 
-   /* Function prototypes */
-   int http_get(char *url, char *fname);
-
    #ifdef __cplusplus
    }
    #endif
 
-#else  /* end Windows, assume Unix-like */
+/* end Windows */
+#elif defined(__unix__)
 
    #include <arpa/inet.h>
    #include <errno.h>
@@ -55,28 +45,46 @@
    #include <sys/socket.h>
    #include <unistd.h>
 
-   #define sock_err                 errno
+   #define ext_sock_close(_sd)      close(_sd)
+   #define ext_sock_err             ( errno )
    #define sock_err_is_success(_e)  ( _e == EISCONN )
    #define sock_err_is_waiting(_e)  ( _e == EINPROGRESS || _e == EALREADY )
-   #define sock_close(_sd)          close(_sd)
-   #define sock_sleep()             usleep(1000)
 
+/* end Unix */
 #endif
 
 
+/**
+ * @brief Function definition to close an open socket.
+ * @param _sd socket descriptor
+ * @note Where `_WIN32` is defined, expands to: `closesocket(_sd)`
+ * @note Where `__unix__` is defined, expands to: `close(_sd)`
+ * @note DOES NOT clear socket descriptor
+*/
+#define sock_close(_sd)  ext_sock_close(_sd)
+
+/**
+ * @brief Function return code for socket error.
+ * @note Where `_WIN32` is defined, expands to: `( WSAGetLastError() )`
+ * @note Where `__unix__` is defined, expands to: `( errno )`
+*/
+#define sock_err  ext_sock_err
+
+
 #ifndef SOCKET
-/* Standard datatype used for SOCKET */
+/**
+ * @brief SOCKET datatype for use with socket support functions
+ * @note SOCKET is ONLY guaranteed an int type where NOT already defined.
+*/
 #define SOCKET int
 #endif
 
 #ifndef SOCKET_ERROR
-/* Standard socket error, as a return code */
-#define SOCKET_ERROR (-1)
+#define SOCKET_ERROR (-1)  /**< Socket error return code */
 #endif
 
 #ifndef INVALID_SOCKET
-/* Standard undefined socket */
-#define INVALID_SOCKET (SOCKET)(~0)
+#define INVALID_SOCKET (SOCKET)(~0) /**< Indicates empty socket descriptor */
 #endif
 
 
@@ -84,7 +92,11 @@
 extern "C" {
 #endif
 
-/* Global flag indicating sockets are in use. */
+/**
+ * @brief Global flag indicating socket support is enabled.
+ * @details Increments upon use of sock_startup().
+ * Returns to zero after sock_cleanup().
+*/
 volatile int Sockinuse;
 
 /* Function prototypes */
