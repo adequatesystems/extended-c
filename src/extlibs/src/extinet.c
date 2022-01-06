@@ -1,7 +1,7 @@
 /**
  * @private
  * @headerfile extinet.h <extinet.h>
- * @copyright © Adequate Systems LLC, 2018-2022. All Rights Reserved.
+ * @copyright Adequate Systems LLC, 2018-2022. All Rights Reserved.
  * <br />For license information, please refer to ../LICENSE
 */
 
