@@ -1,24 +1,25 @@
 /**
  * @file extinet.h
  * @brief Extended internet support.
- * @copyright © Adequate Systems LLC, 2018-2022. All Rights Reserved.
+ * @details Provides extended support for internet related functionality.
+ * @copyright Adequate Systems LLC, 2018-2022. All Rights Reserved.
  * <br />For license information, please refer to ../LICENSE
- * @note Applications MUST call sock_startup() before using socket
- * support functions, and may optionally cleanup with sock_cleanup()
+ * @note Applications MUST call sock_startup() before using some
+ * socket support functions in this file.
 */
 
 #ifndef EXTENDED_INTERNET_H
 #define EXTENDED_INTERNET_H  /* include guard */
 
 
-#ifdef _WIN32
+#include "extos.h"
 
+#if OS_WINDOWS
    #pragma comment(lib, "ws2_32.lib")
    #include <winsock2.h>  /* for socket handling */
    #include <ws2tcpip.h>  /* for socklen_t */
 
-   #define ext_sock_close(_sd)      closesocket(_sd)
-   #define ext_sock_err             ( WSAGetLastError() )
+   #define os_dependant_sock_errno  ( WSAGetLastError() )
    #define sock_err_is_success(_e)  ( _e == WSAEISCONN )
    #define sock_err_is_waiting(_e) \
       ( _e == WSAEWOULDBLOCK || _e == WSAEALREADY || _e == WSAEINVAL )
@@ -35,9 +36,8 @@
    }
    #endif
 
-/* end Windows */
-#elif defined(__unix__)
-
+/* end OS_WINDOWS */
+#elif OS_UNIX
    #include <arpa/inet.h>
    #include <errno.h>
    #include <netdb.h>
@@ -45,36 +45,24 @@
    #include <sys/socket.h>
    #include <unistd.h>
 
-   #define ext_sock_close(_sd)      close(_sd)
-   #define ext_sock_err             ( errno )
+   #define os_dependant_sock_errno  ( errno )
    #define sock_err_is_success(_e)  ( _e == EISCONN )
    #define sock_err_is_waiting(_e)  ( _e == EINPROGRESS || _e == EALREADY )
 
 /* end Unix */
 #endif
 
-
 /**
- * @brief Function definition to close an open socket.
- * @param _sd socket descriptor
- * @note Where `_WIN32` is defined, expands to: `closesocket(_sd)`
- * @note Where `__unix__` is defined, expands to: `close(_sd)`
- * @note DOES NOT clear socket descriptor
+ * Detailed socket error code.
+ * <br/>On Windows, expands to: `( WSAGetLastError() )`
+ * <br/>On Unix, expands to: `( errno )`
 */
-#define sock_close(_sd)  ext_sock_close(_sd)
-
-/**
- * @brief Function return code for socket error.
- * @note Where `_WIN32` is defined, expands to: `( WSAGetLastError() )`
- * @note Where `__unix__` is defined, expands to: `( errno )`
-*/
-#define sock_err  ext_sock_err
-
+#define sock_errno   os_dependant_sock_errno
 
 #ifndef SOCKET
 /**
- * @brief SOCKET datatype for use with socket support functions
- * @note SOCKET is ONLY guaranteed an int type where NOT already defined.
+ * SOCKET datatype for use with socket support functions
+ * @note SOCKET is ONLY guaranteed an `int` type where NOT already defined.
 */
 #define SOCKET int
 #endif
@@ -93,9 +81,8 @@ extern "C" {
 #endif
 
 /**
- * @brief Global flag indicating socket support is enabled.
- * @details Increments upon use of sock_startup().
- * Returns to zero after sock_cleanup().
+ * Global flag indicating socket support status. Increments upon
+ * use of sock_startup(). Returns to zero after sock_cleanup().
 */
 volatile int Sockinuse;
 
@@ -109,14 +96,16 @@ int sock_startup(void);
 int sock_cleanup(void);
 int sock_set_nonblock(SOCKET sd);
 int sock_set_blocking(SOCKET sd);
+int sock_close(SOCKET sd);
 SOCKET sock_connect_ip(unsigned long ip, unsigned short port, double timeout);
 SOCKET sock_connect_addr(char *addr, unsigned short port, double timeout);
 int sock_recv(SOCKET sd, void *pkt, int len, int flags, double timeout);
 int sock_send(SOCKET sd, void *pkt, int len, int flags, double timeout);
 
+/* end extern "C" {} for C++ */
 #ifdef __cplusplus
 }
 #endif
 
-
-#endif /* end EXTENDED_INTERNET_H */
+/* end include guard */
+#endif
