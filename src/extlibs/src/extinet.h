@@ -52,6 +52,9 @@
 /* end Unix */
 #endif
 
+#define WEBDOMAIN_MAX   256    /**< Website domain name byte length limit. */
+#define WEBPATH_MAX     8196   /**< Website path byte length limit. */
+
 /**
  * Detailed socket error code.
  * <br/>On Windows, expands to: `( WSAGetLastError() )`

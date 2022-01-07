@@ -1,104 +1,134 @@
 /**
- * extlib.c - Extended general utilities support
- *
- * Copyright (c) 2018-2021 Adequate Systems, LLC. All Rights Reserved.
- * For more information, please refer to ../LICENSE
- *
- * Date: 2 January 2018
- * Revised: 25 October 2021
- *
- * NOTES:
- * - For prng's with greater statistical randomness, see PCG and Xoroshiro:
- *    https://en.wikipedia.org/wiki/Permuted_congruential_generator
- *    https://en.wikipedia.org/wiki/Xoroshiro128%2B
- *
+ * @private
+ * @headerfile extlib.h <extlib.h>
+ * @copyright Adequate Systems LLC, 2018-2022. All Rights Reserved.
+ * <br />For license information, please refer to ../LICENSE
 */
 
+/* include guard */
 #ifndef EXTENDED_UTILITIES_C
-#define EXTENDED_UTILITIES_C  /* include guard */
+#define EXTENDED_UTILITIES_C
 
 
 #include "extlib.h"
 #include "extmath.h"  /* for iszero() in *nz() functions */
-#include "extstring.h"  /* for mem*() in extract*() functions */
+#include "extstring.h"  /* for memory manipulation support */
 
-/* Private number generator seeds for rand16fast() and rand16() */
+
+/* Internal state seeds for PRNG's rand16fast() and rand16() */
 volatile word32 Lseed = 1;
 volatile word32 Lseed2 = 1;
 volatile word32 Lseed3 = 362436069;
 volatile word32 Lseed4 = 123456789;
 
 
-#ifdef WORD64_MAX  /* x64 guard */
+/* 64-bit guard */
+#ifdef HAS_64BIT
 
-/**
- * Place a 64-bit unsigned *val, in *buff.
- * NOTE: uses 64-bit operations. */
-void put64_x64(void *buff, void *val)
-{
-   *((word64 *) buff) = *((word64 *) val);
-}
+   /**
+    * Place a 64-bit unsigned @a value in @a buff.
+    * @param buff Pointer to buffer to place value
+    * @param value Pointer to 64-bit value
+    * @note Available ONLY for testing purposes.
+    * Use put64() instead.
+   */
+   void put64_x64(void *buff, void *value)
+   {
+      *((word64 *) buff) = *((word64 *) value);
+   }
 
 #endif  /* end WORD64_MAX */
 
 
 /**
- * Place a 64-bit unsigned *val, in *buff. */
-void put64_x86(void *buff, void *val)
+ * Place a 64-bit unsigned @a value in @a buff.
+ * @param buff Pointer to buffer to place value
+ * @param value Pointer to 64-bit value
+ * @note Available ONLY for testing purposes.
+ * Use put64() instead.
+*/
+void put64_x86(void *buff, void *value)
 {
-   ((word32 *) buff)[0] = ((word32 *) val)[0];
-   ((word32 *) buff)[1] = ((word32 *) val)[1];
+   ((word32 *) buff)[0] = ((word32 *) value)[0];
+   ((word32 *) buff)[1] = ((word32 *) value)[1];
 }
 
-/* Returns a 16-bit unsigned value from buff. */
+/**
+ * Get a 16-bit unsigned value from @a buff.
+ * @param buff Pointer to buffer to get value from
+ * @returns 16-bit unsigned value from @a buff.
+*/
 word16 get16(void *buff)
 {
    return *((word16 *) buff);
 }
 
-/* Places a 16-bit value in buff. */
-void put16(void *buff, word16 val)
+/**
+ * Place a 16-bit unsigned @a value in @a buff.
+ * @param buff Pointer to buffer to place value
+ * @param value 16-bit unsigned value
+*/
+void put16(void *buff, word16 value)
 {
-   *((word16 *) buff) = val;
+   *((word16 *) buff) = value;
 }
 
-/* Returns a 32-bit unsigned value from buff. */
+/**
+ * Get a 32-bit unsigned value from @a buff.
+ * @param buff Pointer to buffer to get value from
+ * @returns 32-bit unsigned value from @a buff.
+*/
 word32 get32(void *buff)
 {
    return *((word32 *) buff);
 }
 
-/* Places a 32-bit value in buff. */
-void put32(void *buff, word32 val)
+/**
+ * Place a 32-bit @a value in @a buff.
+ * @param buff Pointer to buffer to place value
+*/
+void put32(void *buff, word32 value)
 {
-   *((word32 *) buff) = val;
+   *((word32 *) buff) = value;
 }
 
-/* Places a 64-bit unsigned value in buff. */
-void put64(void *buff, void *val)
+/**
+ * Place a 64-bit unsigned @a value in @a buff.
+ * @param buff Pointer to buffer to place value
+ * @param value Pointer to 64-bit value
+*/
+void put64(void *buff, void *value)
 {
 #ifdef WORD64_MAX
-   put64_x64(buff, val);
+   put64_x64(buff, value);
 #else
-   put64_x86(buff, val);
+   put64_x86(buff, value);
 #endif
 }
 
-/* Set the seed for the rand16fast() number generator to x. */
+/**
+ * Set the internal state seed for rand16fast().
+ * @param x Value to set the internal state seed @a Lseed to.
+*/
 void srand16fast(word32 x)
 {
    Lseed = x;
 }
 
-/* Get the current rolling seed for the rand16fast()
- * number generator, Lseed. Returns the value of Lseed. */
+/**
+ * Get the current internal state seed used by rand16fast().
+ * @returns Value of internal state seed @a Lseed. */
 word32 get_rand16fast(void)
 {
    return Lseed;
 }
 
-/* Set the seed values for the rand16() number generator,
- * Lseed2, Lseed3 and Lseed4, to x, y, and z, respectively. */
+/**
+ * Set the internal state seed for rand16().
+ * @param x Value to set the internal state seed @a Lseed to
+ * @param y Value to set the internal state seed @a Lseed to
+ * @param z Value to set the internal state seed @a Lseed to
+*/
 void srand16(word32 x, word32 y, word32 z)
 {
    Lseed2 = x;
@@ -106,9 +136,12 @@ void srand16(word32 x, word32 y, word32 z)
    Lseed4 = z;
 }
 
-/* Place the current rolling seed values for the rand16()
- * number generator, Lseed2, Lseed3 and Lseed4, into
- * x, y, and z, respectively. */
+/**
+ * Get the current internal state seeds used by rand16().
+ * @param x Pointer to location to place internal state seed @a Lseed2
+ * @param y Pointer to location to place internal state seed @a Lseed3
+ * @param z Pointer to location to place internal state seed @a Lseed4
+*/
 void get_rand16(word32 *x, word32 *y, word32 *z)
 {
    *x = Lseed2;
@@ -116,9 +149,14 @@ void get_rand16(word32 *x, word32 *y, word32 *z)
    *z = Lseed4;
 }
 
-/* 16-bit (fast) prng using Lseed, based on Dr. Marsaglia's
- * Usenet post of a linear congruential generator.
- * Returns 0-65535. */
+/**
+ * Fast 16-bit PRNG using internal state seed @a Lseed.
+ * Based on Dr. Marsaglia's Usenet post of a linear
+ * congruential generator.
+ * @returns Random number range [0, 65535].
+ * @warning Exhibits an increase in PRNG generation at the
+ * cost of statistical randomness, when compared to rand16().
+*/
 word32 rand16fast(void)
 {
    Lseed = Lseed * WORD32_C(69069) + WORD32_C(262145);
@@ -126,9 +164,12 @@ word32 rand16fast(void)
    return Lseed >> 16;
 }
 
-/* 16-bit prng using Lseed2, Lseed3 and Lseed4, based on
- * Dr. Marsaglia's KISS method. Produces decent 16-bit
- * statistical randomness. Returns 0-65565. */
+/**
+ * 16-bit PRNG using internal state seeds @a Lseed2/3/4.
+ * Based on Dr. Marsaglia's KISS method. Produces
+ * reasonable 16-bit statistical randomness.
+ * @returns Random number range [0, 65535].
+*/
 word32 rand16(void)
 {
    /* linear congruential generator */
@@ -141,16 +182,17 @@ word32 rand16(void)
    Lseed4 ^= (Lseed4 << 17);
    Lseed4 ^= (Lseed4 >> 13);
    Lseed4 ^= (Lseed4 << 5);
-   /* the KISS method (combination or methods) */
+   /* the KISS method (combination of methods) */
    return (Lseed2 ^ (Lseed3 << 16) ^ Lseed4) >> 16;
-}
+}  /* end rand16() */
 
 /**
- * Shuffle a list[count] of size byte elements using Durstenfeld's
- * implementation of the Fisher-Yates shuffling algorithm.
- * NOTES:
- * - shuffle count is bound to 16 bits due to rand16() modulo
- * - recommended to seed PRNG before use with srand16() */
+ * Shuffle a `list[count]` of @a size byte elements.
+ * Uses Durstenfeld's implementation of the Fisher-Yates
+ * shuffling algorithm.
+ * @note Shuffle @a count is bound to 16 bits due to rand16().
+ * @note Set random seed with srand16() before use.
+*/
 void shuffle(void *list, size_t size, size_t count)
 {
    unsigned char *listp = (unsigned char *) list;
@@ -167,13 +209,13 @@ void shuffle(void *list, size_t size, size_t count)
 }  /* end shuffle() */
 
 /**
- * Shuffle a list[count] of non-zero, size byte elements using
- * Durstenfeld's implementation of the Fisher-Yates shuffling
- * algorithm.
- * NOTES:
- * - A zero value marks the end of list.
- * - shuffle count is bound to 16 bits due to rand16() modulo
- * - recommended to seed PRNG before use with srand16() */
+ * Shuffle a `list[count]` of non-zero, @a size byte elements.
+ * A zero value marks the end of list, and shuffling does
+ * NOT occur for said value onwards.<br/>Uses Durstenfeld's
+ * implementation of the Fisher-Yates shuffling algorithm.
+ * @note Shuffle @a count is bound to 16 bits due to rand16().
+ * @note Set random seed with srand16() before use.
+*/
 void shufflenz(void *list, size_t size, size_t count)
 {
    char *listp = ((char *) list) + (size * count) - size;
@@ -184,8 +226,10 @@ void shufflenz(void *list, size_t size, size_t count)
 }  /* end shufflenz() */
 
 /**
- * Search a list[count] of size byte elements for a value.
- * Returns NULL if not found, else a pointer to value.
+ * Search a `list[count]` of non-zero, @a size byte elements
+ * for a @a value.
+ * @returns Pointer to found value, else NULL if not found.
+*
 void *search(void *value, void *list, size_t size, size_t count)
 {
    unsigned char listp = (unsigned char *) list;
@@ -199,9 +243,10 @@ void *search(void *value, void *list, size_t size, size_t count)
 }  // end search() */
 
 /**
- * Search a list[count] of non-zero, size byte elements for a value.
- * Returns NULL if not found, else a pointer to value.
- * NOTE: A zero value marks the end of list.
+ * Search a `list[count]` of non-zero, @a size byte elements
+ * for a @a value. A zero value marks the end of list.
+ * @returns Pointer to found value, else NULL if not found.
+*
 void *searchnz(void *value, void *list, size_t size, size_t count)
 {
    unsigned char listp = (unsigned char *) list;
@@ -215,8 +260,10 @@ void *searchnz(void *value, void *list, size_t size, size_t count)
 }  // end searchnz() */
 
 /**
- * Extract a value from a list[count] of non-zero, size byte elements.
- * Returns NULL if not found, else pointer to value.
+ * Extract a @a value from a `list[count]` of non-zero, @a size
+ * byte elements.
+ * @returns Pointer to extracted value, else NULL if not found.
+*
 void *extractnz(void *value, void *list, size_t size, size_t count)
 {
    char *end = &((char *) list)[size * count];
@@ -234,8 +281,9 @@ void *extractnz(void *value, void *list, size_t size, size_t count)
 }  // end extractnz() */
 
 /**
- * Append a non-zero, size byte value to a list[count].
- * Returns NULL if list is full, else pointer to value.
+ * Append a non-zero, @a size byte value to a `list[count]`.
+ * @returns Pointer to appended value, else NULL if not appended.
+*
 void *appendnz(void *value, void *list, size_t size, size_t count)
 {
    char *listp = (char *) list;
@@ -251,4 +299,5 @@ void *appendnz(void *value, void *list, size_t size, size_t count)
    return NULL;
 }  // end appendnz() */
 
-#endif  /* end EXTENDED_UTILITIES_C */
+/* end include guard */
+#endif

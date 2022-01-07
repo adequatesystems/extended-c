@@ -40,7 +40,7 @@ int http_get(char *url, char *fname, int timeout)
 {
 #if OS_WINDOWS
    static const char *default_fname = "index.html";
-   wchar_t wcdomain[FILENAME_MAX], wcpath[FILENAME_MAX];
+   wchar_t wcdomain[WEBDOMAIN_MAX], wcpath[WEBPATH_MAX];
    HINTERNET hSession, hConnect, hRequest;
    DWORD bytesAvailable, bytesRead;
    BOOL bResults;
@@ -49,9 +49,9 @@ int http_get(char *url, char *fname, int timeout)
 
    /* INTERNET_DEFAULT_PORT evaluates to 80 for HTTP and 443 for HTTPS */
    unsigned int port = INTERNET_DEFAULT_PORT;
-   char proto[FILENAME_MAX] = "https";
-   char domain[FILENAME_MAX] = "\0";
-   char path[FILENAME_MAX] = "/";
+   char proto[32] = "https";
+   char domain[WEBDOMAIN_MAX] = "\0";
+   char path[WEBPATH_MAX] = "/";
    char buf[BUFSIZ];
    char *cp;
 
@@ -87,8 +87,8 @@ int http_get(char *url, char *fname, int timeout)
       } else fname = (char *) default_fname;
    }
    /* convert domain and path to wchar string */
-   mbstowcs(wcdomain, domain, FILENAME_MAX);
-   mbstowcs(wcpath, path, FILENAME_MAX);
+   mbstowcs(wcdomain, domain, WEBDOMAIN_MAX);
+   mbstowcs(wcpath, path, WEBPATH_MAX);
    /* open file for writing */
    fp = fopen(fname, "wb");
    if (fp == NULL) return 4;

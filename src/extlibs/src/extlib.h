@@ -1,40 +1,39 @@
 /**
- * extlib.h - Extended general utilities support header
- *
- * Copyright (c) 2021 Adequate Systems, LLC. All Rights Reserved.
- * For more information, please refer to ../LICENSE
- *
- * Date: 2 January 2018
- * Revised: 24 November 2021
- *
- * NOTES:
- * - "extends" the C Standard Library header file stdlib.h
- *
+ * @file extlib.h
+ * @brief Extended general utilities support.
+ * @details Provides extended support for general utilities.
+ * @copyright Adequate Systems LLC, 2018-2022. All Rights Reserved.
+ * <br />For license information, please refer to ../LICENSE
+ * @todo Implement a 32-bit PRNG with greater statistical randomness.
+ * <br/>Current candidates, in order of recommendation:
+ * <br/>https://en.wikipedia.org/wiki/Permuted_congruential_generator
+ * <br/>https://en.wikipedia.org/wiki/Xoroshiro128%2B
 */
 
+/* include guard */
 #ifndef EXTENDED_UTILITIES_H
-#define EXTENDED_UTILITIES_H  /* include guard */
+#define EXTENDED_UTILITIES_H
 
 
-#include <stdlib.h>
 #include "extint.h"
+#include <stdlib.h>
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#ifdef WORD64_MAX
-
-/* x64 function prototypes */
-void put64_x64(void *buff, void *val);
+/* 64-bit guard */
+#ifdef HAS_64BIT
+   /* x64 specific function prototype for extlib.c */
+   void put64_x64(void *buff, void *val);
 
 #endif
 
-/* x86 function prototypes */
+/* x86 specific function prototype for extlib.c */
 void put64_x86(void *buff, void *val);
 
-/* Function prototypes */
+/* Function prototypes for extlib.c */
 word16 get16(void *buff);
 void put16(void *buff, word16 val);
 word32 get32(void *buff);
@@ -44,14 +43,15 @@ void srand16fast(word32 x);
 word32 get_rand16fast(void);
 void srand16(word32 x, word32 y, word32 z);
 void get_rand16(word32 *x, word32 *y, word32 *z);
-word32 rand16fast(void);
 word32 rand16(void);
+word32 rand16fast(void);
 void shuffle(void *list, size_t size, size_t count);
 void shufflenz(void *list, size_t size, size_t count);
 
+/* end extern "C" {} for C++ */
 #ifdef __cplusplus
 }
 #endif
 
-
-#endif  /* end EXTENDED_UTILITIES_H */
+/* end include guard */
+#endif

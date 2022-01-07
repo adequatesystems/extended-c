@@ -1,12 +1,14 @@
 /**
  * @file extio.h
  * @brief Extended input/output support.
- * @copyright © Adequate Systems LLC, 2018-2021. All Rights Reserved.
+ * @details Provides extended support for system input and output.
+ * @copyright Adequate Systems LLC, 2018-2021. All Rights Reserved.
  * <br />For license information, please refer to ../LICENSE
 */
 
-#ifndef EXTENDED_INPUTOUTPUT_H
-#define EXTENDED_INPUTOUTPUT_H  /* include guard */
+/* include guard */
+#ifndef EXTENDED_IO_H
+#define EXTENDED_IO_H
 
 
 #include <stdio.h>
@@ -17,21 +19,20 @@ extern "C" {
 #endif
 
 /* Function prototypes for extio.c */
-char *cpu_vendor(void);
-char *cpu_brand(void);
 int cpu_cores(void);
-int cpu_cache(void);
-int fexists(char *fname);
-int fexistsnz(char *fname);
-int ftouch(char *fname);
 int fcopy(char *srcpath, char *dstpath);
+int fexists(char *fpath);
+int fexistsnz(char *fpath);
+int ftouch(char *fpath);
 int mkdir_p(char *dirpath);
-int write_data(void *buff, int len, char *fname);
-int read_data(void *buff, int len, char *fname);
+int read_data(void *buff, int len, char *fpath);
+int snprintf_append(char *buf, size_t buflen, const char *fmt, ...);
+int write_data(void *buff, int len, char *fpath);
 
+/* end extern "C" {} for C++ */
 #ifdef __cplusplus
 }
 #endif
 
-
-#endif  /* end EXTENDED_INPUTOUTPUT_H */
+/* end include guard */
+#endif
