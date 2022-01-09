@@ -1,9 +1,9 @@
 /**
  * @file extos.h
- * @brief Extended operating system header
+ * @brief Extended operating system.
  * @details Defines an operating system type definition of the format
  * `OS_<system>` and includes a base operating system header file,.
- * @copyright © Adequate Systems LLC, 2022. All Rights Reserved.
+ * @copyright Adequate Systems LLC, 2022. All Rights Reserved.
  * <br />For license information, please refer to ../LICENSE
  * @note This is a header-only component which requires, at most,
  * an include path reference during compilation.

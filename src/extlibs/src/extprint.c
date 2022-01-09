@@ -1,31 +1,24 @@
 /**
  * @private
  * @headerfile extprint.h <extprint.h>
- * @copyright © Adequate Systems LLC, 2018-2022. All Rights Reserved.
+ * @copyright Adequate Systems LLC, 2018-2022. All Rights Reserved.
  * <br />For license information, please refer to ../LICENSE
 */
 
+/* include guard */
 #ifndef EXTENDED_PRINT_C
-#define EXTENDED_PRINT_C  /* include guard */
+#define EXTENDED_PRINT_C
 
 
+#include "extos.h"
 #include "extprint.h"
 #include "extthread.h"  /* for mutex support */
 #include <stdarg.h>     /* for va_list support */
 #include <string.h>     /* for string support */
 #include <time.h>       /* for timestamp support */
 
-#ifdef _WIN32
-   #include "win32lean.h"
 
-   /* localtime_r() is NOT specified by Windows... */
-   #define localtime_r(t, tm) localtime_s(tm, t)
-
-/* end Windows */
-#endif
-
-
-/* Initialize default configuration at runtime */
+/* Initialize default runtime configuration */
 unsigned Nprinterrs;
 unsigned Nprintlogs;
 int Printlevel = PLEVEL_LOG;
@@ -35,8 +28,14 @@ Mutex Outputlock = MUTEX_INITIALIZER;
 FILE *Outputfp;
 
 
+/* localtime_r() is not specified by Windows... */
+#ifdef OS_WINDOWS
+   #define localtime_r(t, tm) localtime_s(tm, t)
+
+#endif
+
 /* strerror_r() is specified by POSIX.1-2001... */
-#if ! defined(_POSIX_C_SOURCE) || _POSIX_C_SOURCE < 200112L
+#if ! defined(_POSIX_VERSION) || _POSIX_VERSION < 200112L
 
 static void strerror_r(int errnum, char *buf, size_t buflen)
 {  /* ... provides fallback, when strerror_r() is unavailable */
@@ -50,17 +49,18 @@ static void strerror_r(int errnum, char *buf, size_t buflen)
    mutex_unlock(&lock);
 }  /* end strerror_r() */
 
+/* end _POSIX_VERSION */
 #endif
 
 /**
  * @private
- * @brief Move the cursor position around the screen.
+ * Move the cursor position around the screen.
  * @param x number of x axis steps to move, negative for left
  * @param y number of y axis steps to move, negative for up
 */
 static void move_cursor(int x, int y)
 {
-#ifdef _WIN32
+#ifdef OS_WINDOWS
    COORD coord;
    CONSOLE_SCREEN_BUFFER_INFO csbi;
    HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -71,22 +71,24 @@ static void move_cursor(int x, int y)
    coord.X = csbi.dwCursorPosition.X + x;
    coord.Y = csbi.dwCursorPosition.Y + y;
    SetConsoleCursorPosition(handle, coord);
+
 #else
    if (x < 0) printf("\x1b[%dD", -(x));
    else if (x) printf("\x1b[%dC", x);
    if (y < 0) printf("\x1b[%dA", -(y));
    else if (y) printf("\x1b[%dB", y);
+
 #endif
 }
 
 /**
  * @private
- * @brief Clear line from cursor right.
+ * Clear line from cursor right.
  * @param fp file pointer to location of clear
 */
 static void clear_right(FILE *fp)
 {
-#ifdef _WIN32
+#ifdef OS_WINDOWS
    COORD coord;
    HANDLE handle;
    DWORD cells, count;
@@ -102,15 +104,16 @@ static void clear_right(FILE *fp)
    coord = csbi.dwCursorPosition;
    cells = csbi.dwSize.X - csbi.dwCursorPosition.X;
    FillConsoleOutputCharacter(handle, (TCHAR) ' ', cells, coord, &count);
+
 #else
    if (fp == stdout || fp == stderr) fprintf(fp, "\x1b[K");
+
 #endif
 }
 
 /**
  * @private
- * @brief Prints a "clear" string, by "clearing right" every newline.
- *
+ * Prints a "clear" string, by "clearing right" every newline.
  * When printing to screen, it's possible to get garbled
  * text due to movement of the cursor (e.g. psticky() ), so this
  * splits str into lines and clears right after every line.
@@ -134,8 +137,8 @@ static void print_clear(FILE *fp, char *str)
 
 /**
  * @private
- * @brief Prints a "clear" string format, with variable arguments.
- * @details Writes format string and arguments to intermediate buffer
+ * Prints a "clear" string format, with variable arguments.
+ * Writes format string and arguments to intermediate buffer
  * of size BUFSIZ, and utilizes print_clear() for final output.
  * @param fp file pointer to location of output
  * @param fmt string fmt to print
@@ -155,10 +158,10 @@ static void fprintf_clear(FILE *fp, const char *fmt, ...)
 
 /**
  * @private
- * @brief Prints a "clear" string format and variable arguments list,
- * passed from another function.
- * @details Writes format string and arguments to intermediate buffer
- * of size BUFSIZ, and utilizes print_clear() for final output.
+ * Prints a "clear" string format and variable arguments list,
+ * passed from another function. Writes format string and arguments
+ * to intermediate buffer `str[BUFSIZ]`, and utilizes print_clear()
+ * for final output.
  * @param fp file pointer to location of output
  * @param fmt string fmt to print
  * @param args variable arguments list supporting @a fmt
@@ -176,7 +179,7 @@ static void vfprintf_clear_end(FILE *fp, const char *fmt, va_list args)
 }
 
 /**
- * @brief Get the number of errors counted by extprint().
+ * Get the number of errors counted by extprint().
  * @returns Number of logs counted by extprint()
 */
 unsigned get_num_errs(void)
@@ -191,7 +194,7 @@ unsigned get_num_errs(void)
 }
 
 /**
- * @brief Get the number of logs counted by extprint().
+ * Get the number of logs counted by extprint().
  * @returns Number of logs counted by extprint()
 */
 unsigned get_num_logs(void)
@@ -206,12 +209,11 @@ unsigned get_num_logs(void)
 }
 
 /**
- * @brief Set the output file for printing logs to file.
+ * Set the output file for printing logs to file.
+ * If @a fname or @a mode are `NULL`, output file is closed.
  * @param fname file name of output file
  * @param mode file mode of output file (e.g. "w" or "a")
  * @returns 0 on success, else 1 on error (see @a errno for details)
- * @note if @a fname or @a mode are `NULL`, output file is closed
- * (if open) and function returns success
 */
 int set_output_file(char *fname, char *mode)
 {
@@ -229,7 +231,7 @@ int set_output_file(char *fname, char *mode)
 }
 
 /**
- * @brief Set the print level for printing to output.
+ * Set the print level for printing to output.
  * @param level The print level allowed to print to output file
 */
 void set_output_level(int level)
@@ -240,7 +242,7 @@ void set_output_level(int level)
 }
 
 /**
- * @brief Set the print level for printing to screen.
+ * Set the print level for printing to screen.
  * @param level The print level allowed to print to screen
 */
 void set_print_level(int level)
@@ -251,149 +253,8 @@ void set_print_level(int level)
 }
 
 /**
- * @brief Print a message.
- *
- * Print a (clean) message to stdout.
- * @param fmt A string format (or message) for printing
- * @param ... Variable arguments supporting the format string
- * @note Does NOT print to output, ignores print level
-*/
-void print(const char *fmt, ...)
-{
-   va_list args;
-
-   mutex_lock(&Printlock);
-
-   va_start(args, fmt);
-   vfprintf_clear_end(stdout, fmt, args);
-   fflush(stdout);
-
-   mutex_unlock(&Printlock);
-}
-
-/**
- * @brief Print to screen and log to file.
- * @param level print level of log
- * @param errnum error number ( @a errno ) associated with log
- * @param line the line number to place in the trace details
- * @param file the filename to place in the trace details
- * @param fmt A string format (or message) to log
- * @param ... Variable arguments supporting @a fmt
- * @returns 2 for PLEVEL_FATAL, 1 for PLEVEL_ERROR, else 0
- * @note This function is a multipurpose function designed for
- * use through the extended print MACROS, ie. perr(), plog(), ...
-*/
-int print_ext
-(int errnum, int level, int line, const char *file, const char *fmt, ...)
-{
-   char *fname = "<unknown>";
-   char trace[FILENAME_MAX] = "";
-   char timestamp[32] = "";
-   char prefix[128] = "";
-   char suffix[64] = "";
-   unsigned *counterp;
-   int ecode = 0;
-   struct tm dt;
-   time_t t;
-   FILE *fp;
-   va_list args;
-
-   /* ignore NULL fmt's */
-   if (fmt == NULL) {
-      if (level == PLEVEL_FATAL) return 2;
-      if (level == PLEVEL_ERROR) return 1;
-      return 0;
-   }
-
-   /* derive base filename */
-   if (file) {
-      if (strrchr(file, '\\')) fname = strrchr(file, '\\') + 1;
-      else if (strrchr(file, '/')) fname = strrchr(file, '/') + 1;
-      else fname = (char *) file;
-   }
-
-   /* combine base file and line number in trace */
-   snprintf(trace, FILENAME_MAX, "[%s:%d] ", fname, line);
-
-   /* build print configuration - based on level */
-   switch(level) {
-      case PLEVEL_FATAL:
-         if (!ecode) ecode = 2;
-         strncat(prefix, trace, sizeof(prefix) - 1);
-         strncat(prefix, "!!! FATAL ", sizeof(prefix) - strlen(prefix) - 1);
-         /* fall through */
-      case PLEVEL_ERROR:
-         if (!ecode) ecode = 1;
-         strncat(prefix, "Error. ", sizeof(prefix) - strlen(prefix) - 1);
-         if (errnum >= 0) {
-            suffix[0] = ':'; suffix[1] = ' ';
-            strerror_r(errnum, &suffix[2], sizeof(suffix) - 3);
-         }
-         counterp = &Nprinterrs;
-         fp = stderr;
-         break;
-      case PLEVEL_WARN:
-         strncat(prefix, "Warning... ", sizeof(prefix) - 1);
-         counterp = &Nprintlogs;
-         fp = stdout;
-         break;
-      case PLEVEL_DEBUG:
-         strncat(prefix, "DEBUG: ", sizeof(prefix) - 1);
-         /* fall through */
-      case PLEVEL_LOG:
-         /* fall through */
-      default:
-         counterp = &Nprintlogs;
-         fp = stdout;
-   }
-
-   /* grab local time for log */
-   time(&t);
-   localtime_r(&t, &dt);
-
-   /* print to screen, timestamp: "hh:mm:ss" */
-   if (Printlevel >= level) {
-      mutex_lock(&Printlock);
-
-      fprintf(fp, "%s", prefix);
-      va_start(args, fmt);
-      vfprintf_clear_end(fp, fmt, args);
-      fprintf(fp, "%s", suffix);
-      clear_right(fp);
-      fprintf(fp, "\n");
-      fflush(fp);
-
-      mutex_unlock(&Printlock);
-
-      /* update sticky messages */
-      psticky(NULL);
-   }
-
-   mutex_lock(&Outputlock);
-
-   /* print to output, timestamp: "yyyy-mm-ddThh:mm:ss+0000" */
-   if (Outputfp && Outputlevel >= level) {
-      strftime(timestamp, sizeof(timestamp) - 1, "%FT%T%z - ", &dt);
-      fprintf(Outputfp, "%s%s", timestamp, prefix);
-      va_start(args, fmt);
-      vfprintf(Outputfp, fmt, args);
-      va_end(args);
-      fprintf(Outputfp, "%s\n", suffix);
-      fflush(Outputfp);
-   }
-
-   /* increment appropriate print counter */
-   (*counterp)++;
-
-   mutex_unlock(&Outputlock);
-
-   return ecode;
-}
-
-/**
- * @brief Print a sticky message.
- *
- * Prints and "sticks" a message to the bottom of a terminal.
+ * Print a sticky message. Prints and "sticks" a message to the
+ * bottom of a terminal.
  * @param fmt A string format (or message) for printing
  * @param ... Variable arguments supporting the format string
  * @note To clear sticky message use @code psticky(""); @endcode
@@ -458,5 +319,148 @@ void psticky(const char *fmt, ...)
    mutex_unlock(&lock);
 }
 
+/**
+ * Print a clean message to stdout. When printing to screen, it's
+ * possible to get garbled text due to movement of the cursor by
+ * psticky(), so this splits the resulting string into lines and
+ * clears right after every line.
+ * @param fmt A string format (or message) for printing
+ * @param ... Variable arguments supporting the format string
+ * @note Prints to screen, regardless of specified print level.
+*/
+void print(const char *fmt, ...)
+{
+   va_list args;
 
-#endif  /* end EXTENDED_PRINT_C */
+   mutex_lock(&Printlock);
+
+   va_start(args, fmt);
+   vfprintf_clear_end(stdout, fmt, args);
+   fflush(stdout);
+
+   mutex_unlock(&Printlock);
+
+   /* reprint sticky message */
+   psticky(NULL);
+}
+
+/**
+ * Print to screen and log to file.
+ * @param e error number ( @a errno ) associated with log
+ * @param ll print level of log
+ * @param line the line number to place in the trace details
+ * @param file the filename to place in the trace details
+ * @param fmt A string format (or message) to log
+ * @param ... Variable arguments supporting @a fmt
+ * @returns 2 for PLEVEL_FATAL, 1 for PLEVEL_ERROR, else 0
+ * @note This function is a multipurpose function designed for
+ * use through the extended print MACROS; pfatal(), perrno(),
+ * perr(), pwarn(), plog(), pdebug()
+*/
+int print_ext
+(int e, int ll, int line, const char *file, const char *fmt, ...)
+{
+   char *fname = "<unknown>";
+   char trace[BUFSIZ] = "";
+   char timestamp[32] = "";
+   char prefix[128] = "";
+   char suffix[64] = "";
+   unsigned *counterp;
+   int code = 0;
+   struct tm dt;
+   time_t t;
+   FILE *fp;
+   va_list args;
+
+   /* set return code */
+   if (ll == PLEVEL_FATAL) code = 2;
+   if (ll == PLEVEL_ERROR) code = 1;
+
+   /* ignore NULL fmt's */
+   if (fmt == NULL) return code;
+
+   /* derive base filename */
+   if (file) {
+      if (strrchr(file, '\\')) fname = strrchr(file, '\\') + 1;
+      else if (strrchr(file, '/')) fname = strrchr(file, '/') + 1;
+      else fname = (char *) file;
+   }
+
+   /* combine base file and line number in trace */
+   snprintf(trace, BUFSIZ, "[%s:%d] ", fname, line);
+
+   /* build print configuration - based on level */
+   switch(ll) {
+      case PLEVEL_FATAL:
+         strncat(prefix, trace, sizeof(prefix) - 1);
+         strncat(prefix, "!!! FATAL ", sizeof(prefix) - strlen(prefix) - 1);
+         /* fall through */
+      case PLEVEL_ERROR:
+         strncat(prefix, "Error. ", sizeof(prefix) - strlen(prefix) - 1);
+         if (e >= 0) {
+            suffix[0] = ':'; suffix[1] = ' ';
+            strerror_r(e, &suffix[2], sizeof(suffix) - 3);
+         }
+         counterp = &Nprinterrs;
+         fp = stderr;
+         break;
+      case PLEVEL_WARN:
+         strncat(prefix, "Warning... ", sizeof(prefix) - 1);
+         counterp = &Nprintlogs;
+         fp = stdout;
+         break;
+      case PLEVEL_DEBUG:
+         strncat(prefix, "DEBUG: ", sizeof(prefix) - 1);
+         /* fall through */
+      case PLEVEL_LOG:
+         /* fall through */
+      default:
+         counterp = &Nprintlogs;
+         fp = stdout;
+   }
+
+   /* grab local time for log */
+   time(&t);
+   localtime_r(&t, &dt);
+
+   /* print to screen, timestamp: "hh:mm:ss" */
+   if (Printlevel >= ll) {
+      mutex_lock(&Printlock);
+
+      fprintf(fp, "%s", prefix);
+      va_start(args, fmt);
+      vfprintf_clear_end(fp, fmt, args);
+      fprintf(fp, "%s", suffix);
+      clear_right(fp);
+      fprintf(fp, "\n");
+      fflush(fp);
+
+      mutex_unlock(&Printlock);
+
+      /* update sticky messages */
+      psticky(NULL);
+   }
+
+   mutex_lock(&Outputlock);
+
+   /* print to output, timestamp: "yyyy-mm-ddThh:mm:ss+0000" */
+   if (Outputfp && Outputlevel >= ll) {
+      strftime(timestamp, sizeof(timestamp) - 1, "%FT%T%z - ", &dt);
+      fprintf(Outputfp, "%s%s", timestamp, prefix);
+      va_start(args, fmt);
+      vfprintf(Outputfp, fmt, args);
+      va_end(args);
+      fprintf(Outputfp, "%s\n", suffix);
+      fflush(Outputfp);
+   }
+
+   /* increment appropriate print counter */
+   (*counterp)++;
+
+   mutex_unlock(&Outputlock);
+
+   return code;
+}
+
+/* end include guard */
+#endif
