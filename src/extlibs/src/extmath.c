@@ -252,7 +252,7 @@ void shiftr64_x86(void *ax)
    word32 *a = (word32 *) ax;
 
    a[0] >>= 1;
-   if(a[1] & 1) a[0] |= 0x80000000;
+   if(a[1] & 1) a[0] |= WORD32_C(0x80000000);
    a[1] >>= 1;
 }  /* end shiftr64_x86() */
 
