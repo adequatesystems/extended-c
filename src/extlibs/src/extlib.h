@@ -26,12 +26,12 @@ extern "C" {
 /* 64-bit guard */
 #ifdef HAS_64BIT
    /* x64 specific function prototype for extlib.c */
-   void put64_x64(void *buff, void *val);
+   void put64_x64(void *buff, void *val); /**< @private */
 
 #endif
 
 /* x86 specific function prototype for extlib.c */
-void put64_x86(void *buff, void *val);
+void put64_x86(void *buff, void *val); /**< @private */
 
 /* Function prototypes for extlib.c */
 word16 get16(void *buff);
