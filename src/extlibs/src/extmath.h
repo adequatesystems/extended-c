@@ -1,19 +1,14 @@
 /**
- * extmath.h - Extended math support header
- *
- * Copyright (c) 2021 Adequate Systems, LLC. All Rights Reserved.
- * For more information, please refer to ../LICENSE
- *
- * Date: 2 January 2018
- * Revised: 24 November 2021
- *
- * NOTES:
- * - "extends" the C Standard Library header file math.h
- *
+ * @file extmath.h
+ * @brief Extended math support.
+ * @details Provides extended support for math.
+ * @copyright Adequate Systems LLC, 2018-2022. All Rights Reserved.
+ * <br />For license information, please refer to ../LICENSE
 */
 
+/* include guard */
 #ifndef EXTENDED_MATH_H
-#define EXTENDED_MATH_H  /* include guard */
+#define EXTENDED_MATH_H
 
 
 #include <math.h>
@@ -23,31 +18,33 @@
 extern "C" {
 #endif
 
-#ifdef WORD64_MAX
+/* x64 guard */
+#ifdef HAS_64BIT
 
-/* x64 function prototypes */
-int iszero_x64(void *buff, int len);
-int add64_x64(void *ax, void *bx, void *cx);
-int sub64_x64(void *ax, void *bx, void *cx);
-void negate64_x64(void *ax);
-int cmp64_x64(void *ax, void *bx);
-int cmp256_x64(void *ax, void *bx);
-void shiftr64_x64(void *ax);
-int mult64_x64(void *ax, void *bx, void *cx);
+   /* x64 function prototypes for extmath.c */
+   int iszero_x64(void *buff, int len); /**< @private */
+   int add64_x64(void *ax, void *bx, void *cx); /**< @private */
+   int sub64_x64(void *ax, void *bx, void *cx); /**< @private */
+   void negate64_x64(void *ax); /**< @private */
+   int cmp64_x64(void *ax, void *bx); /**< @private */
+   int cmp256_x64(void *ax, void *bx); /**< @private */
+   void shiftr64_x64(void *ax); /**< @private */
+   int mult64_x64(void *ax, void *bx, void *cx); /**< @private */
 
+/* end x64 guard */
 #endif
 
-/* x86 function prototypes */
-int iszero_x86(void *buff, int len);
-int add64_x86(void *ax, void *bx, void *cx);
-int sub64_x86(void *ax, void *bx, void *cx);
-void negate64_x86(void *ax);
-int cmp64_x86(void *ax, void *bx);
-int cmp256_x86(void *ax, void *bx);
-void shiftr64_x86(void *ax);
-int mult64_x86(void *ax, void *bx, void *cx);
+/* x86 function prototypes for extmath.c */
+int iszero_x86(void *buff, int len); /**< @private */
+int add64_x86(void *ax, void *bx, void *cx); /**< @private */
+int sub64_x86(void *ax, void *bx, void *cx); /**< @private */
+void negate64_x86(void *ax); /**< @private */
+int cmp64_x86(void *ax, void *bx); /**< @private */
+int cmp256_x86(void *ax, void *bx); /**< @private */
+void shiftr64_x86(void *ax); /**< @private */
+int mult64_x86(void *ax, void *bx, void *cx); /**< @private */
 
-/* Function prototypes */
+/* Function prototypes for extmath.c */
 int iszero(void *buff, int len);
 int add64(void *ax, void *bx, void *cx);
 int sub64(void *ax, void *bx, void *cx);
@@ -59,9 +56,10 @@ int mult64(void *ax, void *bx, void *cx);
 int multi_add(void *ax, void *bx, void *cx, int bytelen);
 int multi_sub(void *ax, void *bx, void *cx, int bytelen);
 
+/* end extern "C" {} for C++ */
 #ifdef __cplusplus
 }
 #endif
 
-
-#endif  /* end EXTENDED_MATH_H */
+/* end include guard */
+#endif

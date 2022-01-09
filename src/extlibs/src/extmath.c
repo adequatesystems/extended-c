@@ -1,16 +1,13 @@
 /**
- * extmath.c - Extended math support
- *
- * Copyright (c) 2018-2021 Adequate Systems, LLC. All Rights Reserved.
- * For more information, please refer to ../LICENSE
- *
- * Date: 2 January 2018
- * Revised: 24 November 2021
- *
+ * @private
+ * @headerfile extmath.h <extmath.h>
+ * @copyright Adequate Systems LLC, 2018-2022. All Rights Reserved.
+ * <br />For license information, please refer to ../LICENSE
 */
 
+/* include guard */
 #ifndef EXTENDED_MATH_C
-#define EXTENDED_MATH_C  /* include guard */
+#define EXTENDED_MATH_C
 
 
 #include "extmath.h"
@@ -18,115 +15,137 @@
 #include "extlib.h"
 
 
-#ifdef WORD64_MAX  /* x64 guard */
+/* x64 guard */
+#ifdef HAS_64BIT
+
+   /**
+    * Check if `buff[len]` contains all zeros.
+    * @returns 1 if @a buff is all zeros, else 0.
+    * @note Available ONLY for testing purposes. Use iszero() instead.
+   */
+   int iszero_x64(void *buff, int len)
+   {
+      word8 *bp = (word8 *) buff;
+
+      for( ; len >= 8; bp += 8, len -= 8) if(*((word64 *) bp)) return 0;
+      for( ; len; bp++, len--) if(*bp) return 0;
+      return 1;
+   }  /* end iszero_x64() */
+
+   /**
+    * 64-bit addition of @a *ax and @a *bx. Result is placed in @a *cx.
+    * @returns Resulting carry of operation.
+    * @note Available ONLY for testing purposes. Use add64() instead.
+   */
+   int add64_x64(void *ax, void *bx, void *cx)
+   {
+      word64 a = *((word64 *) ax);
+      word64 b = *((word64 *) bx);
+      word64 *c = (word64 *) cx;
+
+      *c = a + b;
+      return (*c < a);
+   }  /* end add64_x64() */
+
+   /**
+    * 64-bit subtraction of @a *bx from @a *ax.
+    * Result is placed in @a *cx.
+    * @returns Resulting carry of operation.
+    * @note Available ONLY for testing purposes. Use sub64() instead.
+   */
+   int sub64_x64(void *ax, void *bx, void *cx)
+   {
+      word64 a = *((word64 *) ax);
+      word64 b = *((word64 *) bx);
+      word64 *c = (word64 *) cx;
+
+      *c = a - b;
+      return (*c > a);
+   }  /* end sub64_x64() */
+
+   /**
+    * Swap sign on 64-bit @a *ax. Equivalent to @a *ax multiplied by (-1).
+    * @note Available ONLY for testing purposes. Use negate64() instead.
+   */
+   void negate64_x64(void *ax)
+   {
+      *((word64*) ax) = ~(*((word64*) ax)) + 1;
+   }  /* end negate64_x64() */
+
+   /**
+    * 64-bit unsigned compare @a *ax to @a *bx.
+    * @retval -1 if @a *ax < @a *bx
+    * @retval 1 if @a *ax > @a *bx
+    * @retval 0 if @a *ax == @a *bx.
+    * @note Available ONLY for testing purposes. Use cmp64() instead.
+   */
+   int cmp64_x64(void *ax, void *bx)
+   {
+      word64 *a = (word64 *) ax;
+      word64 *b = (word64 *) bx;
+
+      if(*a < *b) return -1;
+      if(*a > *b) return 1;
+      return 0;
+   }  /* end cmp64_x64() */
+
+   /**
+    * 256-bit unsigned compare @a *ax to @a *bx.
+    * @retval -1 if @a *ax < @a *bx
+    * @retval 1 if @a *ax > @a *bx
+    * @retval 0 if @a *ax == @a *bx.
+    * @note Available ONLY for testing purposes. Use cmp256() instead.
+   */
+   int cmp256_x64(void *ax, void *bx)
+   {
+      word64 *a = (word64 *) ax;
+      word64 *b = (word64 *) bx;
+      int i;
+
+      for (i = 3; i >= 0; i--) {
+         if(a[i] < b[i]) return -1;
+         if(a[i] > b[i]) return 1;
+      }
+
+      return 0;
+   }  /* end cmp256_x64() */
+
+   /**
+    * 64-bit shift @a *ax one to the right.
+    * @note Available ONLY for testing purposes. Use shiftr64() instead.
+   */
+   void shiftr64_x64(void *ax)
+   {
+      *((word64 *) ax) >>= 1;
+   }  /* end shiftr64_x64() */
+
+   /**
+    * 64-bit multiplication of @a *ax and @a *bx.
+    * Result is placed in @a *cx.
+    * @result 1 on 64-bit overflow, else 0.
+    * @note Available ONLY for testing purposes. Use mult64() instead.
+   */
+   int mult64_x64(void *ax, void *bx, void *cx)
+   {
+      word64 *c = (word64 *) cx;
+      word64 a = *((word64 *) ax);
+      word64 b = *((word64 *) bx);
+
+      *c = a * b;
+      if (a == 0) return 0; /* avoid division by zero */
+      if ((*c / a) == b) return 0; /* check overflow */
+      return 1; /* result overflowed */
+   }  /* end mult64_x64() */
+
+/* end x64 guard */
+#endif
+
 
 /**
- * Check if buff is all zeros. Returns 1 on true, else 0.
- * NOTE: uses 64-bit operations. */
-int iszero_x64(void *buff, int len)
-{
-   word8 *bp = (word8 *) buff;
-
-   for( ; len >= 8; bp += 8, len -= 8) if(*((word64 *) bp)) return 0;
-   for( ; len; bp++, len--) if(*bp) return 0;
-   return 1;
-}  /* end iszero_x64() */
-
-/**
- * 64-bit addition of *ax and *bx. Result in *cx. Returns carry.
- * NOTE: uses 64-bit operations. */
-int add64_x64(void *ax, void *bx, void *cx)
-{
-   word64 a = *((word64 *) ax);
-   word64 b = *((word64 *) bx);
-   word64 *c = (word64 *) cx;
-
-   *c = a + b;
-   return (*c < a);
-}  /* end add64_x64() */
-
-/**
- * 64-bit subtraction of *bx from *ax. Result in *cx. Returns carry.
- * NOTE: uses 64-bit operations. */
-int sub64_x64(void *ax, void *bx, void *cx)
-{  /* 64-bit function variant for sub64() */
-   word64 a = *((word64 *) ax);
-   word64 b = *((word64 *) bx);
-   word64 *c = (word64 *) cx;
-
-   *c = a - b;
-   return (*c > a);
-}  /* end sub64_x64() */
-
-/**
- * Swap sign on 64-bit *ax. Equivalent to *ax multiplied by -1.
- * NOTE: uses 64-bit operations. */
-void negate64_x64(void *ax)
-{
-   *((word64*) ax) = ~(*((word64*) ax)) + 1;
-}  /* end negate64_x64() */
-
-/**
- * 64-bit unsigned compare *ax to *bx.
- * Returns 1 if *ax > *bx, -1 if *ax < *bx, or 0 if *ax == *bx.
- * NOTE: uses 64-bit operations. */
-int cmp64_x64(void *ax, void *bx)
-{
-   word64 *a = (word64 *) ax;
-   word64 *b = (word64 *) bx;
-
-   if(*a > *b) return 1;
-   if(*a < *b) return -1;
-   return 0;
-}  /* end cmp64_x64() */
-
-/**
- * 256-bit unsigned compare *ax to *bx.
- * Returns 1 if *ax > *bx, -1 if *ax < *bx, or 0 if *ax == *bx.
- * NOTE: uses 64-bit operations. */
-int cmp256_x64(void *ax, void *bx)
-{
-   word64 *a = (word64 *) ax;
-   word64 *b = (word64 *) bx;
-   int i;
-
-   for (i = 3; i >= 0; i--) {
-      if(a[i] > b[i]) return 1;
-      if(a[i] < b[i]) return -1;
-   }
-
-   return 0;
-}  /* end cmp256_x64() */
-
-/**
- * 64-bit shift *ax one to the right.
- * NOTE: uses 64-bit operations. */
-void shiftr64_x64(void *ax)
-{
-   *((word64 *) ax) >>= 1;
-}  /* end shiftr64_x64() */
-
-/**
- * 64-bit multiplication of *ax and *bx. Place result in *cx.
- * Returns 1 if overflow, else 0.
- * NOTE: uses 64-bit operations. */
-int mult64_x64(void *ax, void *bx, void *cx)
-{
-   word64 *c = (word64 *) cx;
-   word64 a = *((word64 *) ax);
-   word64 b = *((word64 *) bx);
-
-   *c = a * b;
-   if (a == 0) return 0; /* avoid division by zero */
-   if ((*c / a) == b) return 0; /* check overflow */
-   return 1; /* result overflowed */
-}  /* end mult64_x64() */
-
-#endif  /* end WORD64_MAX */
-
-
-/**
- * Check if buff is all zeros. Returns 1 on true, else 0. */
+ * Check if `buff[len]` contains all zeros.
+ * @returns 1 if @a buff is all zeros, else 0.
+ * @note Available ONLY for testing purposes. Use iszero() instead.
+*/
 int iszero_x86(void *buff, int len)
 {
    word8 *bp = (word8 *) buff;
@@ -137,7 +156,10 @@ int iszero_x86(void *buff, int len)
 }  /* end iszero_x86() */
 
 /**
- * 64-bit addition of *ax and *bx. Result in *cx. Returns carry. */
+ * 64-bit addition of @a *ax and @a *bx. Result is placed in @a *cx.
+ * @returns Resulting carry of operation.
+ * @note Available ONLY for testing purposes. Use add64() instead.
+*/
 int add64_x86(void *ax, void *bx, void *cx)
 {
    word32 a[2], b[2];
@@ -151,7 +173,11 @@ int add64_x86(void *ax, void *bx, void *cx)
 }  /* end add64_x86() */
 
 /**
- * 64-bit subtraction of *bx from *ax. Result in *cx. Returns carry. */
+ * 64-bit subtraction of @a *bx from @a *ax.
+ * Result is placed in @a *cx.
+ * @returns Resulting carry of operation.
+ * @note Available ONLY for testing purposes. Use sub64() instead.
+*/
 int sub64_x86(void *ax, void *bx, void *cx)
 {
    word32 a[2], b[2];
@@ -165,7 +191,9 @@ int sub64_x86(void *ax, void *bx, void *cx)
 }  /* end sub64_x86() */
 
 /**
- * Swap sign on 64-bit *ax. Equivalent to *ax multiplied by -1. */
+ * Swap sign on 64-bit @a *ax. Equivalent to @a *ax multiplied by (-1).
+ * @note Available ONLY for testing purposes. Use negate64() instead.
+*/
 void negate64_x86(void *ax)
 {
    word32 *a = (word32 *) ax;
@@ -176,23 +204,31 @@ void negate64_x86(void *ax)
 }  /* end negate64_x86() */
 
 /**
- * 64-bit unsigned compare *ax to *bx.
- * Returns 1 if *ax > *bx, -1 if *ax < *bx, or 0 if *ax == *bx. */
+ * 64-bit unsigned compare @a *ax to @a *bx.
+ * @retval -1 if @a *ax < @a *bx
+ * @retval 1 if @a *ax > @a *bx
+ * @retval 0 if @a *ax == @a *bx.
+ * @note Available ONLY for testing purposes. Use cmp64() instead.
+*/
 int cmp64_x86(void *ax, void *bx)
 {
    word32 *a = (word32 *) ax;
    word32 *b = (word32 *) bx;
 
-   if(a[1] > b[1]) return 1;
    if(a[1] < b[1]) return -1;
-   if(a[0] > b[0]) return 1;
+   if(a[1] > b[1]) return 1;
    if(a[0] < b[0]) return -1;
+   if(a[0] > b[0]) return 1;
    return 0;
 }  /* end cmp64_x86() */
 
 /**
- * 256-bit unsigned compare *ax to *bx.
- * Returns 1 if *ax > *bx, -1 if *ax < *bx, or 0 if *ax == *bx. */
+ * 256-bit unsigned compare @a *ax to @a *bx.
+ * @retval -1 if @a *ax < @a *bx
+ * @retval 1 if @a *ax > @a *bx
+ * @retval 0 if @a *ax == @a *bx.
+ * @note Available ONLY for testing purposes. Use cmp256() instead.
+*/
 int cmp256_x86(void *ax, void *bx)
 {
    word32 *a = (word32 *) ax;
@@ -200,15 +236,17 @@ int cmp256_x86(void *ax, void *bx)
    int i;
 
    for (i = 7; i >= 0; i--) {
-      if(a[i] > b[i]) return 1;
       if(a[i] < b[i]) return -1;
+      if(a[i] > b[i]) return 1;
    }
 
    return 0;
 }  /* end cmp256_x86() */
 
 /**
- * 64-bit shift *ax one to the right. */
+ * 64-bit shift @a *ax one to the right.
+ * @note Available ONLY for testing purposes. Use shiftr64() instead.
+*/
 void shiftr64_x86(void *ax)
 {
    word32 *a = (word32 *) ax;
@@ -219,8 +257,11 @@ void shiftr64_x86(void *ax)
 }  /* end shiftr64_x86() */
 
 /**
- * 64-bit multiplication of *ax and *bx. Place result in *cx.
- * Returns 1 if overflow, else 0. */
+ * 64-bit multiplication of @a *ax and @a *bx.
+ * Result is placed in @a *cx.
+ * @result 1 on 64-bit overflow, else 0.
+ * @note Available ONLY for testing purposes. Use mult64() instead.
+*/
 int mult64_x86(void *ax, void *bx, void *cx)
 {
    word32 *c = (word32 *) cx;
@@ -241,7 +282,9 @@ int mult64_x86(void *ax, void *bx, void *cx)
 }  /* end mult64_x86() */
 
 /**
- * Check if buff is all zeros. Returns 1 on true, else 0. */
+ * Check if `buff[len]` contains all zeros.
+ * @returns 1 if @a buff is all zeros, else 0.
+*/
 int iszero(void *buff, int len)
 {
 #ifdef WORD64_MAX
@@ -252,7 +295,9 @@ int iszero(void *buff, int len)
 }  /* end iszero() */
 
 /**
- * 64-bit addition of *ax and *bx. Result in *cx. Returns carry. */
+ * 64-bit addition of @a *ax and @a *bx. Result is placed in @a *cx.
+ * @returns Resulting carry of operation.
+*/
 int add64(void *ax, void *bx, void *cx)
 {
 #ifdef WORD64_MAX
@@ -263,18 +308,23 @@ int add64(void *ax, void *bx, void *cx)
 }  /* end add64() */
 
 /**
- * 64-bit subtraction of *bx from *ax. Result in *cx. Returns carry. */
+ * 64-bit subtraction of @a *bx from @a *ax.
+ * Result is placed in @a *cx.
+ * @returns Resulting carry of operation.
+*/
 int sub64(void *ax, void *bx, void *cx)
 {
 #ifdef WORD64_MAX
    return sub64_x64(ax, bx, cx);
+
 #else
    return sub64_x86(ax, bx, cx);
 #endif
 }  /* end sub64() */
 
 /**
- * Swap sign on 64-bit *ax. Equivalent to *ax multiplied by -1. */
+ * Swap sign on 64-bit @a *ax. Equivalent to @a *ax multiplied by (-1).
+*/
 void negate64(void *ax)
 {
 #ifdef WORD64_MAX
@@ -286,8 +336,11 @@ void negate64(void *ax)
 
 
 /**
- * 64-bit unsigned compare *ax to *bx.
- * Returns 1 if *ax > *bx, -1 if *ax < *bx, or 0 if *ax == *bx. */
+ * 64-bit unsigned compare @a *ax to @a *bx.
+ * @retval -1 if @a *ax < @a *bx
+ * @retval 1 if @a *ax > @a *bx
+ * @retval 0 if @a *ax == @a *bx.
+*/
 int cmp64(void *ax, void *bx)
 {
 #ifdef WORD64_MAX
@@ -298,8 +351,11 @@ int cmp64(void *ax, void *bx)
 }  /* end cmp64() */
 
 /**
- * 256-bit unsigned compare *ax to *bx.
- * Returns 1 if *ax > *bx, -1 if *ax < *bx, or 0 if *ax == *bx. */
+ * 256-bit unsigned compare @a *ax to @a *bx.
+ * @retval -1 if @a *ax < @a *bx
+ * @retval 1 if @a *ax > @a *bx
+ * @retval 0 if @a *ax == @a *bx.
+*/
 int cmp256(void *ax, void *bx)
 {
 #ifdef WORD64_MAX
@@ -310,7 +366,8 @@ int cmp256(void *ax, void *bx)
 }  /* end cmp256() */
 
 /**
- * 64-bit shift *ax one to the right. */
+ * 64-bit shift @a *ax one to the right.
+*/
 void shiftr64(void *ax)
 {
 #ifdef WORD64_MAX
@@ -321,8 +378,9 @@ void shiftr64(void *ax)
 }  /* end shiftr64() */
 
 /**
- * 64-bit multiplication of *ax and *bx. Place result in *cx.
- * Returns 1 if overflow, else 0. */
+ * 64-bit multiplication of @a *ax and @a *bx.
+ * Result is placed in @a *cx.
+*/
 int mult64(void *ax, void *bx, void *cx)
 {
 #ifdef WORD64_MAX
@@ -332,8 +390,11 @@ int mult64(void *ax, void *bx, void *cx)
 #endif
 }  /* end mult64() */
 
-/* Multi-byte addition of ax[bytelen] and bx[bytelen].
- * Place result in cx[bytelen].  Returns carry. */
+/**
+ * Multi-byte addition of `ax[bytelen]` and `bx[bytelen]`.
+ * Place result in `cx[bytelen]`.
+ * @returns Resulting carry of operation.
+*/
 int multi_add(void *ax, void *bx, void *cx, int bytelen)
 {
    word8 *a, *b, *c;
@@ -350,8 +411,11 @@ int multi_add(void *ax, void *bx, void *cx, int bytelen)
    return carry;
 }
 
-/* Multi-byte subtraction of b[bytelen] from a[bytelen].
- * Place result in c[bytelen].  Returns carry. */
+/**
+ * Multi-byte subtraction of `bx[bytelen]` from `ax[bytelen]`.
+ * Place result in `cx[bytelen]`.
+ * @returns Resulting carry of operation.
+*/
 int multi_sub(void *ax, void *bx, void *cx, int bytelen)
 {
    word8 *a, *b, *c;
@@ -368,5 +432,5 @@ int multi_sub(void *ax, void *bx, void *cx, int bytelen)
    return carry;
 }
 
-
-#endif  /* end EXTENDED_MATH_C */
+/* end include guard */
+#endif
