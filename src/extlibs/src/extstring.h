@@ -1,33 +1,28 @@
 /**
- * extstring.h - Extended string handling support header
- *
- * Copyright (c) 2021 Adequate Systems, LLC. All Rights Reserved.
- * For more information, please refer to ../LICENSE
- *
- * Date: 15 September 2021
- * Revised: 25 October 2021
- *
- * NOTES:
- * - "extends" the C Standard Library header file string.h
- *
+ * @file extstring.h
+ * @brief Extended string/memory handling support.
+ * @copyright Adequate Systems LLC, 2018-2022. All Rights Reserved.
+ * <br />For license information, please refer to ../LICENSE
 */
 
-#ifndef _EXTENDED_STRING_H_
-#define _EXTENDED_STRING_H_  /* include guard */
+/* include guard */
+#ifndef EXTENDED_STRING_H
+#define EXTENDED_STRING_H
 
 
 #include <string.h>
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* Function prototypes for extstring.c */
 void memswap(void *ax, void *bx, size_t count);
 
+/* end extern "C" {} for C++ */
 #ifdef __cplusplus
 }
 #endif
 
-
-#endif /* end _EXTENDED_STRING_H_ */
+/* end include guard */
+#endif

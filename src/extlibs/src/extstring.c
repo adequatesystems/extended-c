@@ -1,26 +1,27 @@
 /**
- * extstring.c - Extended string handling support
- *
- * Copyright (c) 2018-2021 Adequate Systems, LLC. All Rights Reserved.
- * For more information, please refer to ../LICENSE
- *
- * Date: 2 January 2018
- * Revised: 25 October 2021
- *
+ * @private
+ * @headerfile extstring.h <extstring.h>
+ * @copyright Adequate Systems LLC, 2018-2022. All Rights Reserved.
+ * <br />For license information, please refer to ../LICENSE
 */
 
-#ifndef _EXTENDED_STRING_C_
-#define _EXTENDED_STRING_C_  /* include guard */
+/* include guard */
+#ifndef EXTENDED_STRING_C
+#define EXTENDED_STRING_C
 
 
-#include "extstring.h"  /* header file */
+#include "extstring.h"
 
-#define MEMSWAPCHUNK 1024  /* 1 KiB temp resource for swapping memory */
+#define MEMSWAPCHUNK 1024
 
-/* Swaps count characters between objects pointed to by ax and bx.
- * Swap occurs in 1 kibibyte (MEMSWAPCHUNK) chunks.
- * NOTES:
- * - For efficacy validation, see https://godbolt.org/z/Wo4K4zWcP */
+
+/**
+ * Swap @a count bytes between pointers @a ax and @a bx.
+ * Swap occurs in, at most, 1 kibibyte chunks (defined internally
+ * by the MEMSWAPCHUNK definition). https://godbolt.org/z/Wo4K4zWcP
+ * @param ax Pointer to primary array of bytes to swap
+ * @param bx Pointer to secondary array of bytes to swap
+*/
 void memswap(void *ax, void *bx, size_t count)
 {
    unsigned char *pa = (unsigned char *) ax;
@@ -42,5 +43,5 @@ void memswap(void *ax, void *bx, size_t count)
    }
 }  /* end memswap() */
 
-
-#endif /* end _EXTENDED_STRING_C_ */
+/* end include guard */
+#endif
