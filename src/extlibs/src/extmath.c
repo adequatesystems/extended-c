@@ -232,10 +232,12 @@ int mult64_x86(void *ax, void *bx, void *cx)
 */
 int iszero(void *buff, int len)
 {
-#ifdef WORD64_MAX
+#ifdef HAS_64BIT
    return iszero_x64(buff, len);
+
 #else
    return iszero_x86(buff, len);
+
 #endif
 }  /* end iszero() */
 
@@ -248,10 +250,12 @@ int iszero(void *buff, int len)
 */
 int add64(void *ax, void *bx, void *cx)
 {
-#ifdef WORD64_MAX
+#ifdef HAS_64BIT
    return add64_x64(ax, bx, cx);
+
 #else
    return add64_x86(ax, bx, cx);
+
 #endif
 }  /* end add64() */
 
@@ -265,11 +269,12 @@ int add64(void *ax, void *bx, void *cx)
 */
 int sub64(void *ax, void *bx, void *cx)
 {
-#ifdef WORD64_MAX
+#ifdef HAS_64BIT
    return sub64_x64(ax, bx, cx);
 
 #else
    return sub64_x86(ax, bx, cx);
+
 #endif
 }  /* end sub64() */
 
@@ -279,13 +284,14 @@ int sub64(void *ax, void *bx, void *cx)
 */
 void negate64(void *ax)
 {
-#ifdef WORD64_MAX
+#ifdef HAS_64BIT
    negate64_x64(ax);
+
 #else
    negate64_x86(ax);
+
 #endif
 }  /* end negate64() */
-
 
 /**
  * 64-bit unsigned compare @a *ax to @a *bx.
@@ -297,10 +303,12 @@ void negate64(void *ax)
 */
 int cmp64(void *ax, void *bx)
 {
-#ifdef WORD64_MAX
+#ifdef HAS_64BIT
    return cmp64_x64(ax, bx);
+
 #else
    return cmp64_x86(ax, bx);
+
 #endif
 }  /* end cmp64() */
 
@@ -314,10 +322,12 @@ int cmp64(void *ax, void *bx)
 */
 int cmp256(void *ax, void *bx)
 {
-#ifdef WORD64_MAX
+#ifdef HAS_64BIT
    return cmp256_x64(ax, bx);
+
 #else
    return cmp256_x86(ax, bx);
+
 #endif
 }  /* end cmp256() */
 
@@ -327,10 +337,12 @@ int cmp256(void *ax, void *bx)
 */
 void shiftr64(void *ax)
 {
-#ifdef WORD64_MAX
+#ifdef HAS_64BIT
    shiftr64_x64(ax);
+
 #else
    shiftr64_x86(ax);
+
 #endif
 }  /* end shiftr64() */
 
@@ -344,10 +356,12 @@ void shiftr64(void *ax)
 */
 int mult64(void *ax, void *bx, void *cx)
 {
-#ifdef WORD64_MAX
+#ifdef HAS_64BIT
    return mult64_x64(ax, bx, cx);
+
 #else
    return mult64_x86(ax, bx, cx);
+
 #endif
 }  /* end mult64() */
 

@@ -1,7 +1,6 @@
 /**
  * @file extmath.h
  * @brief Extended math support.
- * @details Provides extended support for math.
  * @copyright Adequate Systems LLC, 2018-2022. All Rights Reserved.
  * <br />For license information, please refer to ../LICENSE
 */
