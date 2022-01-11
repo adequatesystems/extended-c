@@ -1,38 +1,265 @@
 /**
- * extthread.c - Extended Thread and Mutex support
- *
- * Copyright (c) 2021 Adequate Systems, LLC. All Rights Reserved.
- * For more information, please refer to ../LICENSE
- *
- * Date: 29 October 2021
- *
+ * @private
+ * @headerfile extthread.h <extthread.h>
+ * @copyright Adequate Systems LLC, 2018-2022. All Rights Reserved.
+ * <br />For license information, please refer to ../LICENSE
 */
 
-#ifndef _EXTENDED_THREAD_C_
-#define _EXTENDED_THREAD_C_  /* include guard */
+/* include guard */
+#ifndef EXTENDED_THREAD_C
+#define EXTENDED_THREAD_C
 
 
 #include "extthread.h"
 
-#ifdef _WIN32  /* assume Windows */
-
-/* Create a new thread on Windows and store it's thread identifier.
- * Return 0 on success, else GetLastError(). */
-int thread_create(ThreadId *tid, Threaded func, void *arg)
+/**
+ * Initialize a Mutex.
+ * @param mutexp Pointer to a ::Mutex
+ * @returns 0 on success, else error number.
+ * @note On Windows, this function uses a static spinlock to
+ * guard the initialization of all mutexes, either through direct
+ * use of this function or via the first call to mutex_lock().
+ * Although negligible, it should be noted that this causes a
+ * synchronous effect for all such calls.
+*/
+int mutex_init(Mutex *mutexp)
 {
-   HANDLE thandle;
+#if OS_WINDOWS
+   /* CRITICAL_SECTION initialization is guarded by an initialization
+    * spinlock, which is 32-bit aligned as required by the Windows
+    * API's InterlockedCompareExchange() atomic function. */
+   __declspec(align(4)) static volatile LONG spinlock = 0;
 
-   /* create thread and check returned handle for errors */
-   thandle = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE) func, arg, 0, tid);
-   if(thandle == NULL) return GetLastError();
+   /* per pthreads_mutex_init(), return EBUSY for initialized mutex */
+   if (mutexp->init > 0) return EBUSY;
+   /* acquire exclusive spin lock for initialisation */
+   while(InterlockedCompareExchange(&spinlock, 1, 0));
+   /* vv SPINLOCKED SECTION START */
+
+   /* attempt initialization if uninitialised */
+   if(mutexp->init < 1) {
+      /* initialize critical section inside Mutex */
+      InitializeCriticalSection(&(mutexp->lock));
+      /* set Mutex initialized */
+      mutexp->init = 1;
+   }
+
+   /* ^^ END SPINLOCK SECTION */
+   /* release exclusive spin lock */
+   spinlock = 0;
 
    return 0;
+
+#elif defined(_POSIX_THREADS)
+   return pthread_mutex_init(mutexp, NULL);
+
+#endif
 }
 
-/* Wait for a thread on Windows to complete. (BLOCKING)
- * Returns 0 on success, else GetLastError(). */
-int thread_wait(ThreadId tid)
+/**
+ * Acquire an exclusive lock on a Mutex.
+ * @param mutexp Pointer to a ::Mutex
+ * @returns 0 on success, else error number.
+ * @note On Windows, a statically initialized Mutex will be
+ * initialized on the first call to mutex_lock().
+*/
+int mutex_lock(Mutex *mutexp)
 {
+#if OS_WINDOWS
+   /* initialize mutex if statically initialized */
+   if (mutexp->init < 1) mutex_init(mutexp);
+   /* acquire exclusive critical section lock */
+   EnterCriticalSection(&(mutexp->lock));
+
+   return 0;
+
+#elif defined(_POSIX_THREADS)
+   return pthread_mutex_lock(mutexp);
+
+#endif
+}
+
+/**
+ * Release an exclusive lock on a Mutex.
+ * @param mutexp Pointer to a ::Mutex
+ * @returns 0 on success, else error number.
+*/
+int mutex_unlock(Mutex *mutexp)
+{
+#if OS_WINDOWS
+   LeaveCriticalSection(&(mutexp->lock));
+   return 0;
+
+#elif defined(_POSIX_THREADS)
+   return pthread_mutex_unlock(mutexp);
+
+#endif
+}
+
+/**
+ * Destroy a Mutex. Free's any memory allocated by the system,
+ * and marks Mutex as uninitialized.
+ * @param mutexp Pointer to a ::Mutex
+ * @returns 0 on success, else error number.
+*/
+int mutex_destroy(Mutex *mutexp)
+{
+#if OS_WINDOWS
+   /* destroy critical section */
+   DeleteCriticalSection(&(mutexp->lock));
+   /* set Mutex uninitialized */
+   mutexp->init = 0;
+
+   return 0;
+
+#elif defined(_POSIX_THREADS)
+   return pthread_mutex_unlock(mutexp);
+
+#endif
+}
+
+/**
+ * Initialize a Read Write Lock.
+ * @param rwlockp Pointer to a ::RWLock
+ * @returns 0 on success, else error code.
+*/
+int rwlock_init(RWLock *rwlockp)
+{
+#if OS_WINDOWS
+   InitializeSRWLock(rwlockp);
+   return 0;
+
+#elif defined(_POSIX_THREADS)
+   return pthread_rwlock_init(rwlockp, NULL);
+
+#endif
+}
+
+/**
+ * Lock a ::RWLock object for reading. The calling thread acquires the
+ * read lock if no write locks are held or waiting on the lock.
+ * @param rwlockp Pointer to a ::RWLock
+ * @returns 0 on success, else error code.
+ * @note This function can block the execution of a thread.
+*/
+int rwlock_rdlock(RWLock *rwlockp)
+{
+#if OS_WINDOWS
+   AcquireSRWLockShared(rwlockp);
+   return 0;
+
+#elif defined(_POSIX_THREADS)
+   return pthread_rwlock_rdlock(rwlockp);
+
+#endif
+}
+
+/**
+ * Lock a ::RWLock object for writing. The calling thread acquires the
+ * write lock if no read or write locks are held or waiting on the lock.
+ * @param rwlockp Pointer to a ::RWLock
+ * @returns 0 on success, else error code.
+ * @note This function can block the execution of a thread.
+*/
+int rwlock_wrlock(RWLock *rwlockp)
+{
+#if OS_WINDOWS
+   AcquireSRWLockExclusive(rwlockp);
+   return 0;
+
+#elif defined(_POSIX_THREADS)
+   return pthread_rwlock_wrlock(rwlockp);
+
+#endif
+}
+
+/**
+ * Release a ::RWLock object locked for reading.
+ * @param rwlockp Pointer to a ::RWLock
+ * @returns 0 on success, else error code.
+*/
+int rwlock_rdunlock(RWLock *rwlockp)
+{
+#if OS_WINDOWS
+   ReleaseSRWLockShared(rwlockp);
+   return 0;
+
+#elif defined(_POSIX_THREADS)
+   return pthread_rwlock_unlock(rwlockp);
+
+#endif
+}
+
+/**
+ * Release a ::RWLock object locked for writing.
+ * @param rwlockp Pointer to a ::RWLock
+ * @returns 0 on success, else error code.
+*/
+int rwlock_wrunlock(RWLock *rwlockp)
+{
+#if OS_WINDOWS
+   ReleaseSRWLockExclusive(rwlockp);
+   return 0;
+
+#elif defined(_POSIX_THREADS)
+   return pthread_rwlock_unlock(rwlockp);
+
+#endif
+}
+
+/**
+ * Destroy a Read Write Lock. Free's any memory allocated by the system.
+ * @param rwlockp Pointer to a ::RWLock
+ * @returns 0 on success, else error number.
+*/
+int rwlock_destroy(RWLock *rwlockp)
+{
+#if OS_WINDOWS
+   /* A SRWLock does not need to be explicitly destroyed, so this
+    * function simply tries to acquire an exclusive lock on *rwlock
+    * and, either immediately releases the lock, or return the
+    * EBUSY code, immitating pthread_rwlock_destory() operation. */
+   if (TryAcquireSRWLockExclusive(rwlockp)) {
+      ReleaseSRWLockExclusive(rwlockp);
+      return 0;
+   }
+
+   return EBUSY;
+
+#elif defined(_POSIX_THREADS)
+   return pthread_rwlock_destroy(rwlockp);
+
+#endif
+}
+
+/**
+ * Create/Start a new thread. Thread identifier is placed in @a tidp.
+ * @param tidp Pointer to ThreadId to place thread identifier.
+ * @param fnp ::ThreadProc function to execute on new thread.
+ * @param argp Pointer to arguments to give to @a fnp.
+ * @returns 0 on success, else error number
+*/
+int thread_create(ThreadId *tidp, ThreadRoutine fnp, void *argp)
+{
+#if OS_WINDOWS
+   HANDLE thandle = CreateThread(NULL, 0, fnp, argp, 0, tidp);
+   return thandle == NULL ? GetLastError() : 0;
+
+#elif defined(_POSIX_THREADS)
+   return pthread_create(tidp, NULL, fnp, argp);
+
+#endif
+}
+
+/**
+ * Join with a terminated thread.
+ * Waits for the thread specified by @a tid to terminate.
+ * @param tid A ::ThreadId
+ * @returns 0 on success, else error number.
+*/
+int thread_join(ThreadId tid)
+{
+#if OS_WINDOWS
    HANDLE thandle;
    int ecode = 0;
 
@@ -47,128 +274,33 @@ int thread_wait(ThreadId tid)
    CloseHandle(thandle);
 
    return ecode;
+
+#elif defined(_POSIX_THREADS)
+   return pthread_join(tid, NULL);
+
+#endif
 }
 
-/* Initialize a Mutex on Windows and set initialized.
- * Always returns 0 on Windows. */
-int mutex_init(Mutex *mutex)
-{
-   /* CRITICAL_SECTION initialization is guarded by an initialization
-    * spinlock, which is 32-bit aligned as required by the Windows
-    * API's InterlockedCompareExchange() atomic function. */
-   __declspec(align(4)) static volatile LONG spinlock = 0;
-
-   /* per pthreads_mutex_init(), return EBUSY for initialized mutex */
-   if (mutex->init > 0) return EBUSY;
-   /* acquire exclusive spin lock for initialisation */
-   while(InterlockedCompareExchange(&spinlock, 1, 0));
-   /* vv SPINLOCKED SECTION START */
-
-   /* attempt initialization if uninitialised */
-   if(mutex->init < 1) {
-      /* initialize critical section inside Mutex */
-      InitializeCriticalSection(&mutex->lock);
-      /* set Mutex initialized */
-      mutex->init = 1;
-   }
-
-   /* ^^ END SPINLOCK SECTION */
-   /* release exclusive spin lock */
-   spinlock = 0;
-
-   return 0;
-}
-
-/* Acquire an exclusive lock on Windows.
- * Returns 0 on success, or EINVAL if mutex is not initialized. */
-int mutex_lock(Mutex *mutex)
-{
-   /* per pthreads_mutex_init(), return EINVAL for uninitialized mutex */
-   if (!mutex->init) return EINVAL;
-   /* initialize mutex if statically initialized */
-   if (mutex->init < 0) mutex_init(mutex);
-   /* acquire exclusive critical section lock */
-   EnterCriticalSection(&mutex->lock);
-
-   return 0;
-}
-
-/* Release an exclusive lock on Windows.
- * Always returns 0 on Windows. */
-int mutex_unlock(Mutex *mutex)
-{
-   /* release exclusive critical section lock */
-   LeaveCriticalSection(&mutex->lock);
-
-   return 0;
-}
-
-/* Uninitalize a Mutex on Windows.
- * Always returns 0 on Windows. */
-int mutex_free(Mutex *mutex)
-{
-   /* destroy critical section */
-   DeleteCriticalSection(&mutex->lock);
-   /* set Mutex uninitialized */
-   mutex->init = 0;
-
-   return 0;
-}
-
-/* Read write lock (RWLock) functions on Windows.
- * Always returns 0 on Windows, except rwlock_free(),
- * which returns EBUSY when a rwlock is currently in place. */
-int rwlock_init(RWLock *rwlock)
-{
-   InitializeSRWLock(rwlock); return 0;
-}
-
-int rwlock_rdlock(RWLock *rwlock)
-{
-   AcquireSRWLockShared(rwlock); return 0;
-}
-
-int rwlock_wrlock(RWLock *rwlock)
-{
-   AcquireSRWLockExclusive(rwlock); return 0;
-}
-
-int rwlock_rdunlock(RWLock *rwlock)
-{
-   ReleaseSRWLockShared(rwlock); return 0;
-}
-
-int rwlock_wrunlock(RWLock *rwlock)
-{
-   ReleaseSRWLockExclusive(rwlock); return 0;
-}
-
-int rwlock_free(RWLock *rwlock)
-{  /* A SRWLock does not need to be explicitly destroyed, so this
-    * function simply tries to acquire an exclusive lock on *rwlock
-    * and, either immediately releases the lock, or returns the
-    * EBUSY code, per pthread_rwlock_destory() functionality. */
-   if (TryAcquireSRWLockExclusive(rwlock)) {
-      ReleaseSRWLockExclusive(rwlock);
-      return 0;
-   } else return EBUSY;
-}
-
-#endif  /* end Windows */
-
-/* Wait for list of threads, tidlist[count], to complete. (BLOCKING)
- * Returns 0 on success, else the first error code from thread_wait(). */
-int thread_multiwait(int count, ThreadId tidlist[])
+/**
+ * Join with a list of terminated threads.
+ * Waits for all threads in a list specified by tidlist[count] to
+ * terminate and "joins" with them in a sequential manner.
+ * If a ::ThreadId within the @a tidlist evaluates as Zero (0),
+ * that ::ThreadId will be skipped.
+ * @param tidlist Pointer to a list of ::ThreadId's
+ * @returns 0 on success, else the first error returned by thread_join().
+*/
+int thread_multijoin(ThreadId tidlist[], int count)
 {
    int i, temp, ecode;
 
    for(ecode = temp = i = 0; i < count; i++) {
-      if (tidlist[i]) temp = thread_wait(tidlist[i]);
+      if (tidlist[i]) temp = thread_join(tidlist[i]);
       if (temp && !ecode) ecode = temp;
    }
 
    return ecode;
 }
 
-
-#endif  /* end _EXTENDED_THREAD_C_ */
+/* end include guard */
+#endif
