@@ -1,7 +1,7 @@
 /**
  * @file exttime.h
  * @brief Extended time support.
- * @copyright © Adequate Systems LLC, 2021-2022. All Rights Reserved.
+ * @copyright Adequate Systems LLC, 2021-2022. All Rights Reserved.
  * <br />For license information, please refer to ../LICENSE
 */
 
@@ -14,9 +14,8 @@
 #include <time.h>
 
 /**
- * @brief Suspend the current thread for a specified number of milliseconds.
+ * Suspend the current thread for a specified number of milliseconds.
  * @param ms Number of milliseconds to suspend the current thread
- * @note This function is interruptible
 */
 static inline void millisleep(unsigned long ms)
 {
