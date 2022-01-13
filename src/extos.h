@@ -2,17 +2,13 @@
  * @file extos.h
  * @brief Extended operating system.
  * @details Defines an operating system type definition of the format
- * `OS_<system>` and includes a base operating system header file,.
+ * `OS_<system>` and includes a base operating system header file.
+ * <br/>On Windows, defines `OS_WINDOWS` and includes `<Windows.h>`
+ * (ensuring `WIN32_LEAN_AND_MEAN` is defined and returned to its
+ * original state, before and after the include, respectively).
+ * <br/>On UNIX, defines `OS_UNIX` and includes `<unistd.h>`.
  * @copyright Adequate Systems LLC, 2022. All Rights Reserved.
  * <br />For license information, please refer to ../LICENSE
- * @note This is a header-only component which requires, at most,
- * an include path reference during compilation.
- * @note For Windows operating systems, defines `OS_WINDOWS`
- * and includes `<Windows.h>` (ensuring `WIN32_LEAN_AND_MEAN`
- * is defined and returned to its original state, before and
- * after the include, respectively)
- * @note For UNIX-style operating systems, defines `OS_UNIX`
- * and includes `<unistd.h>`
 */
 
 /* include guard */

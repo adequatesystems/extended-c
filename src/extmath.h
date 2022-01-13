@@ -12,15 +12,13 @@
 
 #include <math.h>
 
-
+/* C/C++ compatible function prototypes for extthread.c */
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* x64 guard */
 #ifdef HAS_64BIT
-
-   /* x64 function prototypes for extmath.c */
    int iszero_x64(void *buff, int len); /**< @private */
    int add64_x64(void *ax, void *bx, void *cx); /**< @private */
    int sub64_x64(void *ax, void *bx, void *cx); /**< @private */
@@ -33,7 +31,6 @@ extern "C" {
 /* end x64 guard */
 #endif
 
-/* x86 function prototypes for extmath.c */
 int iszero_x86(void *buff, int len); /**< @private */
 int add64_x86(void *ax, void *bx, void *cx); /**< @private */
 int sub64_x86(void *ax, void *bx, void *cx); /**< @private */
@@ -43,7 +40,6 @@ int cmp256_x86(void *ax, void *bx); /**< @private */
 void shiftr64_x86(void *ax); /**< @private */
 int mult64_x86(void *ax, void *bx, void *cx); /**< @private */
 
-/* Function prototypes for extmath.c */
 int iszero(void *buff, int len);
 int add64(void *ax, void *bx, void *cx);
 int sub64(void *ax, void *bx, void *cx);

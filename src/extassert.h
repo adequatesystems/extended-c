@@ -1,16 +1,29 @@
-/** assert.h - Adequate Systems' extended assertion header for C testing
- *
- * Copyright (c) 2021 Adequate Systems, LLC. All Rights Reserved.
- * For more information, please refer to ../../LICENSE
- *
- * Date: 8 October 2021
- * Revised: 28 October 2021
- *
+/**
+ * @file extassert.h
+ * @brief Extended assertion support.
+ * @details Provides additional support for basic assertions and debugging.
+ * @copyright Adequate Systems LLC, 2021-2022. All Rights Reserved.
+ * <br />For license information, please refer to ../LICENSE
+ * @note Much like the standard header `<assert.h>`, if `NDEBUG` is defined
+ * as a macro name before the inclusion of this header file, `ASSERT` will
+ * do nothing except cast the condition to a `(void)`. This cast ensures
+ * the suppression of extended compiler warnings.
 */
 
-#ifndef _TEST_ASSERT_H_
-#define _TEST_ASSERT_H_  /* include guard */
+/* include guard */
+#ifndef EXTENDED_ASSERT_H
+#define EXTENDED_ASSERT_H
 
+
+#ifdef NDEBUG
+   /* suppress compiler warnings */
+   #define ASSERT(COND) ((void)COND)
+
+#else
+   #include <assert.h>
+   #define ASSERT(COND) assert(COND)
+
+#endif
 
 /* standard assertion operations, with or without custom message */
 #define ASSERT_EQ(A,B)              ASSERT_OP_MSG(==,A,B,"")
@@ -43,50 +56,44 @@
 #define ASSERT_NE_MSG(A,B,MSG)      ASSERT_OP_MSG(!=,A,B,MSG)
 #define ASSERT_NE2_MSG(A,B,C,MSG)   ASSERT_OP2_MSG(!=,A,B,C,MSG)
 
-#ifdef NDEBUG  /* NDEBUG override */
-   #define ASSERT(COND) ((void)COND)  /* suppress compiler warnings */
-#else /* ! defined(NDEBUG) - redirect ASSERT */
-   #include <assert.h>
-   #define ASSERT(COND) assert(COND)
-#endif
-
 #ifdef DEBUG
+   #include <stdarg.h>
    #include <stdio.h>
    #include <string.h>
-   #define PRINT(FMT, ...)  printf(FMT, ##__VA_ARGS__)
-   #define PRINT_ARRAY(FMT, ARRAY, BYTES, ...) \
+   #define PRINT_ARRAY(ARRAY, BYTES, ...) \
       do { \
          int _TYPESIZE = (int) sizeof((ARRAY)[0]); \
-         printf(FMT "{ ", ##__VA_ARGS__); \
-         for (int _i = 0; _i < (int) (BYTES / _TYPESIZE); _i++) { \
-            printf("0x%llx, ", (unsigned long long) (ARRAY)[_i]); } \
+         printf(__VA_ARGS__); \
+         printf("{ "); \
+         for (int _i = 0; _i < (int) BYTES / _TYPESIZE; _i++) { \
+            printf("0x%llx, ", (long long) (ARRAY)[_i]); \
+         } \
          printf("}\n"); \
          fflush(stdout); \
       } while (0)
-   #define ASSERT_DEBUG(...)  PRINT(__VA_ARGS__)
    #define ASSERT_OP2_MSG(OP,A,B,C,MSG) \
       do { \
          int _LEN = (int) strlen(#A); \
          if ((int) strlen(#B) > _LEN) _LEN = (int) strlen(#B); \
          if ((int) strlen(#C) > _LEN) _LEN = (int) strlen(#C); \
-         unsigned long long a = (unsigned long long) A; \
-         unsigned long long b = (unsigned long long) B; \
-         unsigned long long c = (unsigned long long) C; \
-         PRINT("ASSERT: a = %*s = %llu;\n", _LEN, #A, a); \
-         PRINT("ASSERT: b = %*s = %llu;\n", _LEN, #B, b); \
-         PRINT("ASSERT: c = %*s = %llu;\n", _LEN, #C, c); \
-         PRINT("ASSERT: assert(a " #OP " b  && b " #OP " c); %s\n\n", MSG); \
+         long long a = (long long) A; \
+         long long b = (long long) B; \
+         long long c = (long long) C; \
+         printf("ASSERT: a = %*s = %llu;\n", _LEN, #A, a); \
+         printf("ASSERT: b = %*s = %llu;\n", _LEN, #B, b); \
+         printf("ASSERT: c = %*s = %llu;\n", _LEN, #C, c); \
+         printf("ASSERT: assert(a " #OP " b  && b " #OP " c); %s\n\n", MSG); \
          ASSERT(a OP b && b OP c && MSG); \
       } while (0)
    #define ASSERT_OP_MSG(OP,A,B,MSG) \
       do { \
          int _LEN = (int) strlen(#A); \
          if ((int) strlen(#B) > _LEN) _LEN = (int) strlen(#B); \
-         unsigned long long a = (unsigned long long) A; \
-         unsigned long long b = (unsigned long long) B; \
-         PRINT("ASSERT: a = %*s = %llu;\n", _LEN, #A, a); \
-         PRINT("ASSERT: b = %*s = %llu;\n", _LEN, #B, b); \
-         PRINT("ASSERT: assert(a " #OP " b); %s\n\n", MSG); \
+         long long a = (long long) A; \
+         long long b = (long long) B; \
+         printf("ASSERT: a = %*s = %llu;\n", _LEN, #A, a); \
+         printf("ASSERT: b = %*s = %llu;\n", _LEN, #B, b); \
+         printf("ASSERT: assert(a " #OP " b); %s\n\n", MSG); \
          ASSERT(a OP b && MSG); \
       } while (0)
    #define ASSERT_STR_MSG(A,B,LEN,MSG) \
@@ -95,30 +102,40 @@
          char *b = (char *) B; \
          int _LEN = (int) strlen(#A); \
          if ((int) strlen(#B) > _LEN) _LEN = (int) strlen(#B); \
-         PRINT("ASSERT: a = %*s = \"%.*s\";\n", _LEN, #A, (int) LEN, a); \
-         PRINT("ASSERT: b = %*s = \"%.*s\";\n", _LEN, #B, (int) LEN, b); \
-         PRINT("ASSERT: assert(strcmp(a, b) == 0); %s\n\n", MSG); \
+         printf("ASSERT: a = %*s = \"%.*s\";\n", _LEN, #A, (int) LEN, a); \
+         printf("ASSERT: b = %*s = \"%.*s\";\n", _LEN, #B, (int) LEN, b); \
+         printf("ASSERT: assert(strcmp(a, b) == 0); %s\n\n", MSG); \
          ASSERT(strncmp(a, b, LEN) == 0 && MSG); \
       } while (0)
    #define ASSERT_CMP_MSG(A,B,LEN,MSG) \
       do { \
          int _LEN = (int) strlen(#A); \
          if ((int) strlen(#B) > _LEN) _LEN = (int) strlen(#B); \
-         PRINT_ARRAY("ASSERT: A = %*s = ", A, LEN, _LEN, #A); \
-         PRINT_ARRAY("ASSERT: B = %*s = ", B, LEN, _LEN, #B); \
-         PRINT("ASSERT: assert(memcmp(A, B, %d) == 0); %s\n\n", \
+         PRINT_ARRAY(A, LEN, "ASSERT: A = %*s = ", _LEN, #A); \
+         PRINT_ARRAY(B, LEN, "ASSERT: B = %*s = ", _LEN, #B); \
+         printf("ASSERT: assert(memcmp(A, B, %d) == 0); %s\n\n", \
             (int) LEN, MSG); \
          ASSERT(memcmp(A, B, LEN) == 0 && MSG); \
       } while (0)
    #define ASSERT_ASC_MSG(A,LEN,MSG) \
       do { \
-         PRINT_ARRAY("ASSERT: A = %*s = ", (A), LEN, (int) strlen(#A), #A); \
-         PRINT("ASSERT: for (i = 0; i < %zu; i++) ", (size_t) (LEN - 2)); \
-         PRINT("assert(A[i] < A[i+1]); %s\n\n", MSG); \
+         printf_ARRAY(A, LEN, "ASSERT: A = %*s = ", (int) strlen(#A), #A); \
+         printf("ASSERT: for (i = 0; i < %zu; i++) ", (size_t) (LEN - 2)); \
+         printf("assert(A[i] < A[i+1]); %s\n\n", MSG); \
          for (int _i = 0; _i < (LEN-2); _i++) { \
             ASSERT((A)[_i] < (A)[_i+1] && MSG); } \
       } while (0)
-#else  /* end DEBUG */
+   static inline void ASSERT_DEBUG(char *fmt, ...)
+   {
+      va_list args;
+
+      va_start(args, fmt);
+      vprintf(fmt, args);
+      va_end(args);
+   }
+
+/* end DEBUG */
+#else
    #include <assert.h>
    #include <string.h>
    #define ASSERT_OP_MSG(OP,A,B,MSG)    ASSERT(A OP B && MSG)
@@ -128,7 +145,9 @@
    #define ASSERT_ASC_MSG(A,LEN,MSG) \
       for (int _i = 0; _i < (LEN-2); _i++) ASSERT((A)[_i] < (A)[_i+1] && MSG)
    static inline void ASSERT_DEBUG(char *fmt, ...) { (void)fmt; }
+
+/* end ! defined DEBUG */
 #endif
 
-
-#endif  /* end _TEST_ASSERT_H_ */
+/* end include guard */
+#endif

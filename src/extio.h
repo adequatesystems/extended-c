@@ -13,12 +13,11 @@
 
 #include <stdio.h>
 
-
+/* C/C++ compatible function prototypes for extthread.c */
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* Function prototypes for extio.c */
 int cpu_cores(void);
 int fcopy(char *srcpath, char *dstpath);
 int fexists(char *fpath);

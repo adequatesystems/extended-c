@@ -8,8 +8,9 @@
  * socket support functions in this file.
 */
 
+/* include guard */
 #ifndef EXTENDED_INTERNET_H
-#define EXTENDED_INTERNET_H  /* include guard */
+#define EXTENDED_INTERNET_H
 
 
 #include "extos.h"
@@ -78,7 +79,7 @@
 #define INVALID_SOCKET (SOCKET)(~0) /**< Indicates empty socket descriptor */
 #endif
 
-
+/* C/C++ compatible function prototypes for extthread.c */
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -89,7 +90,6 @@ extern "C" {
 */
 volatile int Sockinuse;
 
-/* Function prototypes */
 int http_get(char *url, char *fname, int timeout);
 int phostinfo(void);
 char *ntoa(void *n, char *a);

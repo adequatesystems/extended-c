@@ -12,7 +12,7 @@
 
 #include <string.h>
 
-
+/* C/C++ compatible function prototypes for extthread.c */
 #ifdef __cplusplus
 extern "C" {
 #endif

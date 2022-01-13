@@ -92,11 +92,11 @@
    print_ext((-1), PLEVEL_DEBUG, __LINE__, __FILE__, __VA_ARGS__)
 
 
+/* C/C++ compatible function prototypes for extthread.c */
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* Function prototypes for extprint.c */
 unsigned get_num_errs(void);
 unsigned get_num_logs(void);
 int set_output_file(char *fname, char *mode);

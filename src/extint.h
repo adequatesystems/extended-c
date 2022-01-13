@@ -38,7 +38,6 @@
 
 #include <limits.h>
 
-
 /* ensure compatible char bit width */
 #if CHAR_BIT != 8
    #error Incompatible char bit width ( != 8 ).
