@@ -1,5 +1,5 @@
 
-#include "_assert.h"
+#include "../extassert.h"
 #include "../extio.h"
 
 #define FNAME  "binary.data"

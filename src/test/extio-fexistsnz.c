@@ -1,6 +1,6 @@
 
 #include <stdlib.h>
-#include "_assert.h"
+#include "../extassert.h"
 #include "../extio.h"
 
 #define EMPTYFNAME   "empty.log"
