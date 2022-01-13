@@ -88,6 +88,7 @@ coverage: $(COVERAGE)
 
 # build includes; redirect and recursive
 includes: $(LIBRARY)
+	@git submodule update --init --recursive
 	@$(foreach INC,$(INCLUDES),make includes -C $(INC) --no-print-directory; )
 
 # build library file; redirect
