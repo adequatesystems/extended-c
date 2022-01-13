@@ -1,4 +1,5 @@
-<!-- Modified Mozilla Public License 2.0 -->
+\page License
+\tableofcontents
 
 # MOCHIMO CRYPTOCURRENCY ENGINE LICENSE AGREEMENT VERSION 1.0
 
