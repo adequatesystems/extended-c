@@ -1,4 +1,4 @@
-\mainpage
+\mainpage README
 <h1 align="center">
    <a href="http://adequate.biz">
       <img alt="Adequate Systems" src="https://raw.githubusercontent.com/adequatesystems/extended-c/main/docs/adq.svg" /></a>

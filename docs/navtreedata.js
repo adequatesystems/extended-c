@@ -25,14 +25,8 @@
 var NAVTREE =
 [
   [ "Extended C/C++ Library", "index.html", [
+    [ "README", "index.html", null ],
     [ "License", "_license.html", [
-      [ "Documentation", "index.html#autotoc_md30", null ],
-      [ "Usage", "index.html#autotoc_md31", [
-        [ "Add Extended C as Submodule to project-repo", "index.html#autotoc_md32", null ],
-        [ "Update Extended C Submodule to latest revision", "index.html#autotoc_md33", null ],
-        [ "Change Extended C Submodule to specific hash or version tag", "index.html#autotoc_md34", null ]
-      ] ],
-      [ "License", "index.html#autotoc_md35", null ],
       [ "MOCHIMO CRYPTOCURRENCY ENGINE LICENSE AGREEMENT VERSION 1.0", "_license.html#autotoc_md0", [
         [ "Plain English Preface", "_license.html#autotoc_md1", null ],
         [ "Agreement", "_license.html#autotoc_md2", null ],
