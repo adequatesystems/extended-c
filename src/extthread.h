@@ -22,7 +22,7 @@
  *    ThreadId tid = startThread(threadfn, NULL);
  * } @endcode
  * @copyright Adequate Systems LLC, 2021-2022. All Rights Reserved.
- * <br />For license information, please refer to ../LICENSE
+ * <br />For license information, please refer to ../LICENSE.md
  * @note For use in UNIX-style operating systems, POSIX Threads
  * must be linked by the compiler using the `-pthread` option.
  * 

@@ -8,7 +8,7 @@
  * original state, before and after the include, respectively).
  * <br/>On UNIX, defines `OS_UNIX` and includes `<unistd.h>`.
  * @copyright Adequate Systems LLC, 2022. All Rights Reserved.
- * <br />For license information, please refer to ../LICENSE
+ * <br />For license information, please refer to ../LICENSE.md
 */
 
 /* include guard */

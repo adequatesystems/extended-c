@@ -3,7 +3,7 @@
  * @brief Extended input/output support.
  * @details Provides extended support for system input and output.
  * @copyright Adequate Systems LLC, 2018-2021. All Rights Reserved.
- * <br />For license information, please refer to ../LICENSE
+ * <br />For license information, please refer to ../LICENSE.md
 */
 
 /* include guard */

@@ -4,7 +4,7 @@
  * @details Emulates the C Standard library header file `<stdint.h>`
  * and extends on it's functionality.
  * @copyright Adequate Systems LLC, 2021-2022. All Rights Reserved.
- * <br />For license information, please refer to ../LICENSE
+ * <br />For license information, please refer to ../LICENSE.md
  * @note 
  * Number Constants for `INT#_MAX` have been removed due to an
  * inability to determine an adequate naming scheme that does not

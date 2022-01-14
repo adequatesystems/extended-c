@@ -2,7 +2,7 @@
  * @file exttime.h
  * @brief Extended time support.
  * @copyright Adequate Systems LLC, 2021-2022. All Rights Reserved.
- * <br />For license information, please refer to ../LICENSE
+ * <br />For license information, please refer to ../LICENSE.md
 */
 
 /* include guard */

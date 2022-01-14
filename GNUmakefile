@@ -2,7 +2,7 @@
 # GNUmakefile - C/C++ GNU makefile
 #
 # Copyright 2021-2022 Adequate Systems, LLC. All Rights Reserved.
-# For license information, please refer to ../LICENSE
+# For license information, please refer to LICENSE.md
 #
 
 DEPTH:= 0

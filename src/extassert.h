@@ -3,7 +3,7 @@
  * @brief Extended assertion support.
  * @details Provides additional support for basic assertions and debugging.
  * @copyright Adequate Systems LLC, 2021-2022. All Rights Reserved.
- * <br />For license information, please refer to ../LICENSE
+ * <br />For license information, please refer to ../LICENSE.md
  * @note Much like the standard header `<assert.h>`, if `NDEBUG` is defined
  * as a macro name before the inclusion of this header file, `ASSERT` will
  * do nothing except cast the condition to a `(void)`. This cast ensures

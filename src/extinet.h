@@ -3,7 +3,7 @@
  * @brief Extended internet support.
  * @details Provides extended support for internet related functionality.
  * @copyright Adequate Systems LLC, 2018-2022. All Rights Reserved.
- * <br />For license information, please refer to ../LICENSE
+ * <br />For license information, please refer to ../LICENSE.md
  * @note Applications MUST call sock_startup() before using some
  * socket support functions in this file.
 */

@@ -2,7 +2,7 @@
  * @private
  * @headerfile extstring.h <extstring.h>
  * @copyright Adequate Systems LLC, 2018-2022. All Rights Reserved.
- * <br />For license information, please refer to ../LICENSE
+ * <br />For license information, please refer to ../LICENSE.md
 */
 
 /* include guard */

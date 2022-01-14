@@ -3,7 +3,7 @@
  * @brief Extended general utilities support.
  * @details Provides extended support for general utilities.
  * @copyright Adequate Systems LLC, 2018-2022. All Rights Reserved.
- * <br />For license information, please refer to ../LICENSE
+ * <br />For license information, please refer to ../LICENSE.md
  * @todo Implement a 32-bit PRNG with greater statistical randomness.
  * <br/>Current candidates, in order of recommendation:
  * <br/>https://en.wikipedia.org/wiki/Permuted_congruential_generator
