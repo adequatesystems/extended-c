@@ -39,7 +39,7 @@ jobs:
       uses: github/codeql-action/analyze@v1
     - name: Check CodeQL Analysis
       run: |
-        results="/home/runner/work/mochimo/results/cpp.sarif"
+        results="${{ github.workspace }}/../results/cpp.sarif"
         resultsArray=($(cat $results | jq -r '.runs[].results[].ruleId'))
         if test ${#resultsArray[@]} -gt 0; then
             echo -e "\nCodeQL Analysis found problems that need addressing..."
