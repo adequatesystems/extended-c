@@ -101,7 +101,7 @@ libraries: $(LIBRARY) $(LIBRARIES)
 
 # build local html coverage report from coverage data
 report: $(COVERAGE)
-	@genhtml $(COVERAGE) --output-directory $(BUILDDIR)
+	genhtml $(COVERAGE) --output-directory $(BUILDDIR)
 
 # build and run all tests
 test: $(TESTOBJECTS) $(LIBRARY) $(LIBRARIES)
@@ -132,19 +132,19 @@ $(LIBRARY): $(BASEOBJECTS)
 	ar rcs $(LIBRARY) $(BASEOBJECTS)
 
 $(LIBRARIES): %:
-	@git submodule update --init --recursive
+	git submodule update --init --recursive
 	@make library -C $(INCLUDEDIR)/$(word 2,$(subst /, ,$@))
 
 # build coverage file, within out directory
 $(COVERAGE):
 	@make clean all --no-print-directory "CFLAGS=$(CFLAGS) --coverage -O0"
-	@lcov -c -i -d $(BUILDDIR) -o $(COVERAGE)_base
+	lcov -c -i -d $(BUILDDIR) -o $(COVERAGE)_base
 	@make test --no-print-directory "CFLAGS=$(CFLAGS) --coverage -O0"
-	@lcov -c -d $(BUILDDIR) -o $(COVERAGE)_test
-	@lcov -a $(COVERAGE)_base -a $(COVERAGE)_test -o $(COVERAGE) || \
+	lcov -c -d $(BUILDDIR) -o $(COVERAGE)_test
+	lcov -a $(COVERAGE)_base -a $(COVERAGE)_test -o $(COVERAGE) || \
 		cp $(COVERAGE)_base $(COVERAGE)
-	@$(RM) $(COVERAGE)_base $(COVERAGE)_test
-	@lcov -r $(COVERAGE) '*/$(TESTSOURCEDIR)/*' -o $(COVERAGE)
+	$(RM) $(COVERAGE)_base $(COVERAGE)_test
+	lcov -r $(COVERAGE) '*/$(TESTSOURCEDIR)/*' -o $(COVERAGE)
 	@$(foreach INC,$(INCLUDEDIRS),if test $(DEPTH) -gt 0; then \
 		make coverage -C $(INC) DEPTH=$$(($(DEPTH) - 1)); fi; )
 
