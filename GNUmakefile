@@ -17,6 +17,8 @@ BINDIR = bin
 BUILDDIR = build
 INCLUDEDIR = include
 SOURCEDIR = src
+TESTBUILDDIR = $(BUILDDIR)/test
+TESTSOURCEDIR = $(SOURCEDIR)/test
 
 #####################
 # vv CONFIGURATION vv
@@ -26,8 +28,6 @@ SOURCEDIR = src
 MODULE:= $(notdir $(realpath $(dir $(lastword $(MAKEFILE_LIST)))))
 
 # test sources, objects, depends, names and components
-TESTBUILDDIR = $(BUILDDIR)/test
-TESTSOURCEDIR = $(SOURCEDIR)/test
 TESTSOURCES:= $(sort $(wildcard $(TESTSOURCEDIR)/*.c))
 TESTOBJECTS:= $(patsubst $(SOURCEDIR)/%.c,$(BUILDDIR)/%.o,$(TESTSOURCES))
 TESTDEPENDS:= $(patsubst $(SOURCEDIR)/%.c,$(BUILDDIR)/%.d,$(TESTSOURCES))
@@ -47,8 +47,10 @@ COVERAGE:= $(BUILDDIR)/coverage.info
 
 # includes and include/library directories
 INCLUDES:= $(wildcard $(INCLUDEDIR)/**)
-LIBRARYDIRS:= $(BUILDDIR) $(addsuffix /$(BUILDDIR),$(INCLUDES))
 INCLUDEDIRS:= $(SOURCEDIR) $(addsuffix /$(SOURCEDIR),$(INCLUDES))
+LIBRARYDIRS:= $(BUILDDIR) $(addsuffix /$(BUILDDIR),$(INCLUDES))
+LIBRARIES:= $(join $(INCLUDES),\
+	$(patsubst $(INCLUDEDIR)/%,/$(BUILDDIR)/lib%.a,$(INCLUDES)))
 
 # compiler macros
 LFLAGS:= -l$(MODULE) $(patsubst $(INCLUDEDIR)/%,-l%,$(INCLUDES))
@@ -60,16 +62,19 @@ CC:= gcc $(CFLAGS) # CFLAGS is reserved for additional input
 ##########################
 
 .SUFFIXES: # disable rules predefined by MAKE
-.PHONY: help all clean coverage includes library report test help
+.PHONY: help all clean coverage deepclean library libraries report test help
 
 help: # default rule prints help information
 	@echo ""
 	@echo "Usage:  make [options] [FLAGS=FLAGVALUES]"
 	@echo "   make               prints this usage information"
-	@echo "   make clean         removes build directories"
-	@echo "   make coverage      build all coverage files"
-	@echo "   make includes      build include library files (incl. self)"
+	@echo "   make all           build all object files"
+	@echo "   make clean         removes build directory and files"
+	@echo "   make coverage      build test coverage file"
+	@echo "   make deepclean     removes (all) build directories and files"
 	@echo "   make library       build a library file containing all objects"
+	@echo "   make libraries     build all library files required for binaries"
+	@echo "   make report        build html report from test coverage"
 	@echo "   make test          build and run all tests"
 	@echo "   make test-<test>   build and run tests matching <test>*"
 	@echo ""
@@ -77,29 +82,29 @@ help: # default rule prints help information
 # build "all" base objects; redirect (DEFAULT RULE)
 all: $(BASEOBJECTS)
 
-# remove build directory and contents; recursive while DEPTH > 0
+# remove build directory and files
 clean:
 	@$(RM) $(BUILDDIR)
-	@$(foreach DIR,$(INCLUDES),if test $(DEPTH) -gt 0; then \
-		make clean -C $(DIR) DEPTH=$$(($(DEPTH) - 1)); fi; )
 
 # build test coverage; redirect
 coverage: $(COVERAGE)
 
-# build includes; redirect and recursive
-includes: $(LIBRARY)
-	@git submodule update --init --recursive
-	@$(foreach INC,$(INCLUDES),make includes -C $(INC) --no-print-directory; )
+# remove all build directories and files; recursive
+deepclean: clean
+	@$(foreach DIR,$(INCLUDES),make deepclean -C $(DIR); )
 
 # build library file; redirect
 library: $(LIBRARY)
+
+# build all libraries (incl. submodules); redirect
+libraries: $(LIBRARY) $(LIBRARIES)
 
 # build local html coverage report from coverage data
 report: $(COVERAGE)
 	@genhtml $(COVERAGE) --output-directory $(BUILDDIR)
 
 # build and run all tests
-test: $(TESTOBJECTS) includes
+test: $(TESTOBJECTS) $(LIBRARY) $(LIBRARIES)
 	@if test -d $(BUILDDIR); then find $(BUILDDIR) -name *.fail -delete; fi
 	@echo -e "\n[========] Found $(words $(TESTNAMES)) tests" \
 		"for $(words $(TESTCOMPS)) components in \"$(MODULE)\""
@@ -112,7 +117,7 @@ test: $(TESTOBJECTS) includes
 	 exit $$FAILS
 
 # build and run specific tests matching pattern
-test-%:
+test-%: $(LIBRARY) $(LIBRARIES)
 	@echo -e "\n[--------] Performing $(words $(filter $*%,$(TESTNAMES)))" \
 		"tests matching \"$*\""
 	@$(foreach TEST,\
@@ -125,6 +130,10 @@ test-%:
 $(LIBRARY): $(BASEOBJECTS)
 	@$(MKDIR) $(dir $@)
 	ar rcs $(LIBRARY) $(BASEOBJECTS)
+
+$(LIBRARIES): %:
+	@git submodule update --init --recursive
+	@make library -C $(INCLUDEDIR)/$(word 2,$(subst /, ,$@))
 
 # build coverage file, within out directory
 $(COVERAGE):
@@ -140,7 +149,7 @@ $(COVERAGE):
 		make coverage -C $(INC) DEPTH=$$(($(DEPTH) - 1)); fi; )
 
 # build binaries, within build directory, from associated objects
-$(BUILDDIR)/%: $(BUILDDIR)/%.o includes
+$(BUILDDIR)/%: $(BUILDDIR)/%.o $(LIBRARY) $(LIBRARIES)
 	@$(MKDIR) $(dir $@)
 	$(CC) $< -o $@ $(LDFLAGS)
 
