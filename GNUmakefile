@@ -1,8 +1,6 @@
 ##
 # GNUmakefile - C/C++ GNU makefile
-#
 # Copyright 2021-2022 Adequate Systems, LLC. All Rights Reserved.
-# For license information, please refer to LICENSE.md
 #
 
 DEPTH:= 0
@@ -51,18 +49,21 @@ INCLUDEDIRS:= $(SOURCEDIR) $(addsuffix /$(SOURCEDIR),$(INCLUDES))
 LIBRARYDIRS:= $(BUILDDIR) $(addsuffix /$(BUILDDIR),$(INCLUDES))
 LIBRARIES:= $(join $(INCLUDES),\
 	$(patsubst $(INCLUDEDIR)/%,/$(BUILDDIR)/lib%.a,$(INCLUDES)))
+NVINCLUDEDIR:= /usr/local/cuda/include
 
 # compiler macros
 LFLAGS:= -l$(MODULE) $(patsubst $(INCLUDEDIR)/%,-l%,$(INCLUDES))
 LDFLAGS:= $(addprefix -L,$(LIBRARYDIRS)) -Wl,-\( $(LFLAGS) -Wl,-\) -pthread
 CCFLAGS:= -Werror -Wall -Wextra $(addprefix -I,$(INCLUDEDIRS))
+NVFLAGS:= -Werror all-warnings $(addprefix -I,$(INCLUDEDIRS) $(NVINCLUDEDIR))
+NVCC:= /usr/local/cuda/bin/nvcc $(CFLAGS)
 CC:= gcc $(CFLAGS) # CFLAGS is reserved for additional input
 
 ## ^^ END CONFIGURATION ^^
 ##########################
 
 .SUFFIXES: # disable rules predefined by MAKE
-.PHONY: help all clean coverage deepclean library libraries report test help
+.PHONY: help all clean coverage cuda deepclean library libraries report test
 
 help: # default rule prints help information
 	@echo ""
@@ -71,6 +72,7 @@ help: # default rule prints help information
 	@echo "   make all           build all object files"
 	@echo "   make clean         removes build directory and files"
 	@echo "   make coverage      build test coverage file"
+	@echo "   make cuda          build cuda compatible object files"
 	@echo "   make deepclean     removes (all) build directories and files"
 	@echo "   make library       build a library file containing all objects"
 	@echo "   make libraries     build all library files required for binaries"
@@ -88,6 +90,10 @@ clean:
 
 # build test coverage; redirect
 coverage: $(COVERAGE)
+
+# build CUDA compatible object files; recursive
+cuda:
+	@make all "CC=$(NVCC)" "CCFLAGS=$(NVFLAGS)" --no-print-directory
 
 # remove all build directories and files; recursive
 deepclean: clean
