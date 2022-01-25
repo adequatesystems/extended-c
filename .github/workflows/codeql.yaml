@@ -1,8 +1,6 @@
 ##
 # codeql.yaml - CodeQL workflow for static code analysis.
-#
 # Copyright 2021-2022 Adequate Systems, LLC. All Rights Reserved.
-# For license information, please refer to ../../LICENSE.md
 #
 
 name: CodeQL
