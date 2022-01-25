@@ -9,7 +9,7 @@ var extinet_8h =
     [ "aton", "extinet_8h.html#a83f89498e47bdae6c53c5d4d9d179f39", null ],
     [ "get_sock_ip", "extinet_8h.html#ad1269fe4cd924e2c81caa02c8ca9defe", null ],
     [ "http_get", "extinet_8h.html#aa3ea9e9babbb452ec85ed3c9141f3cdf", null ],
-    [ "ntoa", "extinet_8h.html#a6f8141d2d10d707744a9871a474d23be", null ],
+    [ "ntoa", "extinet_8h.html#aed10a844b95f4babeb96cc3c44b1aaae", null ],
     [ "phostinfo", "extinet_8h.html#a6cfc5a0abe03112424c00338ce6cd7fc", null ],
     [ "sock_cleanup", "extinet_8h.html#a37d1c7235284fb0b84cbad6086445920", null ],
     [ "sock_close", "extinet_8h.html#a7c085f394f6184ba42175a676b475c7f", null ],
