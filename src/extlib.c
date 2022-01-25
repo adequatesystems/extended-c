@@ -25,13 +25,7 @@ volatile word32 Lseed4 = 123456789;
 /* 64-bit guard */
 #ifdef HAS_64BIT
 
-   /**
-    * Place a 64-bit unsigned @a value in @a buff.
-    * @param buff Pointer to buffer to place value
-    * @param value Pointer to 64-bit value
-    * @note Available ONLY for testing purposes.
-    * Use put64() instead.
-   */
+   /* Place a 64-bit unsigned @a value in @a buff. */
    void put64_x64(void *buff, void *value)
    {
       *((word64 *) buff) = *((word64 *) value);
@@ -40,13 +34,7 @@ volatile word32 Lseed4 = 123456789;
 #endif  /* end WORD64_MAX */
 
 
-/**
- * Place a 64-bit unsigned @a value in @a buff.
- * @param buff Pointer to buffer to place value
- * @param value Pointer to 64-bit value
- * @note Available ONLY for testing purposes.
- * Use put64() instead.
-*/
+/* Place a 64-bit unsigned @a value in @a buff. */
 void put64_x86(void *buff, void *value)
 {
    ((word32 *) buff)[0] = ((word32 *) value)[0];

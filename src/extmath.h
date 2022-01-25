@@ -19,26 +19,26 @@ extern "C" {
 
 /* x64 guard */
 #ifdef HAS_64BIT
-   int iszero_x64(void *buff, int len); /**< @private */
-   int add64_x64(void *ax, void *bx, void *cx); /**< @private */
-   int sub64_x64(void *ax, void *bx, void *cx); /**< @private */
-   void negate64_x64(void *ax); /**< @private */
-   int cmp64_x64(void *ax, void *bx); /**< @private */
-   int cmp256_x64(void *ax, void *bx); /**< @private */
-   void shiftr64_x64(void *ax); /**< @private */
-   int mult64_x64(void *ax, void *bx, void *cx); /**< @private */
+   int iszero_x64(void *buff, int len);
+   int add64_x64(void *ax, void *bx, void *cx);
+   int sub64_x64(void *ax, void *bx, void *cx);
+   void negate64_x64(void *ax);
+   int cmp64_x64(void *ax, void *bx);
+   int cmp256_x64(void *ax, void *bx);
+   void shiftr64_x64(void *ax);
+   int mult64_x64(void *ax, void *bx, void *cx);
 
 /* end x64 guard */
 #endif
 
-int iszero_x86(void *buff, int len); /**< @private */
-int add64_x86(void *ax, void *bx, void *cx); /**< @private */
-int sub64_x86(void *ax, void *bx, void *cx); /**< @private */
-void negate64_x86(void *ax); /**< @private */
-int cmp64_x86(void *ax, void *bx); /**< @private */
-int cmp256_x86(void *ax, void *bx); /**< @private */
-void shiftr64_x86(void *ax); /**< @private */
-int mult64_x86(void *ax, void *bx, void *cx); /**< @private */
+int iszero_x86(void *buff, int len);
+int add64_x86(void *ax, void *bx, void *cx);
+int sub64_x86(void *ax, void *bx, void *cx);
+void negate64_x86(void *ax);
+int cmp64_x86(void *ax, void *bx);
+int cmp256_x86(void *ax, void *bx);
+void shiftr64_x86(void *ax);
+int mult64_x86(void *ax, void *bx, void *cx);
 
 int iszero(void *buff, int len);
 int add64(void *ax, void *bx, void *cx);

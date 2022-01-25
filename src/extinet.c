@@ -34,6 +34,9 @@
 
 /**
  * Perform a http(s) GET request to a file, fname.
+ * @param url Pointer to character array of web URL to download
+ * @param fname Pointer to character array of filename to save download as
+ * @param timeout Time, in seconds, to wait for download
  * @returns 0 on success, else error code.
 */
 int http_get(char *url, char *fname, int timeout)
@@ -201,6 +204,8 @@ int phostinfo(void)
 /**
  * Convert IPv4 from 32-bit binary form to numbers-and-dots notation.
  * Place in `char *a` if not `NULL`, else use static char *cp.
+ * @param n Pointer to 32-bit value to convert
+ * @param a Pointer to character array to place conversion result
  * @returns Character pointer to converted result.
 */
 char *ntoa(void *n, char *a)
@@ -216,9 +221,11 @@ char *ntoa(void *n, char *a)
 }  /* end ntoa() */
 
 /**
- * Perform an ip address lookup on the network address string *a.
+ * Convert a network ip address to a 32-bit binary form value by
+ * performing an ip address lookup on a network address string.
  * Can use a hostname or numbers-and-dots notation IPv4.
- * @returns A network ip on success, or 0 on error.
+ * @param a Pointer to network ip address character array to convert
+ * @returns An IPv4 in 32-bit binary form on success, or 0 on error.
 */
 unsigned long aton(char *a)
 {
@@ -237,6 +244,7 @@ unsigned long aton(char *a)
 
 /**
  * Obtain an ip address from a valid SOCKET descriptor.
+ * @param sd Socket descriptor to obtain ip value from
  * @returns A network ip on success, or INVALID_SOCKET on error.
  * Obtain underlying error code with `sock_errno`.
 */
@@ -302,6 +310,7 @@ int sock_cleanup(void)
 
 /**
  * Set socket descriptor to non-blocking I/O.
+ * @param sd Socket descriptor to set non-blocking I/O
  * @returns 0 on success, or SOCKET_ERROR on error.
  * Obtain underlying error code with `sock_errno`.
 */
@@ -323,6 +332,7 @@ int sock_set_nonblock(SOCKET sd)
 
 /**
  * Set socket descriptor to blocking I/O.
+ * @param sd Socket descriptor to set blocking I/O
  * @returns 0 on success, or SOCKET_ERROR on error.
  * Obtain underlying error code with `sock_errno`.
 */
@@ -344,7 +354,7 @@ int sock_set_blocking(SOCKET sd)
 
 /**
  * Close an open socket. Does NOT clear socket descriptor value.
- * @param sd socket descriptor
+ * @param sd socket descriptor to close
 */
 int sock_close(SOCKET sd)
 {
@@ -363,6 +373,9 @@ int sock_close(SOCKET sd)
 
 /**
  * Initialize an outgoing connection with a network IPv4 address.
+ * @param ip 32-bit binary form IPv4 value
+ * @param port 16-bit binary form port value
+ * @param timeout time, in seconds, to wait for connection
  * @returns Non-blocking SOCKET on success, or INVALID_SOCKET on error.
  * @note sock_startup() MUST be called to enable socket support.
  * @see sock_connect_addr()
@@ -406,6 +419,9 @@ SOCKET sock_connect_ip(unsigned long ip, unsigned short port, double timeout)
 
 /**
  * Initialize an outgoing connection with a network host address.
+ * @param addr Pointer to character array of network host address
+ * @param port 16-bit binary form port value
+ * @param timeout time, in seconds, to wait for connection
  * @returns Non-blocking SOCKET on success, or INVALID_SOCKET on error.
  * @note sock_startup() MUST be called to enable socket support.
  * @see sock_connect_ip()
@@ -420,6 +436,11 @@ SOCKET sock_connect_addr(char *addr, unsigned short port, double timeout)
 /**
  * Receive a packet of data from a socket descriptor into `pkt[len]`.
  * Timeout is ignored if socket is set to blocking.
+ * @param sd Socket descriptor to receive packet from
+ * @param pkt Pointer to place received data
+ * @param len Byte length of data to receive
+ * @param flags Flags to pass to recv()
+ * @param timeout time, in seconds, to wait for packet
  * @retval (0) for success
  * @retval (1) for end communication
  * @retval (-1) for timeout
@@ -445,6 +466,11 @@ int sock_recv(SOCKET sd, void *pkt, int len, int flags, double timeout)
 /**
  * Send a packet of data on SOCKET sd from pkt[len].
  * Timeout is ignored if socket is set to blocking.
+ * @param sd Socket descriptor to send packet on
+ * @param pkt Pointer to data to send
+ * @param len Byte length of data to send
+ * @param flags Flags to pass to send()
+ * @param timeout time, in seconds, to wait for send
  * @retval (0) for success
  * @retval (1) for end communication
  * @retval (-1) for timeout

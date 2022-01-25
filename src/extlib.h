@@ -25,11 +25,11 @@ extern "C" {
 
 /* 64-bit guard */
 #ifdef HAS_64BIT
-   void put64_x64(void *buff, void *val); /**< @private */
+   void put64_x64(void *buff, void *val);
 
 #endif
 
-void put64_x86(void *buff, void *val); /**< @private */
+void put64_x86(void *buff, void *val);
 
 word16 get16(void *buff);
 void put16(void *buff, word16 val);
