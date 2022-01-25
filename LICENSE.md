@@ -1,6 +1,3 @@
-\page License
-\tableofcontents
-
 # MOCHIMO CRYPTOCURRENCY ENGINE LICENSE AGREEMENT VERSION 1.0
 
 ## Plain English Preface
