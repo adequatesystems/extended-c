@@ -94,31 +94,41 @@ Extended C/C++ Library<br  />
  <a href="LICENSE.md"><img src="https://img.shields.io/badge/_License-MPL_2.0_Derivative-%23.svg?logoColor=lightgreen&amp;logo=open%20source%20initiative&amp;labelColor=2d3339&amp;color=0059ff" alt="MPL 2.0 Derivative" style="pointer-events: none;" class="inline"/></a> <a href="https://github.com/adequatesystems/extended-c/releases"><img src="https://img.shields.io/github/release/adequatesystems/extended-c.svg?logo=semantic-release&amp;labelColor=2d3339&amp;label=Release&amp;color=%230059ff" alt="release version" style="pointer-events: none;" class="inline"/></a> </h1>
 <p >Originally being derived from the Mochimo Codebase, this repository contains core C/C++ support intended for use in ongoing projects at Adequate Systems, LLC.</p>
 <h2><a class="anchor" id="autotoc_md30"></a>
-Documentation</h2>
-<p >The <a href="https://adequatesystems.github.io/extended-c/">documentation</a> contains the latest revision of the various support available in this Library.</p>
-<h2><a class="anchor" id="autotoc_md31"></a>
 Usage</h2>
-<p >The Extended C/C++ Library was designed to be included in other projects as a <a href="https://git-scm.com/book/en/v2/Git-Tools-Submodules">Git Submodule</a>. For C projects utilizing a similar structure and makefile, it is recommended to add submodules to the <code>include/</code> directory of "superproject".</p>
-<p ><em>If the "superproject" DOES NOT utilize a similar structure and makefile, you may have to include additional commands in your build process do "activate" submodule files.</em></p>
+<p >For specific usage information, see the <a href="https://adequatesystems.github.io/extended-c/">documentation</a>.</p>
+<p >Extended-C library headers:</p><ul>
+<li><code>"extassert.h"</code> - assertion support</li>
+<li><code>"extinet.h"</code> - internet support</li>
+<li><code>"extint.h"</code> - integer support</li>
+<li><code>"extio.h"</code> - input/output support</li>
+<li><code>"extlib.h"</code> - general utilities support</li>
+<li><code>"extmath.h"</code> - math support (incl. 64-bit math for x86 systems)</li>
+<li><code>"extos.h"</code> - OS identification and system header support</li>
+<li><code>"extprint.h"</code> - printing and logging support</li>
+<li><code>"extstring.h"</code> - string manipulation support</li>
+<li><code>"extthread.h"</code> - thread and mutex support</li>
+<li><code>"exttime.h"</code> - subsecond time support</li>
+</ul>
+<h2><a class="anchor" id="autotoc_md31"></a>
+Module Installation</h2>
+<p >The Extended C/C++ Library was designed to be included in other projects as a <a href="https://git-scm.com/book/en/v2/Git-Tools-Submodules">Git Submodule</a>. For C projects utilizing a similar structure and makefile, it is recommended to add submodules to the <code>include/</code> directory of the target project.</p>
 <h3><a class="anchor" id="autotoc_md32"></a>
 Add Extended C as Submodule to project-repo</h3>
-<div class="fragment"><div class="line">cd project-repo</div>
-<div class="line">git submodule add https://github.com/adequatesystems/extended-c include/extended-c</div>
+<div class="fragment"><div class="line">git submodule add https://github.com/adequatesystems/extended-c include/extended-c</div>
 <div class="line">git commit -m &quot;include extended-c submodule&quot;</div>
 </div><!-- fragment --><h3><a class="anchor" id="autotoc_md33"></a>
 Update Extended C Submodule to latest revision</h3>
-<div class="fragment"><div class="line">cd project-repo/include/extended-c</div>
-<div class="line">git pull &amp;&amp; git commit -m &quot;update extended-c submodule to latest revision&quot;</div>
+<div class="fragment"><div class="line">git -C include/extended-c pull origin main</div>
+<div class="line">git commit -m &quot;update extended-c to latest revision&quot;</div>
 </div><!-- fragment --><h3><a class="anchor" id="autotoc_md34"></a>
 Change Extended C Submodule to specific hash or version tag</h3>
-<div class="fragment"><div class="line">cd project-repo/include/extended-c</div>
-<div class="line">git fetch</div>
-<div class="line">git checkout &lt;hash or version tag&gt;</div>
+<div class="fragment"><div class="line">git -C include/extended-c fetch</div>
+<div class="line">git -C include/extended-c checkout &lt;hash or version tag&gt;</div>
 <div class="line">git commit -m &quot;checkout extended-c submodule to &lt;hash or version tag&gt;&quot;</div>
 </div><!-- fragment --><h2><a class="anchor" id="autotoc_md35"></a>
 License</h2>
-<p >This repository is licensed for use under an MPL 2.0 derivative Open Source license. <br  />
- The community is free to develop and change the code with the caveat that any changes must be for the benefit of the Mochimo cryptocurrency network (with a number of exclusions). <br  />
+<p >This repository is licensed for use under an MPL 2.0 derivative Open Source license.<br  />
+ The community is free to develop and change the code with the caveat that any changes must be for the benefit of the Mochimo cryptocurrency network (with a number of exclusions).<br  />
  Please read the <a class="el" href="md__l_i_c_e_n_s_e.html">LICENSE</a> for more details on limitations and restrictions. </p>
 </div></div><!-- PageDoc -->
 </div><!-- contents -->
