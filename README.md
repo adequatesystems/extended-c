@@ -17,36 +17,45 @@
 
 Originally being derived from the Mochimo Codebase, this repository contains core C/C++ support intended for use in ongoing projects at Adequate Systems, LLC.
 
-## Documentation
-The [documentation](https://adequatesystems.github.io/extended-c/) contains the latest revision of the various support available in this Library.
-
 ## Usage
-The Extended C/C++ Library was designed to be included in other projects as a [Git Submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules). For C projects utilizing a similar structure and makefile, it is recommended to add submodules to the `include/` directory of "superproject".
+For specific usage information, see the [documentation](https://adequatesystems.github.io/extended-c/).
 
-*If the "superproject" DOES NOT utilize a similar structure and makefile, you may have to include additional commands in your build process do "activate" submodule files.*
+Extended-C library headers:
+* `"extassert.h"` - assertion support
+* `"extinet.h"` - internet support
+* `"extint.h"` - integer support
+* `"extio.h"` - input/output support
+* `"extlib.h"` - general utilities support
+* `"extmath.h"` - math support (incl. 64-bit math for x86 systems)
+* `"extos.h"` - OS identification and system header support
+* `"extprint.h"` - printing and logging support
+* `"extstring.h"` - string manipulation support
+* `"extthread.h"` - thread and mutex support
+* `"exttime.h"` - subsecond time support
+
+## Module Installation
+The Extended C/C++ Library was designed to be included in other projects as a [Git Submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules). For C projects utilizing a similar structure and makefile, it is recommended to add submodules to the `include/` directory of the target project.
 
 ### Add Extended C as Submodule to project-repo
 ```sh
-cd project-repo
 git submodule add https://github.com/adequatesystems/extended-c include/extended-c
 git commit -m "include extended-c submodule"
 ```
 
 ### Update Extended C Submodule to latest revision
 ```sh
-cd project-repo/include/extended-c
-git pull && git commit -m "update extended-c submodule to latest revision"
+git -C include/extended-c pull origin main
+git commit -m "update extended-c to latest revision"
 ```
 
 ### Change Extended C Submodule to specific hash or version tag
 ```sh
-cd project-repo/include/extended-c
-git fetch
-git checkout <hash or version tag>
+git -C include/extended-c fetch
+git -C include/extended-c checkout <hash or version tag>
 git commit -m "checkout extended-c submodule to <hash or version tag>"
 ```
 
 ## License
-This repository is licensed for use under an MPL 2.0 derivative Open Source license.  
-The community is free to develop and change the code with the caveat that any changes must be for the benefit of the Mochimo cryptocurrency network (with a number of exclusions).  
+This repository is licensed for use under an MPL 2.0 derivative Open Source license.<br/>
+The community is free to develop and change the code with the caveat that any changes must be for the benefit of the Mochimo cryptocurrency network (with a number of exclusions).<br/>
 Please read the [LICENSE](LICENSE.md) for more details on limitations and restrictions.
