@@ -9,10 +9,10 @@
    <a href="https://codecov.io/gh/adequatesystems/extended-c">
       <img src="https://codecov.io/gh/adequatesystems/extended-c/graph/badge.svg" alt="coverage status"></a>
    <br/>
+   <a href="https://github.com/adequatesystems/extended-c/tags">
+      <img src="https://img.shields.io/github/v/tag/adequatesystems/extended-c?color=0059ff&label=Latest&labelColor=2d3339&logo=github&logoColor=lightgray" alt="GitHub tag (latest by date)"></a>
    <a href="LICENSE.md">
       <img src="https://img.shields.io/badge/_License-MPL_2.0_Derivative-%23.svg?logoColor=lightgreen&logo=open%20source%20initiative&labelColor=2d3339&color=0059ff" alt="MPL 2.0 Derivative" /></a>
-   <a href="https://github.com/adequatesystems/extended-c/releases">
-      <img src="https://img.shields.io/github/release/adequatesystems/extended-c.svg?logo=semantic-release&labelColor=2d3339&label=Release&color=%230059ff" alt="release version"></a>
 </h1>
 
 Originally being derived from the Mochimo Codebase, this repository contains core C/C++ support intended for use in ongoing projects at Adequate Systems, LLC.
