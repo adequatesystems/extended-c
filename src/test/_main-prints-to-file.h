@@ -1,6 +1,6 @@
 
 #include <errno.h>
-#include "../extassert.h"
+#include "_assert.h"
 #include "../extio.h"
 
 int main()
