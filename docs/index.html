@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.3"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>C/C++ Project Name: C/C++ Project Name</title>
+<title>EXTENDED-C: EXTENDED-C</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -27,9 +27,9 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="logo.png"/></td>
   <td id="projectalign">
-   <div id="projectname">C/C++ Project Name<span id="projectnumber">&#160;v1.0.0</span>
+   <div id="projectname">EXTENDED-C<span id="projectnumber">&#160;v1.1.0</span>
    </div>
-   <div id="projectbrief">C/C++ Project Description</div>
+   <div id="projectbrief">C/C++ Documentation</div>
   </td>
  </tr>
  </tbody>
@@ -85,15 +85,15 @@ $(document).ready(function(){initNavTree('index.html',''); initResizable(); });
 </div>
 
 <div><div class="header">
-  <div class="headertitle"><div class="title">C/C++ Project Name </div></div>
+  <div class="headertitle"><div class="title">EXTENDED-C </div></div>
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><p ><a class="anchor" id="md_README"></a> </p><h1 align="center"><a href="http://adequate.biz"><img src="https://raw.githubusercontent.com/adequatesystems/.github/main/media/adqlogo_banner.svg" alt="Adequate Systems" style="pointer-events: none;" class="inline"/></a> <br  />
 Extended C/C++ Library<br  />
  <a href="https://github.com/adequatesystems/extended-c/actions/workflows/tests.yaml"><img src="https://github.com/adequatesystems/extended-c/actions/workflows/tests.yaml/badge.svg" alt="tests status" style="pointer-events: none;" class="inline"/></a> <a href="https://github.com/adequatesystems/extended-c/actions/workflows/codeql.yaml"><img src="https://github.com/adequatesystems/extended-c/actions/workflows/codeql.yaml/badge.svg" alt="codeql status" style="pointer-events: none;" class="inline"/></a> <a href="https://codecov.io/gh/adequatesystems/extended-c"><img src="https://codecov.io/gh/adequatesystems/extended-c/graph/badge.svg" alt="coverage status" style="pointer-events: none;" class="inline"/></a> <br  />
- <a href="LICENSE.md"><img src="https://img.shields.io/badge/_License-MPL_2.0_Derivative-%23.svg?logoColor=lightgreen&amp;logo=open%20source%20initiative&amp;labelColor=2d3339&amp;color=0059ff" alt="MPL 2.0 Derivative" style="pointer-events: none;" class="inline"/></a> <a href="https://github.com/adequatesystems/extended-c/releases"><img src="https://img.shields.io/github/release/adequatesystems/extended-c.svg?logo=semantic-release&amp;labelColor=2d3339&amp;label=Release&amp;color=%230059ff" alt="release version" style="pointer-events: none;" class="inline"/></a> </h1>
+ <a href="https://github.com/adequatesystems/extended-c/tags"><img src="https://img.shields.io/github/v/tag/adequatesystems/extended-c?color=0059ff&amp;label=Latest&amp;labelColor=2d3339&amp;logo=github&amp;logoColor=lightgray" alt="GitHub tag (latest by date)" class="inline"/></a> <a href="LICENSE.md"><img src="https://img.shields.io/badge/_License-MPL_2.0_Derivative-%23.svg?logoColor=lightgreen&amp;logo=open%20source%20initiative&amp;labelColor=2d3339&amp;color=0059ff" alt="MPL 2.0 Derivative" style="pointer-events: none;" class="inline"/></a> </h1>
 <p >Originally being derived from the Mochimo Codebase, this repository contains core C/C++ support intended for use in ongoing projects at Adequate Systems, LLC.</p>
-<h2><a class="anchor" id="autotoc_md30"></a>
+<h2><a class="anchor" id="autotoc_md34"></a>
 Usage</h2>
 <p >For specific usage information, see the <a href="https://adequatesystems.github.io/extended-c/">documentation</a>.</p>
 <p >Extended-C library headers:</p><ul>
@@ -109,23 +109,23 @@ Usage</h2>
 <li><code>"extthread.h"</code> - thread and mutex support</li>
 <li><code>"exttime.h"</code> - subsecond time support</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md31"></a>
+<h2><a class="anchor" id="autotoc_md35"></a>
 Module Installation</h2>
 <p >The Extended C/C++ Library was designed to be included in other projects as a <a href="https://git-scm.com/book/en/v2/Git-Tools-Submodules">Git Submodule</a>. For C projects utilizing a similar structure and makefile, it is recommended to add submodules to the <code>include/</code> directory of the target project.</p>
-<h3><a class="anchor" id="autotoc_md32"></a>
+<h3><a class="anchor" id="autotoc_md36"></a>
 Add Extended C as Submodule to project-repo</h3>
 <div class="fragment"><div class="line">git submodule add https://github.com/adequatesystems/extended-c include/extended-c</div>
 <div class="line">git commit -m &quot;include extended-c submodule&quot;</div>
-</div><!-- fragment --><h3><a class="anchor" id="autotoc_md33"></a>
+</div><!-- fragment --><h3><a class="anchor" id="autotoc_md37"></a>
 Update Extended C Submodule to latest revision</h3>
 <div class="fragment"><div class="line">git -C include/extended-c pull origin main</div>
 <div class="line">git commit -m &quot;update extended-c to latest revision&quot;</div>
-</div><!-- fragment --><h3><a class="anchor" id="autotoc_md34"></a>
+</div><!-- fragment --><h3><a class="anchor" id="autotoc_md38"></a>
 Change Extended C Submodule to specific hash or version tag</h3>
 <div class="fragment"><div class="line">git -C include/extended-c fetch</div>
 <div class="line">git -C include/extended-c checkout &lt;hash or version tag&gt;</div>
 <div class="line">git commit -m &quot;checkout extended-c submodule to &lt;hash or version tag&gt;&quot;</div>
-</div><!-- fragment --><h2><a class="anchor" id="autotoc_md35"></a>
+</div><!-- fragment --><h2><a class="anchor" id="autotoc_md39"></a>
 License</h2>
 <p >This repository is licensed for use under an MPL 2.0 derivative Open Source license.<br  />
  The community is free to develop and change the code with the caveat that any changes must be for the benefit of the Mochimo cryptocurrency network (with a number of exclusions).<br  />

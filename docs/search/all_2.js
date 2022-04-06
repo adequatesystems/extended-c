@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['extassert_2eh_0',['extassert.h',['../extassert_8h.html',1,'']]],
+  ['extended_2dc_0',['EXTENDED-C',['../index.html',1,'']]],
   ['extinet_2eh_1',['extinet.h',['../extinet_8h.html',1,'']]],
   ['extint_2eh_2',['extint.h',['../extint_8h.html',1,'']]],
   ['extio_2eh_3',['extio.h',['../extio_8h.html',1,'']]],
