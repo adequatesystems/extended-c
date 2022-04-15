@@ -6,8 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2022-04-15
+Updated to build-c-1.1.3 for CUDA (revert) changes.
+
 ## [1.1.1] - 2022-04-06
-Updated to build-c-1.1. for CUDA build fixes and docs config adjustments.
+Updated to build-c-1.1.2 for CUDA build fixes and docs config adjustments.
 
 ## [1.1.0] - 2022-04-06
 Updated `build-c` utilities to `build-c-1.1.1`.
@@ -15,7 +18,8 @@ Updated `build-c` utilities to `build-c-1.1.1`.
 ## [1.0.0] - 2022-01-26
 Initial repository release.
 
-[Unreleased]: https://github.com/adequatesystems/extended-c/compare/extended-c-1.1.1...HEAD
-[1.1.1]: https://github.com/adequatesystems/extended-c/compare/extended-c-1.1.0...extended-c-1.1.1
-[1.1.0]: https://github.com/adequatesystems/extended-c/compare/extended-c-1.0.0...extended-c-1.1.0
-[1.0.0]: https://github.com/adequatesystems/extended-c/releases/tag/extended-c-1.0.0
+[Unreleased]: https://github.com/adequatesystems/extended-c/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/adequatesystems/extended-c/compare/v1.1.1...v1.1.2
+[1.1.1]: https://github.com/adequatesystems/extended-c/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/adequatesystems/extended-c/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/adequatesystems/extended-c/releases/tag/v1.0.0
