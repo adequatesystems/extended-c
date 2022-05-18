@@ -172,36 +172,6 @@ int http_get(char *url, char *fname, int timeout)
 }  /* end http_get() */
 
 /**
- * Print local host info on stdout.
- * @returns 0 on succesful operation, or (-1) on error.
-*/
-int phostinfo(void)
-{
-   int result, i;
-   char hostname[100], *addrstr;
-   struct hostent *host = NULL;
-
-   /* get local machine name and IP address */
-   result = gethostname(hostname, sizeof(hostname));
-   if (result == 0) host = gethostbyname(hostname);
-   if (host) {
-      printf("Local Machine Info\33[0K\n");
-      printf("  Machine name: %s\33[0K\n", host->h_name ? host->h_name : "unknown");
-      for (i = 0; host->h_aliases[i]; i++) {
-         printf("     alt. name: %s\33[0K\n", host->h_aliases[i]);
-      }
-      for (i = 0; host->h_addr_list[i]; i++) {
-         addrstr = inet_ntoa(*((struct in_addr *) (host->h_addr_list[i])));
-         printf("  %s address: %s\33[0K\n",
-            host->h_addrtype == AF_INET ? "IPv4" : "Unknown", addrstr);
-      }
-   }
-
-   printf("\33[2K\n");
-   return result;
-}  /* end phostinfo() */
-
-/**
  * Convert IPv4 from 32-bit binary form to numbers-and-dots notation.
  * Place in `char *a` if not `NULL`, else use static char *cp.
  * @param n Pointer to 32-bit value to convert
@@ -493,6 +463,31 @@ int sock_send(SOCKET sd, void *pkt, int len, int flags, double timeout)
    return 0;  /* sent packet */
 }  /* end sock_send() */
 
+/**
+ * Get the IPv4 address of the host.
+ * @returns 0 on succesful operation, else non-zero on error.
+ * @note Requires sock_startup() to be previously called.
+*/
+int gethostip(char *name, int namelen)
+{
+   SOCKET sd;
+   struct sockaddr_in addrname;
+   socklen_t addrnamelen = sizeof(addrname);
+
+   /* connect to cloudflare dns server 1.1.1.1:53 */
+   sd = sock_connect_addr("1.1.1.1", 53, 3);
+   if (sd < 0) return SOCKET_ERROR;
+
+   /* get socket name for interpretation */
+   if (getsockname(sd, (struct sockaddr *) &addrname, &addrnamelen) == 0) {
+      if (inet_ntop(AF_INET, &addrname.sin_addr, name, namelen) != NULL) {
+         return sock_close(sd);
+      }
+   }
+
+   sock_close(sd);
+   return SOCKET_ERROR;
+}  /* end phostinfo() */
 
 /* end include guard */
 #endif

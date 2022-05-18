@@ -91,7 +91,6 @@ extern "C" {
 volatile int Sockinuse;
 
 int http_get(char *url, char *fname, int timeout);
-int phostinfo(void);
 char *ntoa(void *n, char *a);
 unsigned long aton(char *a);
 unsigned long get_sock_ip(SOCKET sd);
@@ -104,6 +103,7 @@ SOCKET sock_connect_ip(unsigned long ip, unsigned short port, double timeout);
 SOCKET sock_connect_addr(char *addr, unsigned short port, double timeout);
 int sock_recv(SOCKET sd, void *pkt, int len, int flags, double timeout);
 int sock_send(SOCKET sd, void *pkt, int len, int flags, double timeout);
+int gethostip(char *name, int namelen);
 
 /* end extern "C" {} for C++ */
 #ifdef __cplusplus
