@@ -17,9 +17,9 @@ var searchData=
   ['sock_5fset_5fblocking_14',['sock_set_blocking',['../extinet_8h.html#a82202afa2652e44fbeb8ad7573932c04',1,'extinet.c']]],
   ['sock_5fset_5fnonblock_15',['sock_set_nonblock',['../extinet_8h.html#aee8822b4cb3693757e2279d9efdd0497',1,'extinet.c']]],
   ['sock_5fstartup_16',['sock_startup',['../extinet_8h.html#a6695161b3d08505700caae09689cb63b',1,'extinet.c']]],
-  ['socket_17',['SOCKET',['../extinet_8h.html#aff55fe551a9992a54ec54621c524d0a4',1,'extinet.h']]],
-  ['socket_5ferror_18',['SOCKET_ERROR',['../extinet_8h.html#a633b0396ff93d336a088412a190a5072',1,'extinet.h']]],
-  ['sockinuse_19',['Sockinuse',['../extinet_8h.html#ac840ed72525552cdd45f123383aa494a',1,'extinet.h']]],
+  ['sock_5fstate_17',['sock_state',['../extinet_8h.html#a94193efb43dd668e3b90f84a83b0ef9e',1,'extinet.c']]],
+  ['socket_18',['SOCKET',['../extinet_8h.html#aff55fe551a9992a54ec54621c524d0a4',1,'extinet.h']]],
+  ['socket_5ferror_19',['SOCKET_ERROR',['../extinet_8h.html#a633b0396ff93d336a088412a190a5072',1,'extinet.h']]],
   ['srand16_20',['srand16',['../extlib_8h.html#a80dbf65a5416fcaed92ffa790a03d3f1',1,'extlib.c']]],
   ['srand16fast_21',['srand16fast',['../extlib_8h.html#a3934135a960daec39a576b10470598fb',1,'extlib.c']]],
   ['sub64_22',['sub64',['../extmath_8h.html#af948e93803ac71e897907e27f2fc2270',1,'extmath.c']]]

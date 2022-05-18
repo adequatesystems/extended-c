@@ -20,5 +20,7 @@ var extthread_8h =
     [ "rwlock_wrunlock", "extthread_8h.html#a2385d05978a4279d45f16a4834c94bfe", null ],
     [ "thread_create", "extthread_8h.html#a6994a8b7e250f3361ffa5779112b8fa1", null ],
     [ "thread_join", "extthread_8h.html#aa33659f4bcba66df1ca84507d0b18a5d", null ],
-    [ "thread_multijoin", "extthread_8h.html#ae0042dcb12af0e44acb70c4691e84e48", null ]
+    [ "thread_join_list", "extthread_8h.html#ab7abb07f5ccf6856ae6ec31941bd39d8", null ],
+    [ "thread_terminate", "extthread_8h.html#a84d9240194f9e800602210b2d375a5c4", null ],
+    [ "thread_terminate_list", "extthread_8h.html#a8e9e16f5093743bd9be17ba55cd8ce26", null ]
 ];

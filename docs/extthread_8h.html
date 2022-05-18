@@ -27,7 +27,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="logo.png"/></td>
   <td id="projectalign">
-   <div id="projectname">EXTENDED-C<span id="projectnumber">&#160;v1.1.1</span>
+   <div id="projectname">EXTENDED-C<span id="projectnumber">&#160;v1.2.0</span>
    </div>
    <div id="projectbrief">C/C++ Documentation</div>
   </td>
@@ -190,9 +190,15 @@ Functions</h2></td></tr>
 <tr class="memitem:aa33659f4bcba66df1ca84507d0b18a5d"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="extthread_8h.html#aa33659f4bcba66df1ca84507d0b18a5d">thread_join</a> (<a class="el" href="extthread_8h.html#ad4462bbe716b8f00edd01825eef3af4a">ThreadId</a> tid)</td></tr>
 <tr class="memdesc:aa33659f4bcba66df1ca84507d0b18a5d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Join with a terminated thread.  <a href="extthread_8h.html#aa33659f4bcba66df1ca84507d0b18a5d">More...</a><br /></td></tr>
 <tr class="separator:aa33659f4bcba66df1ca84507d0b18a5d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae0042dcb12af0e44acb70c4691e84e48"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="extthread_8h.html#ae0042dcb12af0e44acb70c4691e84e48">thread_multijoin</a> (<a class="el" href="extthread_8h.html#ad4462bbe716b8f00edd01825eef3af4a">ThreadId</a> tidlist[], int count)</td></tr>
-<tr class="memdesc:ae0042dcb12af0e44acb70c4691e84e48"><td class="mdescLeft">&#160;</td><td class="mdescRight">Join with a list of terminated threads.  <a href="extthread_8h.html#ae0042dcb12af0e44acb70c4691e84e48">More...</a><br /></td></tr>
-<tr class="separator:ae0042dcb12af0e44acb70c4691e84e48"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab7abb07f5ccf6856ae6ec31941bd39d8"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="extthread_8h.html#ab7abb07f5ccf6856ae6ec31941bd39d8">thread_join_list</a> (<a class="el" href="extthread_8h.html#ad4462bbe716b8f00edd01825eef3af4a">ThreadId</a> tidlist[], int count)</td></tr>
+<tr class="memdesc:ab7abb07f5ccf6856ae6ec31941bd39d8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Join with a list of terminated threads.  <a href="extthread_8h.html#ab7abb07f5ccf6856ae6ec31941bd39d8">More...</a><br /></td></tr>
+<tr class="separator:ab7abb07f5ccf6856ae6ec31941bd39d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a84d9240194f9e800602210b2d375a5c4"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="extthread_8h.html#a84d9240194f9e800602210b2d375a5c4">thread_terminate</a> (<a class="el" href="extthread_8h.html#ad4462bbe716b8f00edd01825eef3af4a">ThreadId</a> tid)</td></tr>
+<tr class="memdesc:a84d9240194f9e800602210b2d375a5c4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a termination request to a thread.  <a href="extthread_8h.html#a84d9240194f9e800602210b2d375a5c4">More...</a><br /></td></tr>
+<tr class="separator:a84d9240194f9e800602210b2d375a5c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8e9e16f5093743bd9be17ba55cd8ce26"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="extthread_8h.html#a8e9e16f5093743bd9be17ba55cd8ce26">thread_terminate_list</a> (<a class="el" href="extthread_8h.html#ad4462bbe716b8f00edd01825eef3af4a">ThreadId</a> tidlist[], int count)</td></tr>
+<tr class="memdesc:a8e9e16f5093743bd9be17ba55cd8ce26"><td class="mdescLeft">&#160;</td><td class="mdescRight">Terminate a list of threads.  <a href="extthread_8h.html#a8e9e16f5093743bd9be17ba55cd8ce26">More...</a><br /></td></tr>
+<tr class="separator:a8e9e16f5093743bd9be17ba55cd8ce26"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="a10ba6c8c4a5e2bcf9f5f5fd41675e122" name="a10ba6c8c4a5e2bcf9f5f5fd41675e122"></a>
@@ -710,14 +716,14 @@ Example usage: </p><div class="fragment"><div class="line"><a class="code hl_typ
 
 </div>
 </div>
-<a id="ae0042dcb12af0e44acb70c4691e84e48" name="ae0042dcb12af0e44acb70c4691e84e48"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae0042dcb12af0e44acb70c4691e84e48">&#9670;&nbsp;</a></span>thread_multijoin()</h2>
+<a id="ab7abb07f5ccf6856ae6ec31941bd39d8" name="ab7abb07f5ccf6856ae6ec31941bd39d8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab7abb07f5ccf6856ae6ec31941bd39d8">&#9670;&nbsp;</a></span>thread_join_list()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">int thread_multijoin </td>
+          <td class="memname">int thread_join_list </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="extthread_8h.html#ad4462bbe716b8f00edd01825eef3af4a">ThreadId</a>&#160;</td>
           <td class="paramname"><em>tidlist</em>[], </td>
@@ -737,13 +743,82 @@ Example usage: </p><div class="fragment"><div class="line"><a class="code hl_typ
 </div><div class="memdoc">
 
 <p>Join with a list of terminated threads. </p>
-<p >Waits for all threads in a list specified by tidlist[count] to terminate and "joins" with them in a sequential manner. If a <a class="el" href="extthread_8h.html#ad4462bbe716b8f00edd01825eef3af4a" title="Thread Identification datatype.">ThreadId</a> within the <em>tidlist</em> evaluates as Zero (0), that <a class="el" href="extthread_8h.html#ad4462bbe716b8f00edd01825eef3af4a" title="Thread Identification datatype.">ThreadId</a> will be skipped. </p><dl class="params"><dt>Parameters</dt><dd>
+<p >Waits for all threads in a list specified by tidlist[count] to terminate and "joins" with them in a sequential manner. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">tidlist</td><td>Pointer to a list of <a class="el" href="extthread_8h.html#ad4462bbe716b8f00edd01825eef3af4a" title="Thread Identification datatype.">ThreadId</a>'s </td></tr>
+    <tr><td class="paramname">count</td><td>Number of threads in list </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>0 on success, else the first error returned by <a class="el" href="extthread_8h.html#aa33659f4bcba66df1ca84507d0b18a5d" title="Join with a terminated thread.">thread_join()</a>. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>0 on success, else the first error which occurred. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>If a <a class="el" href="extthread_8h.html#ad4462bbe716b8f00edd01825eef3af4a" title="Thread Identification datatype.">ThreadId</a> within the <em>tidlist</em> evaluates as Zero (0), that <a class="el" href="extthread_8h.html#ad4462bbe716b8f00edd01825eef3af4a" title="Thread Identification datatype.">ThreadId</a> will be skipped. </dd></dl>
+
+</div>
+</div>
+<a id="a84d9240194f9e800602210b2d375a5c4" name="a84d9240194f9e800602210b2d375a5c4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a84d9240194f9e800602210b2d375a5c4">&#9670;&nbsp;</a></span>thread_terminate()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int thread_terminate </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="extthread_8h.html#ad4462bbe716b8f00edd01825eef3af4a">ThreadId</a>&#160;</td>
+          <td class="paramname"><em>tid</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Send a termination request to a thread. </p>
+<p >Does not wait for termination. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">tid</td><td>A <a class="el" href="extthread_8h.html#ad4462bbe716b8f00edd01825eef3af4a" title="Thread Identification datatype.">ThreadId</a> </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>0 on success, else error number. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>It is not recommended to forcefully terminate threads in running processes, and should instead be reserved for (ungraceful) shutdowns. </dd></dl>
+
+</div>
+</div>
+<a id="a8e9e16f5093743bd9be17ba55cd8ce26" name="a8e9e16f5093743bd9be17ba55cd8ce26"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8e9e16f5093743bd9be17ba55cd8ce26">&#9670;&nbsp;</a></span>thread_terminate_list()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int thread_terminate_list </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="extthread_8h.html#ad4462bbe716b8f00edd01825eef3af4a">ThreadId</a>&#160;</td>
+          <td class="paramname"><em>tidlist</em>[], </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>count</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Terminate a list of threads. </p>
+<p >Sends a termination request to all threads in a list specified by <em>tidlist</em>[count]. Does not wait for termination. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">tidlist</td><td>Pointer to a list of <a class="el" href="extthread_8h.html#ad4462bbe716b8f00edd01825eef3af4a" title="Thread Identification datatype.">ThreadId</a>'s </td></tr>
+    <tr><td class="paramname">count</td><td>Number of threads in list </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>0 on success, else the first error which occurred. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>If a <a class="el" href="extthread_8h.html#ad4462bbe716b8f00edd01825eef3af4a" title="Thread Identification datatype.">ThreadId</a> within the <em>tidlist</em> evaluates as Zero (0), that <a class="el" href="extthread_8h.html#ad4462bbe716b8f00edd01825eef3af4a" title="Thread Identification datatype.">ThreadId</a> will be skipped. </dd></dl>
 
 </div>
 </div>

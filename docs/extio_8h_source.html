@@ -27,7 +27,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="logo.png"/></td>
   <td id="projectalign">
-   <div id="projectname">EXTENDED-C<span id="projectnumber">&#160;v1.1.1</span>
+   <div id="projectname">EXTENDED-C<span id="projectnumber">&#160;v1.2.0</span>
    </div>
    <div id="projectbrief">C/C++ Documentation</div>
   </td>
@@ -96,7 +96,7 @@ $(document).ready(function(){initNavTree('extio_8h_source.html',''); initResizab
 <div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span> </div>
 <div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span><span class="preprocessor">#include &lt;stdio.h&gt;</span></div>
 <div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span> </div>
-<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="comment">/* C/C++ compatible function prototypes for extthread.c */</span></div>
+<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="comment">/* C/C++ compatible function prototypes */</span></div>
 <div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span><span class="preprocessor">#ifdef __cplusplus</span></div>
 <div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="keyword">extern</span> <span class="stringliteral">&quot;C&quot;</span> {</div>
 <div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span><span class="preprocessor">#endif</span></div>
@@ -111,22 +111,21 @@ $(document).ready(function(){initNavTree('extio_8h_source.html',''); initResizab
 <div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span><span class="keywordtype">int</span> <a class="code hl_function" href="extio_8h.html#a0edbe93759ebcdcab70d213006a39d22">snprintf_append</a>(<span class="keywordtype">char</span> *buf, <span class="keywordtype">size_t</span> buflen, <span class="keyword">const</span> <span class="keywordtype">char</span> *fmt, ...);</div>
 <div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span><span class="keywordtype">int</span> <a class="code hl_function" href="extio_8h.html#a934b7f979458743326bdade540161ad0">write_data</a>(<span class="keywordtype">void</span> *buff, <span class="keywordtype">int</span> len, <span class="keywordtype">char</span> *fpath);</div>
 <div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span> </div>
-<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span><span class="comment">/* end extern &quot;C&quot; {} for C++ */</span></div>
-<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span><span class="preprocessor">#ifdef __cplusplus</span></div>
-<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>}</div>
-<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span> </div>
-<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span><span class="comment">/* end include guard */</span></div>
-<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span><span class="preprocessor">#endif</span></div>
-<div class="ttc" id="aextio_8h_html_a0525da59e21475f143bd6cba4f53c785"><div class="ttname"><a href="extio_8h.html#a0525da59e21475f143bd6cba4f53c785">ftouch</a></div><div class="ttdeci">int ftouch(char *fpath)</div><div class="ttdoc">Touch a file.</div><div class="ttdef"><b>Definition:</b> extio.c:130</div></div>
-<div class="ttc" id="aextio_8h_html_a0edbe93759ebcdcab70d213006a39d22"><div class="ttname"><a href="extio_8h.html#a0edbe93759ebcdcab70d213006a39d22">snprintf_append</a></div><div class="ttdeci">int snprintf_append(char *buf, size_t buflen, const char *fmt,...)</div><div class="ttdoc">Append the result of snprintf to buf[buflen].</div><div class="ttdef"><b>Definition:</b> extio.c:214</div></div>
-<div class="ttc" id="aextio_8h_html_a2036c5cc8a73175819e8662a17d2bcec"><div class="ttname"><a href="extio_8h.html#a2036c5cc8a73175819e8662a17d2bcec">fexists</a></div><div class="ttdeci">int fexists(char *fpath)</div><div class="ttdoc">Check if a file exists.</div><div class="ttdef"><b>Definition:</b> extio.c:93</div></div>
-<div class="ttc" id="aextio_8h_html_a5cce49c4b57adbf341a9d9d18c80b26e"><div class="ttname"><a href="extio_8h.html#a5cce49c4b57adbf341a9d9d18c80b26e">mkdir_p</a></div><div class="ttdeci">int mkdir_p(char *dirpath)</div><div class="ttdoc">Create a directory at dirpath (including any parent directories).</div><div class="ttdef"><b>Definition:</b> extio.c:148</div></div>
-<div class="ttc" id="aextio_8h_html_a5d56e6a8efe026b82238cb4dc4c181c8"><div class="ttname"><a href="extio_8h.html#a5d56e6a8efe026b82238cb4dc4c181c8">read_data</a></div><div class="ttdeci">int read_data(void *buff, int len, char *fpath)</div><div class="ttdoc">Read data directly into a buffer.</div><div class="ttdef"><b>Definition:</b> extio.c:186</div></div>
-<div class="ttc" id="aextio_8h_html_a65130e819d9055abe601f53fce684df3"><div class="ttname"><a href="extio_8h.html#a65130e819d9055abe601f53fce684df3">cpu_cores</a></div><div class="ttdeci">int cpu_cores(void)</div><div class="ttdoc">Get the number of logical cores available for use.</div><div class="ttdef"><b>Definition:</b> extio.c:34</div></div>
-<div class="ttc" id="aextio_8h_html_a934b7f979458743326bdade540161ad0"><div class="ttname"><a href="extio_8h.html#a934b7f979458743326bdade540161ad0">write_data</a></div><div class="ttdeci">int write_data(void *buff, int len, char *fpath)</div><div class="ttdoc">Write data from a buffer, directly to file.</div><div class="ttdef"><b>Definition:</b> extio.c:239</div></div>
-<div class="ttc" id="aextio_8h_html_ac215ec7c208fde0fd06495a3e621ae1a"><div class="ttname"><a href="extio_8h.html#ac215ec7c208fde0fd06495a3e621ae1a">fcopy</a></div><div class="ttdeci">int fcopy(char *srcpath, char *dstpath)</div><div class="ttdoc">Copy a file from one location to another.</div><div class="ttdef"><b>Definition:</b> extio.c:61</div></div>
-<div class="ttc" id="aextio_8h_html_af80ad7e9560d9eab015d10dea70b90dd"><div class="ttname"><a href="extio_8h.html#af80ad7e9560d9eab015d10dea70b90dd">fexistsnz</a></div><div class="ttdeci">int fexistsnz(char *fpath)</div><div class="ttdoc">Check if a file exists and contains data.</div><div class="ttdef"><b>Definition:</b> extio.c:110</div></div>
+<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span><span class="preprocessor">#ifdef __cplusplus</span></div>
+<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>}  <span class="comment">/* end extern &quot;C&quot; */</span></div>
+<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span> </div>
+<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span><span class="comment">/* end include guard */</span></div>
+<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span><span class="preprocessor">#endif</span></div>
+<div class="ttc" id="aextio_8h_html_a0525da59e21475f143bd6cba4f53c785"><div class="ttname"><a href="extio_8h.html#a0525da59e21475f143bd6cba4f53c785">ftouch</a></div><div class="ttdeci">int ftouch(char *fpath)</div><div class="ttdoc">Touch a file.</div><div class="ttdef"><b>Definition:</b> extio.c:129</div></div>
+<div class="ttc" id="aextio_8h_html_a0edbe93759ebcdcab70d213006a39d22"><div class="ttname"><a href="extio_8h.html#a0edbe93759ebcdcab70d213006a39d22">snprintf_append</a></div><div class="ttdeci">int snprintf_append(char *buf, size_t buflen, const char *fmt,...)</div><div class="ttdoc">Append the result of snprintf to buf[buflen].</div><div class="ttdef"><b>Definition:</b> extio.c:213</div></div>
+<div class="ttc" id="aextio_8h_html_a2036c5cc8a73175819e8662a17d2bcec"><div class="ttname"><a href="extio_8h.html#a2036c5cc8a73175819e8662a17d2bcec">fexists</a></div><div class="ttdeci">int fexists(char *fpath)</div><div class="ttdoc">Check if a file exists.</div><div class="ttdef"><b>Definition:</b> extio.c:92</div></div>
+<div class="ttc" id="aextio_8h_html_a5cce49c4b57adbf341a9d9d18c80b26e"><div class="ttname"><a href="extio_8h.html#a5cce49c4b57adbf341a9d9d18c80b26e">mkdir_p</a></div><div class="ttdeci">int mkdir_p(char *dirpath)</div><div class="ttdoc">Create a directory at dirpath (including any parent directories).</div><div class="ttdef"><b>Definition:</b> extio.c:147</div></div>
+<div class="ttc" id="aextio_8h_html_a5d56e6a8efe026b82238cb4dc4c181c8"><div class="ttname"><a href="extio_8h.html#a5d56e6a8efe026b82238cb4dc4c181c8">read_data</a></div><div class="ttdeci">int read_data(void *buff, int len, char *fpath)</div><div class="ttdoc">Read data directly into a buffer.</div><div class="ttdef"><b>Definition:</b> extio.c:185</div></div>
+<div class="ttc" id="aextio_8h_html_a65130e819d9055abe601f53fce684df3"><div class="ttname"><a href="extio_8h.html#a65130e819d9055abe601f53fce684df3">cpu_cores</a></div><div class="ttdeci">int cpu_cores(void)</div><div class="ttdoc">Get the number of logical cores available for use.</div><div class="ttdef"><b>Definition:</b> extio.c:33</div></div>
+<div class="ttc" id="aextio_8h_html_a934b7f979458743326bdade540161ad0"><div class="ttname"><a href="extio_8h.html#a934b7f979458743326bdade540161ad0">write_data</a></div><div class="ttdeci">int write_data(void *buff, int len, char *fpath)</div><div class="ttdoc">Write data from a buffer, directly to file.</div><div class="ttdef"><b>Definition:</b> extio.c:238</div></div>
+<div class="ttc" id="aextio_8h_html_ac215ec7c208fde0fd06495a3e621ae1a"><div class="ttname"><a href="extio_8h.html#ac215ec7c208fde0fd06495a3e621ae1a">fcopy</a></div><div class="ttdeci">int fcopy(char *srcpath, char *dstpath)</div><div class="ttdoc">Copy a file from one location to another.</div><div class="ttdef"><b>Definition:</b> extio.c:60</div></div>
+<div class="ttc" id="aextio_8h_html_af80ad7e9560d9eab015d10dea70b90dd"><div class="ttname"><a href="extio_8h.html#af80ad7e9560d9eab015d10dea70b90dd">fexistsnz</a></div><div class="ttdeci">int fexistsnz(char *fpath)</div><div class="ttdoc">Check if a file exists and contains data.</div><div class="ttdef"><b>Definition:</b> extio.c:109</div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
