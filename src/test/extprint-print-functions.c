@@ -43,6 +43,7 @@ int main()
    /* reduce noise and rewind fp */
    set_print_level(PLEVEL_NONE);
    set_output_file("log.tmp", "w");
+   set_output_level(PLEVEL_DEBUG);
    perrno(0, "%s", printable);
    set_output_file(NULL, NULL);
 

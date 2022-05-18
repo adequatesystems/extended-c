@@ -9,6 +9,8 @@ int main()
    time_t start;
    double i, last;
 
+   set_print_level(PLEVEL_DEBUG);
+
    i = 0;
    last = (-1);
    time(&start);
