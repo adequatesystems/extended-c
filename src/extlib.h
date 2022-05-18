@@ -45,9 +45,8 @@ word32 rand16fast(void);
 void shuffle(void *list, size_t size, size_t count);
 void shufflenz(void *list, size_t size, size_t count);
 
-/* end extern "C" {} for C++ */
 #ifdef __cplusplus
-}
+}  /* end extern "C" */
 #endif
 
 /* end include guard */

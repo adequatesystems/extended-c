@@ -12,7 +12,7 @@
 
 #include <math.h>
 
-/* C/C++ compatible function prototypes for extthread.c */
+/* C/C++ compatible function prototypes */
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -51,9 +51,8 @@ int mult64(void *ax, void *bx, void *cx);
 int multi_add(void *ax, void *bx, void *cx, int bytelen);
 int multi_sub(void *ax, void *bx, void *cx, int bytelen);
 
-/* end extern "C" {} for C++ */
 #ifdef __cplusplus
-}
+}  /* end extern "C" */
 #endif
 
 /* end include guard */

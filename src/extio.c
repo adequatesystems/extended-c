@@ -25,7 +25,6 @@
 
 #endif
 
-
 /**
  * Get the number of logical cores available for use.
  * Includes hyper threaded cores.

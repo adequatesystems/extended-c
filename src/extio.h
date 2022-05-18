@@ -13,7 +13,7 @@
 
 #include <stdio.h>
 
-/* C/C++ compatible function prototypes for extthread.c */
+/* C/C++ compatible function prototypes */
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -28,9 +28,8 @@ int read_data(void *buff, int len, char *fpath);
 int snprintf_append(char *buf, size_t buflen, const char *fmt, ...);
 int write_data(void *buff, int len, char *fpath);
 
-/* end extern "C" {} for C++ */
 #ifdef __cplusplus
-}
+}  /* end extern "C" */
 #endif
 
 /* end include guard */

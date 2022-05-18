@@ -12,16 +12,15 @@
 
 #include <string.h>
 
-/* C/C++ compatible function prototypes for extthread.c */
+/* C/C++ compatible function prototypes */
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 void memswap(void *ax, void *bx, size_t count);
 
-/* end extern "C" {} for C++ */
 #ifdef __cplusplus
-}
+}  /* end extern "C" */
 #endif
 
 /* end include guard */

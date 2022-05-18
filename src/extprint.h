@@ -91,8 +91,7 @@
 #define pdebug(...)  \
    print_ext((-1), PLEVEL_DEBUG, __LINE__, __FILE__, __VA_ARGS__)
 
-
-/* C/C++ compatible function prototypes for extthread.c */
+/* C/C++ compatible function prototypes */
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -106,9 +105,8 @@ void print(const char *fmt, ...);
 void psticky(const char *fmt, ...);
 int print_ext(int e, int ll, int line, const char *file, const char *fmt, ...);
 
-/* end extern "C" {} for C++ */
 #ifdef __cplusplus
-}
+}  /* end extern "C" */
 #endif
 
 /* end include guard */

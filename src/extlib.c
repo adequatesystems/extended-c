@@ -14,13 +14,11 @@
 #include "extmath.h"  /* for iszero() in *nz() functions */
 #include "extstring.h"  /* for memory manipulation support */
 
-
 /* Internal state seeds for PRNG's rand16fast() and rand16() */
 volatile word32 Lseed = 1;
 volatile word32 Lseed2 = 1;
 volatile word32 Lseed3 = 362436069;
 volatile word32 Lseed4 = 123456789;
-
 
 /* 64-bit guard */
 #ifdef HAS_64BIT
@@ -32,7 +30,6 @@ volatile word32 Lseed4 = 123456789;
    }
 
 #endif  /* end WORD64_MAX */
-
 
 /* Place a 64-bit unsigned @a value in @a buff. */
 void put64_x86(void *buff, void *value)

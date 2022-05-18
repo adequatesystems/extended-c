@@ -14,7 +14,6 @@
 
 #define MEMSWAPCHUNK 1024
 
-
 /**
  * Swap @a count bytes between pointers @a ax and @a bx.
  * Swap occurs in, at most, 1 kibibyte chunks (defined internally

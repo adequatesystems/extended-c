@@ -14,7 +14,6 @@
 #include "extint.h"
 #include "extlib.h"
 
-
 /* x64 guard */
 #ifdef HAS_64BIT
 

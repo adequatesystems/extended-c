@@ -17,16 +17,14 @@
 #include <string.h>     /* for string support */
 #include <time.h>       /* for timestamp support */
 
-
 /* Initialize default runtime configuration */
-unsigned Nprinterrs;
-unsigned Nprintlogs;
-int Printlevel = PLEVEL_LOG;
-int Outputlevel = PLEVEL_DEBUG;
 Mutex Printlock = MUTEX_INITIALIZER;
 Mutex Outputlock = MUTEX_INITIALIZER;
 FILE *Outputfp;
-
+int Printlevel;
+int Outputlevel;
+unsigned Nprinterrs;
+unsigned Nprintlogs;
 
 /* localtime_r() is not specified by Windows... */
 #ifdef OS_WINDOWS
