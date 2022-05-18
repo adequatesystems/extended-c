@@ -168,7 +168,7 @@ typedef ext_ThreadId ThreadId;
 */
 typedef ext_ThreadRoutine ThreadRoutine;
 
-/* C/C++ compatible function prototypes for extthread.c */
+/* C/C++ compatible function prototypes */
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -185,11 +185,12 @@ int rwlock_wrunlock(RWLock *rwlockp);
 int rwlock_destroy(RWLock *rwlockp);
 int thread_create(ThreadId *tidp, ThreadRoutine fnp, void *argp);
 int thread_join(ThreadId tid);
-int thread_multijoin(ThreadId tidlist[], int count);
+int thread_join_list(ThreadId tidlist[], int count);
+int thread_terminate(ThreadId tid);
+int thread_terminate_list(ThreadId tidlist[], int count);
 
-/* end extern "C" {} for C++ */
 #ifdef __cplusplus
-}
+}  /* end extern "C" */
 #endif
 
 /* end include guard */

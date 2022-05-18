@@ -243,13 +243,16 @@ int thread_create(ThreadId *tidp, ThreadRoutine fnp, void *argp)
 {
 #if OS_WINDOWS
    HANDLE thandle = CreateThread(NULL, 0, fnp, argp, 0, tidp);
-   return thandle == NULL ? GetLastError() : 0;
+   if (thandle == NULL) return GetLastError();
+   CloseHandle(thandle);
+
+   return 0;
 
 #elif defined(_POSIX_THREADS)
    return pthread_create(tidp, NULL, fnp, argp);
 
 #endif
-}
+}  /* end thread_create() */
 
 /**
  * Join with a terminated thread.
@@ -273,24 +276,23 @@ int thread_join(ThreadId tid)
    /* close handle to thread */
    CloseHandle(thandle);
 
-   return ecode;
-
 #elif defined(_POSIX_THREADS)
    return pthread_join(tid, NULL);
 
 #endif
-}
+}  /* end thread_join() */
 
 /**
  * Join with a list of terminated threads.
  * Waits for all threads in a list specified by tidlist[count] to
  * terminate and "joins" with them in a sequential manner.
- * If a ::ThreadId within the @a tidlist evaluates as Zero (0),
- * that ::ThreadId will be skipped.
  * @param tidlist Pointer to a list of ::ThreadId's
- * @returns 0 on success, else the first error returned by thread_join().
+ * @param count Number of threads in list
+ * @returns 0 on success, else the first error which occurred.
+ * @note If a ::ThreadId within the @a tidlist evaluates as Zero (0),
+ * that ::ThreadId will be skipped.
 */
-int thread_multijoin(ThreadId tidlist[], int count)
+int thread_join_list(ThreadId tidlist[], int count)
 {
    int i, temp, ecode;
 
@@ -301,6 +303,54 @@ int thread_multijoin(ThreadId tidlist[], int count)
 
    return ecode;
 }
+
+/**
+ * Send a termination request to a thread. Does not wait for termination.
+ * @param tid A ::ThreadId
+ * @returns 0 on success, else error number.
+ * @note It is not recommended to forcefully terminate threads in running
+ * processes, and should instead be reserved for (ungraceful) shutdowns.
+*/
+int thread_terminate(ThreadId tid)
+{
+#if OS_WINDOWS
+   HANDLE thandle;
+   int ecode;
+
+   /* acquire Thread HANDLE from thread id */
+   thandle = OpenThread(SYNCHRONIZE, FALSE, tid);
+   if(thandle == NULL) return GetLastError();
+   /* wait indefinitely for thread to complete */
+   ecode = TerminateThread(thandle, 0) ? 0 : GetLastError();
+   /* close handle to thread */
+   CloseHandle(thandle);
+
+#elif defined(_POSIX_THREADS)
+   return pthread_cancel(tid);
+
+#endif
+}  /* end thread_terminate() */
+
+/**
+ * Terminate a list of threads. Sends a termination request to all threads
+ * in a list specified by @a tidlist[count]. Does not wait for termination.
+ * @param tidlist Pointer to a list of ::ThreadId's
+ * @param count Number of threads in list
+ * @returns 0 on success, else the first error which occurred.
+ * @note If a ::ThreadId within the @a tidlist evaluates as Zero (0),
+ * that ::ThreadId will be skipped.
+*/
+int thread_terminate_list(ThreadId tidlist[], int count)
+{
+   int i, temp, ecode;
+
+   for(ecode = temp = i = 0; i < count; i++) {
+      if (tidlist[i]) temp = thread_terminate(tidlist[i]);
+      if (temp && !ecode) ecode = temp;
+   }
+
+   return ecode;
+}  /* end thread_terminate_list() */
 
 /* end include guard */
 #endif
