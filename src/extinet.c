@@ -20,7 +20,8 @@
    #include <winhttp.h>
    #include <wchar.h>
 
-   /* Default winsock version 2.2 */
+   /* initialize global winsock version 2.2 */
+   WSADATA Sockdata;
    WORD Sockverreq = 0x0202;
 
 /* end Windows */
@@ -31,6 +32,8 @@
 /* end Unix */
 #endif
 
+/* initialize global Sockinuse */
+volatile int Sockinuse;
 
 /**
  * Perform a http(s) GET request to a file, fname.
@@ -257,6 +260,16 @@ int sock_startup(void)
 
    return 0;
 }  /* end sock_startup() */
+
+/**
+ * Obtain the internal state of "sockets-in-use", as modified by functions
+ * sock_startup() and sock_cleanup().
+ * @returns Zero when sockets have not been started, else non-zero.
+*/
+int sock_state(void)
+{
+   return Sockinuse;
+}
 
 /**
  * Perform Socket Cleanup, disabling socket functionality.

@@ -25,18 +25,6 @@
    #define sock_err_is_waiting(_e) \
       ( _e == WSAEWOULDBLOCK || _e == WSAEALREADY || _e == WSAEINVAL )
 
-   #ifdef __cplusplus
-   extern "C" {
-   #endif
-
-   /* Global winsock variables */
-   WSADATA Sockdata;
-   WORD Sockverreq;
-
-   #ifdef __cplusplus
-   }
-   #endif
-
 /* end OS_WINDOWS */
 #elif OS_UNIX
    #include <arpa/inet.h>
@@ -79,22 +67,17 @@
 #define INVALID_SOCKET (SOCKET)(~0) /**< Indicates empty socket descriptor */
 #endif
 
-/* C/C++ compatible function prototypes for extthread.c */
+/* C/C++ compatible function prototypes */
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/**
- * Global flag indicating socket support status. Increments upon
- * use of sock_startup(). Returns to zero after sock_cleanup().
-*/
-volatile int Sockinuse;
 
 int http_get(char *url, char *fname, int timeout);
 char *ntoa(void *n, char *a);
 unsigned long aton(char *a);
 unsigned long get_sock_ip(SOCKET sd);
 int sock_startup(void);
+int sock_state(void);
 int sock_cleanup(void);
 int sock_set_nonblock(SOCKET sd);
 int sock_set_blocking(SOCKET sd);
@@ -105,9 +88,8 @@ int sock_recv(SOCKET sd, void *pkt, int len, int flags, double timeout);
 int sock_send(SOCKET sd, void *pkt, int len, int flags, double timeout);
 int gethostip(char *name, int namelen);
 
-/* end extern "C" {} for C++ */
 #ifdef __cplusplus
-}
+}  /* end extern "C" */
 #endif
 
 /* end include guard */
