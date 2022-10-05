@@ -48,6 +48,17 @@ int mutex_init(Mutex *mutexp)
    /* release exclusive spin lock */
    spinlock = 0;
 
+/**
+ * Initialize a Mutex.
+ * @param mutexp Pointer to a ::Mutex
+ * @returns 0 on success, else error number.
+*/
+int mutex_init(Mutex *mutexp)
+{
+#if OS_WINDOWS
+   /* create Mutex HANDLE */
+   *mutexp = CreateMutex(NULL, FALSE, NULL);
+   if (*mutexp == NULL) return GetLastError();
    return 0;
 
 #elif defined(_POSIX_THREADS)
@@ -55,6 +66,29 @@ int mutex_init(Mutex *mutexp)
 
 #endif
 }
+
+#if OS_WINDOWS
+
+/**
+ * @private
+ * Initialize a "statically initialized" Mutex. WINDOWS ONLY.
+ * @param mutexp Pointer to a ::Mutex
+ * @returns 0 on success, else error number.
+*/
+static int mutex_init_static(Mutex *mutexp)
+{
+   /* create Mutex HANDLE and perform interlocked exchange */
+   HANDLE mutex = CreateMutex(NULL, FALSE, NULL);
+   if (mutex == NULL) return GetLastError();
+   if (InterlockedCompareExchangePointer(
+         (PVOID *) mutexp, (PVOID) mutex, NULL) != NULL) {
+      /* close HANDLE if mutex is non-NULL */
+      CloseHandle(mutex);
+      return EBUSY;
+   } else return 0;
+}
+
+#endif
 
 /**
  * Acquire an exclusive lock on a Mutex.
@@ -67,14 +101,83 @@ int mutex_lock(Mutex *mutexp)
 {
 #if OS_WINDOWS
    /* initialize mutex if statically initialized */
-   if (mutexp->init < 1) mutex_init(mutexp);
-   /* acquire exclusive critical section lock */
-   EnterCriticalSection(&(mutexp->lock));
-
-   return 0;
+   if (*mutexp == NULL) {
+      int ecode = mutex_init_static(mutexp);
+      if (ecode != EBUSY) return ecode;
+   }
+   /* wait for exclusive lock -- no timeout */
+   switch (WaitForSingleObject(*mutexp, INFINITE)) {
+      case WAIT_FAILED: return GetLastError();
+      case WAIT_OBJECT_0: return 0;
+      default: return EINVAL;
+   }
 
 #elif defined(_POSIX_THREADS)
    return pthread_mutex_lock(mutexp);
+
+#endif
+}
+
+/**
+ * Acquire an exclusive lock on a Mutex, or timeout.
+ * @param mutexp Pointer to a ::Mutex
+ * @param ms Milliseconds to wait for lock
+ * @returns 0 on success, else error number.
+ * @note On Windows, a statically initialized Mutex will be
+ * initialized on the first call to mutex_timedlock().
+*/
+int mutex_timedlock(Mutex *mutexp, unsigned int ms)
+{
+#if OS_WINDOWS
+   /* initialize mutex if statically initialized */
+   if (*mutexp == NULL) mutex_init(mutexp);
+   /* wait (ms) for exclusive lock, or timeout */
+   switch (WaitForSingleObject(*mutexp, ms)) {
+      case WAIT_FAILED: return GetLastError();
+      case WAIT_TIMEOUT: return ETIMEDOUT;
+      case WAIT_OBJECT_0: return 0;
+      default: return EINVAL;
+   }
+
+#elif defined(_POSIX_THREADS)
+   struct timespec abs_timeout;
+   struct timeval now;
+
+   /* obtain current time value */
+   gettimeofday(&now, NULL);
+   /* add ms to time val, store in timeout */
+   abs_timeout.tv_sec = now.tv_sec + (ms / 1000UL);
+   abs_timeout.tv_nsec =
+      ((now.tv_usec + (ms * 1000UL)) * 1000UL) % 1000000000UL;
+
+   return pthread_mutex_timedlock(mutexp, &abs_timeout);
+
+#endif
+}
+
+/**
+ * Try (non-blocking) acquire an exclusive lock on a Mutex.
+ * @param mutexp Pointer to a ::Mutex
+ * @param ms Milliseconds to wait for lock
+ * @returns 0 on success, else error number.
+ * @note On Windows, a statically initialized Mutex will be
+ * initialized on the first call to mutex_timedlock().
+*/
+int mutex_trylock(Mutex *mutexp)
+{
+#if OS_WINDOWS
+   /* initialize mutex if statically initialized */
+   if (*mutexp == NULL) mutex_init(mutexp);
+   /* wait (ms) for exclusive lock, or timeout */
+   switch (WaitForSingleObject(*mutexp, 0)) {
+      case WAIT_FAILED: return GetLastError();
+      case WAIT_TIMEOUT: return EBUSY;
+      case WAIT_OBJECT_0: return 0;
+      default: return EINVAL;
+   }
+
+#elif defined(_POSIX_THREADS)
+   return pthread_mutex_trylock(mutexp);
 
 #endif
 }
@@ -87,8 +190,8 @@ int mutex_lock(Mutex *mutexp)
 int mutex_unlock(Mutex *mutexp)
 {
 #if OS_WINDOWS
-   LeaveCriticalSection(&(mutexp->lock));
-   return 0;
+   /* release lock on mutex */
+   return ReleaseMutex(*mutexp) ? 0 : GetLastError();
 
 #elif defined(_POSIX_THREADS)
    return pthread_mutex_unlock(mutexp);
@@ -105,12 +208,12 @@ int mutex_unlock(Mutex *mutexp)
 int mutex_destroy(Mutex *mutexp)
 {
 #if OS_WINDOWS
-   /* destroy critical section */
-   DeleteCriticalSection(&(mutexp->lock));
-   /* set Mutex uninitialized */
-   mutexp->init = 0;
-
-   return 0;
+   /* close handle to mutex */
+   if (CloseHandle(*mutexp)) {
+      *mutexp = NULL;
+      return 0;
+   }
+   return GetLastError();
 
 #elif defined(_POSIX_THREADS)
    return pthread_mutex_unlock(mutexp);
