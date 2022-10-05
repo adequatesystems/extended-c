@@ -1,5 +1,5 @@
 /**
- * @file extthread.h
+ * @file extthrd.h
  * @brief Extended thread and mutex support.
  * @details The support functions in this file are based on
  * POSIX Threads. Functionality is extended to Windows systems by
@@ -33,27 +33,29 @@
 #define EXTENDED_THREAD_H
 
 
+/* NOTE: For use of pthread_setname_np(), _GNU_SOURCE "must" be defined
+ * before "any" includes. But defining _GNU_SOURCE under UNIX systems in
+ * the "extos.h" header file may not be a desireable solution.
+ * _DEFINE_GNU_SOURCE_IN_EXTOS tells "extos.h" to define _GNU_SOURCE, but
+ * only for this compilation unit, reducing side-effects elsewhere. */
+#define _DEFINE_GNU_SOURCE_IN_EXTOS
 #include "extos.h"
 
 #if OS_WINDOWS
    /* use Windows API threads */
 
    /* Windows API static initializers */
-   #define ext_MUTEX_INITIALIZER   { 0 }
-   #define ext_RWLOCK_INITIALIZER  SRWLOCK_INIT
+   #define ext_CONDITION_INITIALIZER   { .semaphore = NULL, .waiting = 0 }
+   #define ext_MUTEX_INITIALIZER       NULL
+   #define ext_RWLOCK_INITIALIZER      SRWLOCK_INIT
 
-   /* A Mutually exclusive lock datatype, utilizing Windows' CRITICAL_SECTION
-    * to more closely imitate pthread's pthread_mutex_t element. Since there
-    * is no static initialization method for a CRITICAL_SECTION, the struct
-    * also holds an initialization variable to indicate the initialization
-    * status of the CRITICAL_SECTION. If static initialization is chosen,
-    * actual initialization will occur in the first call to mutex_lock(). */
-   typedef struct _ext_Mutex {
-      CRITICAL_SECTION lock;
-      volatile char init;
-   } ext_Mutex;
+   typedef struct _ext_Condition {
+      HANDLE semaphore;
+      LONG waiting;
+   } ext_Condition;
 
    /* Windows API datatypes and structs */
+   #define ext_Mutex          HANDLE
    #define ext_RWLock         SRWLOCK
    #define ext_ThreadId       DWORD
    #define ext_ThreadProc     DWORD WINAPI
@@ -66,13 +68,15 @@
    #include <pthread.h>
 
    /* POSIX THREAD static initializers */
-   #define ext_MUTEX_INITIALIZER   PTHREAD_MUTEX_INITIALIZER
-   #define ext_RWLOCK_INITIALIZER  PTHREAD_RWLOCK_INITIALIZER
+   #define ext_CONDITION_INITIALIZER   PTHREAD_COND_INITIALIZER
+   #define ext_MUTEX_INITIALIZER       PTHREAD_MUTEX_INITIALIZER
+   #define ext_RWLOCK_INITIALIZER      PTHREAD_RWLOCK_INITIALIZER
 
    /* typedef for passing thread process functions as arguments */
    typedef void *(*THREAD_START_ROUTINE)(void *threadArgs);
 
    /* POSIX Threads datatypes */
+   #define ext_Condition      pthread_cond_t
    #define ext_Mutex          pthread_mutex_t
    #define ext_RWLock         pthread_rwlock_t
    #define ext_ThreadId       pthread_t
@@ -85,6 +89,16 @@
    #error Unable to determine appropriate threading library.
 
 #endif
+
+/**
+ * Static Condition initializer.
+ * Used to initialize a Condition at the time of declaration.
+ * <br/>On Windows, expands to: `CONDITION_VARIABLE_INIT`.
+ * <br/>On Unix, expands to: `PTHREAD_COND_INITIALIZER`.
+ * <br/>Example usage:
+ * @code Condition cond = CONDITION_INITIALIZER; @endcode
+*/
+#define CONDITION_INITIALIZER ext_CONDITION_INITIALIZER
 
 /**
  * Static Mutex initializer.
@@ -136,6 +150,14 @@
 #define Unthread return ext_ThreadValue
 
 /**
+ * Condition variable datatype. Used to define a "meeting place"
+ * for multiple threads to "wait" on a certain condition.
+ * <br/>On Windows, `ext_Condition` expands to: `CONDITION_VARIABLE`.
+ * <br/>On Unix, `ext_Condition` expands to: `pthread_cond_t`.
+*/
+typedef ext_Condition Condition;
+
+/**
  * Mutually exclusive datatype. Used to define a variable for
  * handling mutually exclusive execution across threads.
  * <br/>On Windows, `ext_Mutex` expands to a self-managed struct.
@@ -173,19 +195,32 @@ typedef ext_ThreadRoutine ThreadRoutine;
 extern "C" {
 #endif
 
+int condition_init(Condition *condp);
+int condition_signal(Condition *condp);
+int condition_broadcast(Condition *condp);
+int condition_wait(Condition *condp, Mutex *mutexp);
+int condition_timedwait(Condition *condp, Mutex *mutexp, unsigned int ms);
+int condition_destroy(Condition *condp);
 int mutex_init(Mutex *mutexp);
 int mutex_lock(Mutex *mutexp);
+int mutex_timedlock(Mutex *mutexp, unsigned int ms);
+int mutex_trylock(Mutex *mutexp);
 int mutex_unlock(Mutex *mutexp);
 int mutex_destroy(Mutex *mutexp);
 int rwlock_init(RWLock *rwlockp);
 int rwlock_rdlock(RWLock *rwlockp);
+int rwlock_tryrdlock(RWLock *rwlockp);
 int rwlock_wrlock(RWLock *rwlockp);
+int rwlock_trywrlock(RWLock *rwlockp);
 int rwlock_rdunlock(RWLock *rwlockp);
 int rwlock_wrunlock(RWLock *rwlockp);
 int rwlock_destroy(RWLock *rwlockp);
 int thread_create(ThreadId *tidp, ThreadRoutine fnp, void *argp);
+int thread_equal(ThreadId tid1, ThreadId tid2);
 int thread_join(ThreadId tid);
 int thread_join_list(ThreadId tidlist[], int count);
+ThreadId thread_self(void);
+void thread_setname(ThreadId tid, const char *name);
 int thread_terminate(ThreadId tid);
 int thread_terminate_list(ThreadId tidlist[], int count);
 
