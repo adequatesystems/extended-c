@@ -323,6 +323,31 @@ int thread_join_list(ThreadId tidlist[], int count)
    return ecode;
 }
 
+ThreadId thread_self(void)
+{
+#if OS_WINDOWS
+   return GetCurrentThreadId();
+
+#elif defined(_POSIX_THREADS)
+   return pthread_self();
+
+#endif
+}
+
+void thread_setname(ThreadId tid, const char *name)
+{
+#if OS_WINDOWS
+   wchar_t wname[64];
+
+   mbstowcs(wname, name, 64);
+   SetThreadDescription(GetCurrentThread(), wname);
+
+#elif defined(_POSIX_THREADS)
+   pthread_setname_np(tid, name);
+
+#endif
+}
+
 /**
  * Send a termination request to a thread. Does not wait for termination.
  * @param tid A ::ThreadId
