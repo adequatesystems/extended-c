@@ -38,6 +38,10 @@
       (defined(__APPLE__) && defined(__MACH__))
    /* UNIX-style operating system */
    #define OS_UNIX 1
+   #ifdef _DEFINE_GNU_SOURCE_IN_EXTOS
+      #undef _DEFINE_GNU_SOURCE_IN_EXTOS
+      #define _GNU_SOURCE
+   #endif
    #include <unistd.h>
 
 /* end #elif defined(__unix__) || ... */
