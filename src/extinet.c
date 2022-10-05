@@ -306,10 +306,6 @@ int sock_set_nonblock(SOCKET sd)
 #elif OS_UNIX
    return fcntl(sd, F_SETFL, fcntl(sd, F_GETFL, 0) | O_NONBLOCK);
 
-#else
-   #warning Unexpected OS configuration; sock_set_nonblock() affected.
-   return SOCKET_ERROR;
-
 #endif
 }  /* end sock_set_nonblock() */
 
@@ -328,10 +324,6 @@ int sock_set_blocking(SOCKET sd)
 #elif OS_UNIX
    return fcntl(sd, F_SETFL, fcntl(sd, F_GETFL, 0) & (~O_NONBLOCK));
 
-#else
-   #warning Unexpected OS configuration; sock_set_blocking() affected.
-   return SOCKET_ERROR;
-
 #endif
 }  /* end sock_set_blocking() */
 
@@ -346,10 +338,6 @@ int sock_close(SOCKET sd)
 
 #elif OS_UNIX
    return close(sd);
-
-#else
-   #warning Unexpected OS configuration; sock_close() affected.
-   return sd;
 
 #endif
 }  /* end sock_close() */
@@ -500,7 +488,7 @@ int gethostip(char *name, int namelen)
 
    sock_close(sd);
    return SOCKET_ERROR;
-}  /* end phostinfo() */
+}  /* end gethostip() */
 
 /* end include guard */
 #endif
