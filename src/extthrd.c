@@ -155,6 +155,25 @@ int rwlock_rdlock(RWLock *rwlockp)
 }
 
 /**
+ * Try lock a ::RWLock object for reading. The calling thread acquires the
+ * read lock if no write locks are held or waiting on the lock.
+ * @param rwlockp Pointer to a ::RWLock
+ * @returns 0 on success, EBUSY if unable to acquire lock immediately,
+ * else error code.
+*/
+int rwlock_tryrdlock(RWLock *rwlockp)
+{
+#if OS_WINDOWS
+   TryAcquireSRWLockShared(rwlockp);
+   return 0;
+
+#elif defined(_POSIX_THREADS)
+   return pthread_rwlock_tryrdlock(rwlockp);
+
+#endif
+}
+
+/**
  * Lock a ::RWLock object for writing. The calling thread acquires the
  * write lock if no read or write locks are held or waiting on the lock.
  * @param rwlockp Pointer to a ::RWLock
@@ -169,6 +188,24 @@ int rwlock_wrlock(RWLock *rwlockp)
 
 #elif defined(_POSIX_THREADS)
    return pthread_rwlock_wrlock(rwlockp);
+
+#endif
+}
+
+/**
+ * Try lock a ::RWLock object for writing. The calling thread acquires the
+ * write lock if no read or write locks are held or waiting on the lock.
+ * @param rwlockp Pointer to a ::RWLock
+ * @returns 0 on success, EBUSY if unable to acquire lock immediately,
+ * else error code.
+*/
+int rwlock_trywrlock(RWLock *rwlockp)
+{
+#if OS_WINDOWS
+   return TryAcquireSRWLockExclusive(rwlockp) ? 0 : GetLastError();
+
+#elif defined(_POSIX_THREADS)
+   return pthread_rwlock_trywrlock(rwlockp);
 
 #endif
 }
