@@ -10,43 +10,214 @@
 #define EXTENDED_THREAD_C
 
 
-#include "extthread.h"
+#include "extthrd.h"
+#if OS_UNIX
+   #include <sys/time.h>
+
+#endif
 
 /**
- * Initialize a Mutex.
- * @param mutexp Pointer to a ::Mutex
+ * Initialize a Condition Variable.
+ * @param condp Pointer to a ::Condition
  * @returns 0 on success, else error number.
- * @note On Windows, this function uses a static spinlock to
- * guard the initialization of all mutexes, either through direct
- * use of this function or via the first call to mutex_lock().
- * Although negligible, it should be noted that this causes a
- * synchronous effect for all such calls.
 */
-int mutex_init(Mutex *mutexp)
+int condition_init(Condition *condp)
 {
 #if OS_WINDOWS
-   /* CRITICAL_SECTION initialization is guarded by an initialization
-    * spinlock, which is 32-bit aligned as required by the Windows
-    * API's InterlockedCompareExchange() atomic function. */
-   __declspec(align(4)) static volatile LONG spinlock = 0;
+   /* create Semaphore HANDLE and zero waiting counter */
+   condp->semaphore = CreateSemaphore(NULL, 0L, 0x7fffffffL, NULL);
+   if (condp->semaphore == NULL) return GetLastError();
+   condp->waiting = 0;
+   return 0;
 
-   /* per pthreads_mutex_init(), return EBUSY for initialized mutex */
-   if (mutexp->init > 0) return EBUSY;
-   /* acquire exclusive spin lock for initialisation */
-   while(InterlockedCompareExchange(&spinlock, 1, 0));
-   /* vv SPINLOCKED SECTION START */
+#elif defined(_POSIX_THREADS)
+   return pthread_cond_init(condp, NULL);
 
-   /* attempt initialization if uninitialised */
-   if(mutexp->init < 1) {
-      /* initialize critical section inside Mutex */
-      InitializeCriticalSection(&(mutexp->lock));
-      /* set Mutex initialized */
-      mutexp->init = 1;
+#endif
+}
+
+#if OS_WINDOWS
+
+/**
+ * @private
+ * Initialize a "statically initialized" Condition Variable. WINDOWS ONLY.
+ * @param condp Pointer to a ::Condition
+ * @returns 0 on success, else error number.
+*/
+static int condition_init_static(Condition *condp)
+{
+   /* create Sempahore HANDLE and perform interlocked exchange */
+   HANDLE semaphore = CreateMutex(NULL, FALSE, NULL);
+   if (semaphore == NULL) return GetLastError();
+   /* condp->waiting is zero'd by static initialization declaration */
+   if (InterlockedCompareExchangePointer(
+         (PVOID *) &(condp->semaphore), (PVOID) semaphore, NULL) != NULL) {
+      /* close HANDLE if semaphore is non-NULL */
+      CloseHandle(semaphore);
+      return EBUSY;
+   } else return 0;
+}
+
+#endif
+
+/**
+ * Signal to a Condition. Unblocks/Wakes at least one thread
+ * that is blocked on a condition variable.
+ * @param condp Pointer to a ::Condition
+ * @returns 0 on success, else error number.
+*/
+int condition_signal(Condition *condp)
+{
+#if OS_WINDOWS
+   /* (atomically) obtain the value of waiting */
+   LONG waiting = InterlockedIncrement(&(condp->waiting)) - 1;
+   InterlockedDecrement(&(condp->waiting));
+   /* ensure something is waiting on condition */
+   if (waiting < 1) return 0;
+   /* release semaphore by one (1) "signal" */
+   return ReleaseSemaphore(condp->semaphore, 1, NULL) ? 0 : GetLastError();
+
+#elif defined(_POSIX_THREADS)
+   return pthread_cond_signal(condp);
+
+#endif
+}
+
+/**
+ * Broadcast to a Condition. Unblocks/Wakes all threads that
+ * are blocked on a condition variable.
+ * @param condp Pointer to a ::Condition
+ * @returns 0 on success, else error number.
+*/
+int condition_broadcast(Condition *condp)
+{
+#if OS_WINDOWS
+   /* release semaphore by the amount currently "waiting" */
+   int ecode = ReleaseSemaphore(condp->semaphore,
+      InterlockedIncrement(&(condp->waiting)) - 1, NULL);
+   InterlockedDecrement(&(condp->waiting));
+   return ecode ? 0 : GetLastError();
+
+#elif defined(_POSIX_THREADS)
+   return pthread_cond_broadcast(condp);
+
+#endif
+}
+
+/**
+ * Wait on a Condition. Blocks/Sleeps the calling thread until
+ * a condition variable is signalled or broadcasted to. The
+ * calling thread MUST already have a lock on @a mutexp.
+ * @param condp Pointer to a ::Condition
+ * @param mutexp Pointer to a ::Mutex
+ * @returns 0 on success, else error number.
+*/
+int condition_wait(Condition *condp, Mutex *mutexp)
+{
+#if OS_WINDOWS
+   int ecode;
+
+   /* release lock on Mutex */
+   if (!ReleaseMutex(*mutexp)) return GetLastError();
+   /* initialize semaphore if declared "statically initialized" */
+   if (condp->semaphore == NULL) {
+      ecode = condition_init_static(condp);
+      if (ecode != EBUSY) return ecode;
+   }
+   /* prepare HANDLE array of "multiple objects" */
+   HANDLE objects[2] = { condp->semaphore, *mutexp };
+   /* wait on Condition AND Mutex -- adjust waiting counter */
+   InterlockedIncrement(&(condp->waiting));
+   ecode = WaitForMultipleObjects(2, objects, TRUE, INFINITE);
+   InterlockedDecrement(&(condp->waiting));
+   /* check result of WaitForMultipleObjects */
+   switch (ecode) {
+      case WAIT_FAILED: return GetLastError();
+      case WAIT_OBJECT_0: /* fallthrough */
+      case (WAIT_OBJECT_0 + 1): return 0;
+      default: return EINVAL;
    }
 
-   /* ^^ END SPINLOCK SECTION */
-   /* release exclusive spin lock */
-   spinlock = 0;
+#elif defined(_POSIX_THREADS)
+   return pthread_cond_wait(condp, mutexp);
+
+#endif
+}
+
+/**
+ * Timed wait on a Condition. Blocks/Sleeps the calling thread
+ * until either a condition variable is signalled/broadcasted
+ * to or the specified milliseconds have passed. The calling
+ * thread MUST already have a lock on @a mutexp.
+ * @param condp Pointer to a ::Condition
+ * @param mutexp Pointer to a ::Mutex
+ * @param ms Milliseconds to wait on condition
+ * @returns 0 on success, else error number.
+*/
+int condition_timedwait(Condition *condp, Mutex *mutexp, unsigned int ms)
+{
+#if OS_WINDOWS
+   int ecode;
+
+   /* release lock on Mutex */
+   if (!ReleaseMutex(*mutexp)) return GetLastError();
+   /* initialize semaphore if declared "statically initialized" */
+   if (condp->semaphore == NULL) {
+      ecode = condition_init_static(condp);
+      if (ecode != EBUSY) return ecode;
+   }
+   /* prepare HANDLE array of "multiple objects" */
+   HANDLE objects[2] = { condp->semaphore, *mutexp };
+   /* wait (timed) on Condition AND Mutex -- adjust waiting counter */
+   InterlockedIncrement(&(condp->waiting));
+   ecode = WaitForMultipleObjects(2, objects, TRUE, ms);
+   InterlockedDecrement(&(condp->waiting));
+   /* check result of WaitForMultipleObjects */
+   switch (ecode) {
+      case WAIT_FAILED: return GetLastError();
+      case WAIT_TIMEOUT: return ETIMEDOUT;
+      case WAIT_OBJECT_0: /* fallthrough */
+      case (WAIT_OBJECT_0 + 1): return 0;
+      default: return EINVAL;
+   }
+
+#elif defined(_POSIX_THREADS)
+   struct timespec abs_timeout;
+   struct timeval now;
+
+   /* obtain current time value */
+   gettimeofday(&now, NULL);
+   /* add ms to time val, store in timeout */
+   abs_timeout.tv_sec = now.tv_sec + (ms / 1000UL);
+   abs_timeout.tv_nsec =
+      ((now.tv_usec + (ms * 1000UL)) * 1000UL) % 1000000000UL;
+
+   return pthread_cond_timedwait(condp, mutexp, &abs_timeout);
+
+#endif
+}
+
+/**
+ * Destroy a Condition. Free's any memory allocated by the system,
+ * and marks Condition as, effectively, uninitialized.
+ * @param condp Pointer to a ::Condition
+ * @returns 0 on success, else error number.
+*/
+int condition_destroy(Condition *condp)
+{
+#if OS_WINDOWS
+   /* close handle to semaphore */
+   if (CloseHandle(condp->semaphore)) {
+      condp->semaphore = NULL;
+      return 0;
+   }
+   return GetLastError();
+
+#elif defined(_POSIX_THREADS)
+   return pthread_cond_destroy(condp);
+
+#endif
+}
 
 /**
  * Initialize a Mutex.
