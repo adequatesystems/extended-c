@@ -255,6 +255,25 @@ int thread_create(ThreadId *tidp, ThreadRoutine fnp, void *argp)
 }  /* end thread_create() */
 
 /**
+ * Equality check for ThreadId.
+ * @param tid1 Thread Identifier to check
+ * @param tid2 Thread Identifier to compare against
+ * @returns Non-zero value if threads are equal, else 0
+*/
+int thread_equal(ThreadId tid1, ThreadId tid2)
+{
+#if OS_WINDOWS
+   /* Windows Thread Identifiers are simply DWORD's */
+   return (tid1 == tid2);
+
+#elif defined(_POSIX_THREADS)
+   /* pthread Identifiers should be considered opaque */
+   return pthread_equal(tid1, tid2);
+
+#endif
+}  /* end thread_equal() */
+
+/**
  * Join with a terminated thread.
  * Waits for the thread specified by @a tid to terminate.
  * @param tid A ::ThreadId
