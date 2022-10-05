@@ -434,6 +434,7 @@ int thread_join(ThreadId tid)
    }
    /* close handle to thread */
    CloseHandle(thandle);
+   return ecode;
 
 #elif defined(_POSIX_THREADS)
    return pthread_join(tid, NULL);
@@ -508,6 +509,7 @@ int thread_terminate(ThreadId tid)
    ecode = TerminateThread(thandle, 0) ? 0 : GetLastError();
    /* close handle to thread */
    CloseHandle(thandle);
+   return ecode;
 
 #elif defined(_POSIX_THREADS)
    return pthread_cancel(tid);
