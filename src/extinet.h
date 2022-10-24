@@ -72,7 +72,6 @@
 extern "C" {
 #endif
 
-int http_get(char *url, char *fname, int timeout);
 char *ntoa(void *n, char *a);
 unsigned long aton(char *a);
 unsigned long get_sock_ip(SOCKET sd);
