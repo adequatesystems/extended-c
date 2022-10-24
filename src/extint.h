@@ -2,14 +2,11 @@
  * @file extint.h
  * @brief Extended integer support.
  * @details Emulates the C Standard library header file `<stdint.h>`
- * and extends on it's functionality.
- * @copyright Adequate Systems LLC, 2021-2022. All Rights Reserved.
- * <br />For license information, please refer to ../LICENSE.md
- * @note 
+ * using custom named data types and print identifiers.<br/><br/>
  * Number Constants for `INT#_MAX` have been removed due to an
  * inability to determine an adequate naming scheme that does not
- * conflict with the C Standard Library headers, "stdint.h" and
- * "inttypes.h". If Number Constants for for `INT#_MAX` values are
+ * conflict with the C Standard Library headers, `<stdint.h>` and
+ * `<inttypes.h>`. If Number Constants for for `INT#_MAX` values are
  * required, use exact number literals, or define the following:
  * @code
  * // Where '#' represents bit width; 8/16/32/64
@@ -18,7 +15,8 @@
  * @endcode<br/>
  * For 32-bit machine compatibility, either avoid the use of 64-bit
  * elements or provide alternative routines separated by `#ifdef`'s
- * testing for the `HAS_64BIT` definition...
+ * testing for the `HAS_64BIT` definition, which is set when
+ * `ULLONG_MAX` is defined in the <limits.h> header file.
  * @code
  * void someFunction(void)
  * {
@@ -29,6 +27,8 @@
  * #endif
  * }
  * @endcode
+ * @copyright Adequate Systems LLC, 2021-2022. All Rights Reserved.
+ * <br />For license information, please refer to ../LICENSE.md
 */
 
 /* include guard */
