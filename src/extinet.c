@@ -11,25 +11,25 @@
 
 
 #include "extinet.h"
+
+/* internal support */
+#include "exterrno.h"
 #include "exttime.h"
+
+/* external support */
 #include <stdio.h>
 #include <string.h>
 
-#if OS_WINDOWS
-   #pragma comment(lib, "winhttp.lib")
-   #include <winhttp.h>
-   #include <wchar.h>
-
-   /* initialize global winsock version 2.2 */
+#ifdef _WIN32
+   /* initialize for winsock version 2.2 */
    WSADATA Sockdata;
    WORD Sockverreq = 0x0202;
 
 /* end Windows */
-#elif OS_UNIX
+#else
    #include <fcntl.h>   /* for fcntl() */
-   #include <stdlib.h>  /* for system() */
 
-/* end Unix */
+/* end UNIX-like */
 #endif
 
 /* initialize global Sockinuse */
@@ -37,87 +37,99 @@ int Sockinuse;
 
 /**
  * Convert IPv4 from 32-bit binary form to numbers-and-dots notation.
- * Place in `char *a` if not `NULL`, else use static char *cp.
+ * Converted result is placed in @a *a if supplied, otherwise an internal
+ * static character pointer is used.
  * @param n Pointer to 32-bit value to convert
  * @param a Pointer to character array to place conversion result
- * @returns Character pointer to converted result.
+ * @returns Character pointer to converted result, or NULL on error.
+ * Check errno for details.
 */
 char *ntoa(void *n, char *a)
 {
    static char cp[16];
    unsigned char *bp;
 
-   bp = (unsigned char *) n;
+   if (n == NULL) goto FAIL_INVAL;
    if (a == NULL) a = cp;
+
+   bp = (unsigned char *) n;
    sprintf(a, "%d.%d.%d.%d", bp[0], bp[1], bp[2], bp[3]);
 
    return a;
+
+/* error handling */
+FAIL_INVAL: set_errno(EINVAL); return NULL;
 }  /* end ntoa() */
 
 /**
- * Convert a network ip address to a 32-bit binary form value by
- * performing an ip address lookup on a network address string.
- * Can use a hostname or numbers-and-dots notation IPv4.
+ * Convert a network ip address to binary form. Performs network address
+ * lookup. Can use a hostname or numbers-and-dots notation IPv4.
  * @param a Pointer to network ip address character array to convert
- * @returns An IPv4 in 32-bit binary form on success, or 0 on error.
+ * @returns Unsigned long value of the associated network IPv4 address
+ * in binary form, or 0 on error. Check errno for details.
 */
 unsigned long aton(char *a)
 {
    struct hostent *host;
    struct sockaddr_in addr;
 
-   if(a == NULL) return 0;
+   if (a == NULL) goto FAIL_INVAL;
    memset(&addr, 0, sizeof(addr));
 
    host = gethostbyname(a);
-   if(host == NULL) return 0;
+   if (host == NULL) goto FAIL_HOST;
    memcpy(&(addr.sin_addr.s_addr), host->h_addr_list[0], host->h_length);
 
    return addr.sin_addr.s_addr;
+
+/* error handling */
+FAIL_INVAL: set_errno(EINVAL); return 0;
+FAIL_HOST:
+#ifdef _WIN32
+   set_alterrno(WSAGetLastError());
+#endif
+   return 0;
 }  /* end aton() */
 
 /**
  * Obtain an ip address from a valid SOCKET descriptor.
  * @param sd Socket descriptor to obtain ip value from
- * @returns A network ip on success, or INVALID_SOCKET on error.
- * Obtain underlying error code with `sock_errno`.
+ * @returns Unsigned long value of the IPv4 address in binary form, or
+ * SOCKET_ERROR on error. Check errno for details.
 */
 unsigned long get_sock_ip(SOCKET sd)
 {
    static socklen_t addrlen = (socklen_t) sizeof(struct sockaddr_in);
    struct sockaddr_in addr;
 
-   if(getpeername(sd, (struct sockaddr *) &addr, &addrlen) == 0) {
+   if (getpeername(sd, (struct sockaddr *) &addr, &addrlen) == 0) {
       return addr.sin_addr.s_addr;  /* the unsigned long ip */
    }
+
+#ifdef _WIN32
+   set_alterrno(WSAGetLastError());
+#endif
 
    return (unsigned long) SOCKET_ERROR;
 }  /* end get_sock_ip() */
 
 /**
  * Perform Socket Startup enabling socket functionality.
- * @retval SOCKET_ERROR if Sockverreq was not met (Windows-only)
- * @retval sock_errno for other socket errors (Windows-only)
- * @retval 0 on success
+ * @returns 0 on success, or SOCKET_ERROR on error. Check errno for details.
 */
 int sock_startup(void)
 {
-#if OS_WINDOWS
-   /* perform startup request */
+#ifdef _WIN32
+   /* perform startup request -- ensure requested version was obtained */
    int ecode = WSAStartup(Sockverreq, &Sockdata);
-   if (ecode) return ecode;
+   if (ecode) {
+      set_alterrno(ecode);
+      return SOCKET_ERROR;
+   }
 
 #endif
 
    Sockinuse++;  /* increment to enable sockets support */
-
-#if OS_WINDOWS
-   /* ensure requested version was obtained */
-   if (Sockdata.wVersion != Sockverreq) {
-      return -1;
-   }
-
-#endif
 
    return 0;
 }  /* end sock_startup() */
@@ -125,7 +137,7 @@ int sock_startup(void)
 /**
  * Obtain the internal state of "sockets-in-use", as modified by functions
  * sock_startup() and sock_cleanup().
- * @returns Zero when sockets have not been started, else non-zero.
+ * @returns Value representing the number of sock_startup() calls made.
 */
 int sock_state(void)
 {
@@ -134,37 +146,42 @@ int sock_state(void)
 
 /**
  * Perform Socket Cleanup, disabling socket functionality.
- * @returns Always returns 0.
- * @note Associated socket support functions will gracefully shutdown.
+ * @returns 0 on success, or SOCKET_ERROR on error. Check errno for details.
 */
 int sock_cleanup(void)
 {
-   while(Sockinuse) {
+   int ecode = 0;
 
-#if OS_WINDOWS
-      WSACleanup();
+   while (Sockinuse > 0) {
+
+#ifdef _WIN32
+   if (WSACleanup()) {
+      set_alterrno(WSAGetLastError());
+      return SOCKET_ERROR;
+   }
 
 #endif
 
       Sockinuse--;
    }
 
-   return Sockinuse;
+   return ecode;
 }  /* end sock_cleanup() */
 
 /**
  * Set socket descriptor to non-blocking I/O.
  * @param sd Socket descriptor to set non-blocking I/O
- * @returns 0 on success, or SOCKET_ERROR on error.
- * Obtain underlying error code with `sock_errno`.
+ * @returns 0 on success, or SOCKET_ERROR on error. Check errno for details.
 */
 int sock_set_nonblock(SOCKET sd)
 {
-#if OS_WINDOWS
-   u_long arg = 1L;
-   return ioctlsocket(sd, FIONBIO, &arg);
+#ifdef _WIN32
+   u_long arg = 1UL;
+   int ecode = ioctlsocket(sd, FIONBIO, &arg);
+   if (ecode) set_alterrno(WSAGetLastError());
+   return ecode;
 
-#elif OS_UNIX
+#else
    return fcntl(sd, F_SETFL, fcntl(sd, F_GETFL, 0) | O_NONBLOCK);
 
 #endif
@@ -173,16 +190,17 @@ int sock_set_nonblock(SOCKET sd)
 /**
  * Set socket descriptor to blocking I/O.
  * @param sd Socket descriptor to set blocking I/O
- * @returns 0 on success, or SOCKET_ERROR on error.
- * Obtain underlying error code with `sock_errno`.
+ * @returns 0 on success, or SOCKET_ERROR on error. Check errno for details.
 */
 int sock_set_blocking(SOCKET sd)
 {
-#if OS_WINDOWS
-   u_long arg = 0L;
-   return ioctlsocket(sd, FIONBIO, &arg);
+#ifdef _WIN32
+   u_long arg = 0UL;
+   int ecode = ioctlsocket(sd, FIONBIO, &arg);
+   if (ecode) set_alterrno(WSAGetLastError());
+   return ecode;
 
-#elif OS_UNIX
+#else
    return fcntl(sd, F_SETFL, fcntl(sd, F_GETFL, 0) & (~O_NONBLOCK));
 
 #endif
@@ -191,13 +209,16 @@ int sock_set_blocking(SOCKET sd)
 /**
  * Close an open socket. Does NOT clear socket descriptor value.
  * @param sd socket descriptor to close
+ * @returns 0 on success, or SOCKET_ERROR on error. Check errno for details.
 */
 int sock_close(SOCKET sd)
 {
-#if OS_WINDOWS
-   return closesocket(sd);
+#ifdef _WIN32
+   int ecode = closesocket(sd);
+   if (ecode) set_alterrno(WSAGetLastError());
+   return ecode;
 
-#elif OS_UNIX
+#else
    return close(sd);
 
 #endif
@@ -209,10 +230,10 @@ int sock_close(SOCKET sd)
  * @param port 16-bit binary form port value
  * @param timeout time, in seconds, to wait for connection
  * @returns Non-blocking SOCKET on success, or INVALID_SOCKET on error.
- * @note sock_startup() MUST be called to enable socket support.
- * @see sock_connect_addr()
+ * Check errno for details.
 */
-SOCKET sock_connect_ip(unsigned long ip, unsigned short port, double timeout)
+SOCKET sock_connect_ip
+   (unsigned long ip, unsigned short port, double timeout)
 {
    static socklen_t addrlen = (socklen_t) sizeof(struct sockaddr_in);
    struct sockaddr_in addr;
@@ -220,10 +241,11 @@ SOCKET sock_connect_ip(unsigned long ip, unsigned short port, double timeout)
    SOCKET sd;
    int ecode;
 
-   if (!Sockinuse) return INVALID_SOCKET;
-
    sd = socket(AF_INET, SOCK_STREAM, 0);  /* AF_INET = IPv4 */
-   if(sd == INVALID_SOCKET) return INVALID_SOCKET;
+   if(sd == INVALID_SOCKET) {
+      ecode = sock_errno;
+      goto FAIL;
+   }
 
    memset((char *) &addr, 0, sizeof(addr));
    addr.sin_addr.s_addr = ip;
@@ -236,17 +258,26 @@ SOCKET sock_connect_ip(unsigned long ip, unsigned short port, double timeout)
 
    while (connect(sd, (struct sockaddr *) &addr, addrlen)) {
       ecode = sock_errno;
-      if (sock_err_is_success(ecode)) break;
-      if (sock_err_is_waiting(ecode) && Sockinuse &&
+      if (sock_connected(ecode)) break;
+      if (sock_connecting(ecode) &&
          (difftime(time(NULL), start) < timeout)) {
          millisleep(1);  /* socket is waiting patiently */
          continue;
       }  /* ... connection is deemed a failure, cleanup... */
       sock_close(sd);
-      return INVALID_SOCKET;
+      goto FAIL;
    }
 
    return sd;
+
+/* error handling */
+FAIL:
+#ifdef _WIN32
+   set_alterrno(ecode);
+#else
+   set_errno(ecode);
+#endif
+   return INVALID_SOCKET;
 }  /* end sock_connect_ip() */
 
 /**
@@ -255,8 +286,7 @@ SOCKET sock_connect_ip(unsigned long ip, unsigned short port, double timeout)
  * @param port 16-bit binary form port value
  * @param timeout time, in seconds, to wait for connection
  * @returns Non-blocking SOCKET on success, or INVALID_SOCKET on error.
- * @note sock_startup() MUST be called to enable socket support.
- * @see sock_connect_ip()
+ * Check errno for details.
 */
 SOCKET sock_connect_addr(char *addr, unsigned short port, double timeout)
 {
@@ -273,6 +303,7 @@ SOCKET sock_connect_addr(char *addr, unsigned short port, double timeout)
  * @param len Byte length of data to receive
  * @param flags Flags to pass to recv()
  * @param timeout time, in seconds, to wait for packet
+ * @returns (int) value representing the operation result
  * @retval (0) for success
  * @retval (1) for end communication
  * @retval (-1) for timeout
@@ -286,7 +317,7 @@ int sock_recv(SOCKET sd, void *pkt, int len, int flags, double timeout)
    for(n = 0; n < len; ) {
       /* check socket for pending data */
       count = (int) recv(sd, ((char *) pkt) + n, len - n, flags);
-      if (count == 0 || !Sockinuse) return 1;  /* end communication */
+      if (count == 0) return 1;  /* end communication */
       if (count > 0) n += count;  /* count recv'd bytes */
       else if(difftime(time(NULL), start) >= timeout) return (-1);
       else millisleep(1);  /* socket is waiting patiently */
@@ -303,6 +334,7 @@ int sock_recv(SOCKET sd, void *pkt, int len, int flags, double timeout)
  * @param len Byte length of data to send
  * @param flags Flags to pass to send()
  * @param timeout time, in seconds, to wait for send
+ * @returns (int) value representing the operation result
  * @retval (0) for success
  * @retval (1) for end communication
  * @retval (-1) for timeout
@@ -316,7 +348,7 @@ int sock_send(SOCKET sd, void *pkt, int len, int flags, double timeout)
    for(n = 0; n < len; ) {
       /* check socket for pending data */
       count = (int) send(sd, ((char *) pkt) + n, len - n, flags);
-      if (count == 0 || !Sockinuse) return 1;  /* end communication */
+      if (count == 0) return 1;  /* end communication */
       if (count > 0) n += count;  /* count sent bytes */
       else if(difftime(time(NULL), start) >= timeout) return (-1);
       else millisleep(1);  /* socket is waiting patiently */
@@ -327,8 +359,8 @@ int sock_send(SOCKET sd, void *pkt, int len, int flags, double timeout)
 
 /**
  * Get the IPv4 address of the host.
- * @returns 0 on succesful operation, else non-zero on error.
- * @note Requires sock_startup() to be previously called.
+ * @returns 0 on succesful operation, or SOCKET_ERROR on error.
+ * Check errno for details.
 */
 int gethostip(char *name, int namelen)
 {
@@ -346,6 +378,10 @@ int gethostip(char *name, int namelen)
          return sock_close(sd);
       }
    }
+
+#ifdef _WIN32
+   set_alterrno(WSAGetLastError());
+#endif
 
    sock_close(sd);
    return SOCKET_ERROR;
