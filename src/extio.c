@@ -11,19 +11,44 @@
 
 
 #include "extio.h"
-#include "extos.h"
 
-#include <errno.h>   /* for access to errno and error codes */
+/* internal support */
+#include "exterrno.h"
+
+/* external support */
 #include <stdarg.h>  /* for va_list functionality */
+#include <stdlib.h>  /* for malloc() functionality */
 #include <string.h>  /* for string manipulation and comparison */
 
-#if OS_WINDOWS
-   #include <direct.h>  /* for _mkdir() */
-
-#elif OS_UNIX
-   #include <sys/stat.h>  /* for mkdir() */
+#ifndef _WIN32
+   #include <unistd.h>    /* for sysconf() */
 
 #endif
+
+/**
+ * Append to a character string buffer. Calculates the remaining available
+ * space in @a buf using @a bufsz and `strlen(buf)`, and appends at most
+ * the remaining available space, less 1 (for the null terminator).
+ * @param buf Pointer to character string buffer
+ * @param bufsz Size of @a buf, in bytes
+ * @param fmt Pointer to null-terminated format string
+ * @param ... arguments specifying additional data to print per format
+ * @returns (int) Number of characters (including the null terminator)
+ * which would have been appended to @a buf if @a bufsz was ignored.
+*/
+int asnprintf(char *buf, size_t bufsz, const char *fmt, ...)
+{
+   va_list args;
+   size_t cur;
+   int count;
+
+   cur = strlen(buf);
+   va_start(args, fmt);
+   count = vsnprintf(&buf[cur], bufsz > cur ? bufsz - cur : 0, fmt, args);
+   va_end(args);
+
+   return count;
+}  /* end asnprintf() */
 
 /**
  * Get the number of logical cores available for use.
@@ -35,34 +60,91 @@ int cpu_cores(void)
    static int cores = 0;
 
    if (cores == 0) {
-   #if OS_WINDOWS
+#ifdef _WIN32
       SYSTEM_INFO sysinfo;
       GetSystemInfo(&sysinfo);
       cores = (int) sysinfo.dwNumberOfProcessors;
-   #elif OS_UNIX
+#else
       cores = (int) sysconf(_SC_NPROCESSORS_ONLN);
-   #else
-      #warning Unexpected OS configuration; cpu_cores() affected.
-      /* assume single core */
-      cores = 1;
-   #endif
+#endif
    }
 
    return cores;
 }  /* end cpu_cores() */
 
 /**
+ * Perform a binary search for data in a file.
+ * Assumes file is sorted (ascending) in @a size length binary elements.
+ * @param fname Name of file to search in
+ * @param key Pointer to data to search for
+ * @param len Length of data in key to compare
+ * @param buf Pointer to a buffer to place search data
+ * @param size Length of each item in search data file
+ * @returns (void *) pointer to buf containing found value, else NULL.
+ * @exception errno=EINVAL A function parameter is invalid
+ * @exception errno=XEEOF Unexpected end-of-file while reading @a fname
+*/
+void *fbsearch(char *fname, void *key, size_t len, void *buf, size_t size)
+{
+   FILE *fp;
+   long long mid, hi, low;
+   int cond;
+
+   /* parameter check */
+   if (fname == NULL || key == NULL || buf == NULL
+         || len == 0 || size == 0) {
+      set_errno(EINVAL);
+      return NULL;
+   }
+
+   /* open file for reading */
+   fp = fopen(fname, "rb");
+   if (fp == NULL) return NULL;
+
+   /* set hi/lo positions for search */
+   if (fseek64(fp, 0LL, SEEK_END) != 0) goto DONE;
+   hi = ftell64(fp);
+   if (hi == EOF) goto DONE;
+   hi = hi - size;
+   low = 0;
+   /* perform binary search */
+   while (low <= hi) {
+      mid = (hi + low) / 2;
+      if (fseek64(fp, mid, SEEK_SET) != 0) break;
+      if (fread(buf, size, 1, fp) != 1) break;
+      /* compare next middle value */
+      cond = memcmp(key, buf, len);
+      if (cond == 0) {
+         /* found */
+         fclose(fp);
+         return buf;
+      } else if (low == hi) break;
+      if (cond < 0) hi = mid - size;
+      else low = mid + size;
+   }  /* end while */
+   /* check unexpected end-of-file */
+   if (feof(fp)) set_errno(XEEOF);
+
+DONE:
+   /* cleanup */
+   fclose(fp);
+
+   /* not found */
+   return NULL;
+}  /* end fbsearch() */
+
+/**
  * Copy a file from one location to another.
  * @param srcpath Path of the source file.
  * @param dstpath Path of the destination file.
- * @return 0 on success, or 1 on error (check errno for details).
+ * @returns 0 on success, or non-zero on error. Check errno for details.
 */
 int fcopy(char *srcpath, char *dstpath)
 {
    char buf[BUFSIZ];
    FILE *sfp, *dfp;
    size_t nBytes;
-   int ecode = 1;
+   int ecode = -1;
 
    /* open source file */
    sfp = fopen(srcpath, "rb");
@@ -71,9 +153,10 @@ int fcopy(char *srcpath, char *dstpath)
       dfp = fopen(dstpath, "wb");
       if (dfp != NULL) {
          /* transfer bytes in BUFSIZ chunks (set by stdio) */
-         do {  /* nBytes represents number of bytes read */
-            nBytes = fread(buf, 1, BUFSIZ, sfp);
-         } while(nBytes && nBytes == fwrite(buf, 1, nBytes, dfp));
+         while ((nBytes = fread(buf, 1, BUFSIZ, sfp))) {
+            if (nBytes > 0 && fwrite(buf, nBytes, 1, dfp) != 1) break;
+            if (nBytes < BUFSIZ) break;  /* EOF or ERROR */
+         }
          /* if no file errors, set operation success (0) */
          if (ferror(sfp) == 0 && ferror(dfp) == 0) ecode = 0;
          fclose(dfp);
@@ -87,7 +170,7 @@ int fcopy(char *srcpath, char *dstpath)
 /**
  * Check if a file exists.
  * @param fpath Path to file to check
- * @return 1 if file exists, else 0.
+ * @returns 1 if file exists, else 0.
 */
 int fexists(char *fpath)
 {
@@ -104,34 +187,107 @@ int fexists(char *fpath)
  * Check if a file exists and contains data.
  * Attribution: Thanks David!
  * @param fpath Path o file to check
- * @return 1 if file exists and contains data, else 0.
+ * @returns 1 if file exists and contains data, else 0.
 */
 int fexistsnz(char *fpath)
 {
    FILE *fp;
-   long len;
+   long long len;
 
    fp = fopen(fpath, "rb");
    if(!fp) return 0;
-   fseek(fp, 0, SEEK_END);
-   len = ftell(fp);
+   fseek64(fp, 0LL, SEEK_END);
+   len = ftell64(fp);
    fclose(fp);
 
    return len ? 1 : 0;
 }  /* end fexistsnz() */
 
 /**
+ * Save the contents of a file stream to a specified file location.
+ * Useful if a stream was opened in-memory or as a temporary file,
+ * which may not require a physical disk location to begin with.
+ * Existing files will be overwritten.
+ * @param stream Pointer to a file stream to save
+ * @param filename Filename to save file data to
+ * @returns 0 on success, or non-zero on error. Check errno for details.
+*/
+int fsave(FILE *stream, char *filename)
+{
+   FILE *fp;
+   size_t count;
+   int ecode = 0;
+   char buf[BUFSIZ];
+
+   rewind(stream);
+
+   fp = fopen(filename, "wb");
+   if (fp == NULL) return EOF;
+
+   while ((count = fread(buf, 1, BUFSIZ, stream))) {
+      if (count > 0 && fwrite(buf, count, 1, fp) != 1) break;
+      if (count < BUFSIZ) break;
+   }
+   /* check errors */
+   if (ferror(stream) || ferror(fp)) ecode = -1;
+
+   /* cleanup */
+   fclose(fp);
+
+   return ecode;
+}  /* end fsave() */
+
+/**
+ * Set the file position indicator of a file stream to a 64-bit offset.
+ * @param stream Pointer to a FILE stream
+ * @param offset Number of characters to shift the position from origin
+ * @param origin Poisition to which offset is added
+ * @returns 0 on success, or non-zero on error. Check errno for details.
+*/
+int fseek64(FILE *stream, long long offset, int origin)
+{
+#ifdef _WIN32
+   /* Windows' long 32-bit datatype is always insufficient */
+   return _fseeki64(stream, offset, origin);
+
+#else
+   /* _FILE_OFFSET_BITS == 64, is defined in extio.h */
+   return fseeko(stream, (off_t) offset, origin);
+
+#endif
+}  /* end fseek64() */
+
+/**
+ * Get the file position indicator for a file stream.
+ * @param stream Pointer to a FILE stream to examine
+ * @returns Value of file position offset on success, or (-1) on error.
+ * Check errno for details.
+*/
+long long ftell64(FILE *stream)
+{
+#ifdef _WIN32
+   /* Windows' long 32-bit datatype is always insufficient */
+   return _ftelli64(stream);
+
+#else
+   /* _FILE_OFFSET_BITS == 64, is defined in extio.h */
+   return ftello(stream);
+
+#endif
+}  /* end ftell64() */
+
+/**
  * Touch a file. Opens @a fpath in "ab" mode, and closes it.
  * Performs no other operations on the file.
- * @param fpath Path o file to touch
- * @return 0 on success, else 1 on error (check errno for details).
+ * @param fpath Path to file to touch
+ * @return 0 on success, or non-zero on error. Check errno for details.
 */
 int ftouch(char *fpath)
 {
    FILE *fp;
 
    fp = fopen(fpath, "ab");
-   if (fp == NULL) return 1;
+   if (fp == NULL) return -1;
    fclose(fp);
 
    return 0;
@@ -141,7 +297,7 @@ int ftouch(char *fpath)
  * Create a directory at dirpath (including any parent directories).
  * Immitates the shell command @code mkdir -p <dirpath> @endcode
  * @param dirpath Path of directory to be created
- * @return 0 on success, or 1 on error (check errno for details).
+ * @return 0 on success, or non-zero on error. Check errno for details.
  * @note Where `dirpath` already exists, `mkdir_p()` always succeeds.
 */
 int mkdir_p(char *dirpath)
@@ -149,10 +305,10 @@ int mkdir_p(char *dirpath)
    char path[BUFSIZ] = { 0 };
    char *dirpathp = dirpath;
    size_t len = 0;
-   int ecode = 1;
+   int ecode = -1;
 
-   if (dirpath == NULL) errno = EINVAL;
-   else if (strlen(dirpath) + 1 >= BUFSIZ) errno = ENAMETOOLONG;
+   if (dirpath == NULL) set_errno(EINVAL);
+   else if (strlen(dirpath) + 1 >= BUFSIZ) set_errno(ENAMETOOLONG);
    else do {
       /* split (excl. preceding path separator)... */
       dirpathp = strpbrk(++dirpathp, "\\/");
@@ -162,13 +318,11 @@ int mkdir_p(char *dirpath)
       strncpy(path, dirpath, len);
       path[len] = '\0';  /* ensure nul-termination */
       /* ... creating parent directories, and ignoring EEXIST */
-   #if OS_WINDOWS
-      ecode = (_mkdir(path) && errno != EEXIST) ? 1 : 0;
-   #elif OS_UNIX
-      ecode = (mkdir(path, 0777) && errno != EEXIST) ? 1 : 0;
-   #else
-      #warning Unexpected OS configuration; mkdir_p() affected.
-   #endif
+#ifdef _WIN32
+      ecode = (_mkdir(path) && errno != EEXIST) ? -1 : 0;
+#else
+      ecode = (mkdir(path, 0777) && errno != EEXIST) ? -1 : 0;
+#endif
    } while(ecode == 0 && len < strlen(dirpath));
 
    return ecode;
@@ -195,37 +349,6 @@ int read_data(void *buff, int len, char *fpath)
 
    return (int) count;
 }  /* end read_data() */
-
-/**
- * Append the result of snprintf to `buf[buflen]`. In this function,
- * @a buflen represents the entire length of @a buf and appends only
- * the remaining amount of characters available in @a buf defined by
- * `( buflen - strlen(buf) )`.
- * @param buf Pointer to character string to write to
- * @param buflen Length of characters to be written (includes null
- * terminator)
- * @param fmt Pointer to null terminated character string specifying
- * how to interpet the variable argument list
- * @param ... arguments specifying data to print
- * @returns The number of characters written if successful or
- * negative value if an error occurred.
-*/
-int snprintf_append(char *buf, size_t buflen, const char *fmt, ...)
-{
-   size_t current, remaining;
-   va_list args;
-   int res = 0;
-
-   current = strlen(buf);
-   if (current <= buflen - 1) {
-      remaining = buflen - current;
-      va_start(args, fmt);
-      res = vsnprintf(&buf[current], remaining, fmt, args);
-      va_end(args);
-   }
-
-   return res;
-}
 
 /**
  * Write data from a buffer, directly to file.
