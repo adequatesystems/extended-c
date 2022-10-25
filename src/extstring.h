@@ -18,6 +18,7 @@ extern "C" {
 #endif
 
 void memswap(void *ax, void *bx, size_t count);
+char *strerror_ext(int errnum, char *buf, size_t buflen);
 
 #ifdef __cplusplus
 }  /* end extern "C" */
