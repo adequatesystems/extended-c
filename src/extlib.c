@@ -516,5 +516,161 @@ FAIL1:
    return (-1);
 }  /* end filesort() */
 
+/**
+ * Append a LinkedList of LinkedNode's to another LinkedList.
+ * @param srcp Pointer to source list
+ * @param dstp Pointer to destination list
+ * @returns 0 on success, or non-zero on error. Check errno for details.
+ * @exception errno=ENOLINK One of the provided lists has missing links
+ * @exception errno=EINVAL One of the supplied pointers is NULL
+*/
+int link_list_append(LinkedList *srcp, LinkedList *dstp)
+{
+   /* sanity checks on parameters -- acquire lock when available */
+   if (srcp == NULL || dstp == NULL) goto FAIL_INVAL;
+
+   /* determine state of destination list... */
+   if (dstp->last) {
+      /* ... append list mode -- validate source list */
+      if (srcp->next) {
+         if (srcp->last) {
+            /* join next/last linkages -- add count */
+            srcp->next->prev = dstp->last;
+            dstp->last->next = srcp->next;
+            dstp->last = srcp->last;
+            dstp->count += srcp->count;
+            /* clear source list */
+            srcp->next = srcp->last = NULL;
+            srcp->count = 0;
+         } else goto FAIL_NOLINK;
+      } else if (srcp->last) goto FAIL_NOLINK;
+   } else if (dstp->next == NULL) {
+      /* ... new list mode -- set references and count */
+      dstp->next = srcp->next;
+      dstp->last = srcp->last;
+      dstp->count = srcp->count;
+      /* clear source list */
+      srcp->next = srcp->last = NULL;
+      srcp->count = 0;
+   } else goto FAIL_NOLINK;
+
+   /* success */
+   return 0;
+
+/* error handling */
+FAIL_INVAL: set_errno(EINVAL); return (-1);
+FAIL_NOLINK: set_errno(ENOLINK); return (-1);
+}  /* end link_list() */
+
+/**
+ * Append a LinkedNode to a LinkedList.
+ * @param nodep Pointer to node to append
+ * @param listp Pointer to list to append node to
+ * @returns 0 on success, or non-zero on error. Check errno for details.
+ * @exception errno=ENOLINK The provided list has missing links
+ * @exception errno=EINVAL One of the supplied pointers is NULL
+*/
+int link_node_append(LinkedNode *nodep, LinkedList *listp)
+{
+   /* error checks */
+   if (nodep == NULL || listp == NULL) goto FAIL_INVAL;
+
+   /* determine state of list... */
+   if (listp->last) {
+      /* reconnect last item linkage -- increment count */
+      nodep->prev = listp->last;
+      nodep->prev->next = nodep;
+      nodep->next = NULL;
+      listp->last = nodep;
+      listp->count++;
+   } else if (listp->next == NULL) {
+      /* set references and count */
+      nodep->prev = (nodep->next = NULL);
+      listp->next = (listp->last = nodep);
+      listp->count++;
+   } else goto FAIL_NOLINK;  /* NULL last SHOULD NOT HAVE non-NULL next */
+
+   /* success */
+   return 0;
+
+/* error handling */
+FAIL_INVAL: set_errno(EINVAL); return (-1);
+FAIL_NOLINK: set_errno(ENOLINK); return (-1);
+}  /* end link_node_append() */
+
+/**
+ * Create (via malloc) a LinkedNode and associated data.
+ * To prevent a memory leak, use link_node_destroy() before discarding.
+ * @param datasz Size (in bytes) of data pointer in LinkedNode to malloc,
+ * in addition to the LinkedNode itself. Set 0 for no additional malloc.
+ * @returns A LinkedNode pointer on success, or NULL on error.
+ * Check errno for details.
+*/
+LinkedNode *link_node_create(size_t datasz)
+{
+   LinkedNode *lnp;
+
+   /* malloc space for LinkedNode */
+   lnp = malloc(sizeof(LinkedNode));
+   if (lnp == NULL) return NULL;
+   /* malloc space for LinkedNode->data, if specified */
+   if (datasz) {
+      lnp->data = malloc(datasz);
+      if (lnp->data == NULL) return NULL;
+      /* clear malloc'd datasz */
+      memset(lnp->data, 0, datasz);
+   } else lnp->data = NULL;
+   /* clear LinkedNode linkage */
+   lnp->next = lnp->prev = NULL;
+
+   return lnp;
+}  /* end link_node_create() */
+
+/**
+ * Destroy (deallocate) a LinkedNode and associated data.
+ * @param nodep Pointer to node to deallocate
+*/
+void link_node_destroy(LinkedNode *lnp)
+{
+   /* deallocate non-NULL LinkedNode data and LinkedNode */
+   if (lnp->data) free(lnp->data);
+   free(lnp);
+}  /* end link_node_create() */
+
+/**
+ * Insert a LinkedNode into a LinkedList.
+ * @param nodep Pointer to node to append
+ * @param currp Pointer to list node currently in the position of insert
+ * @param listp Pointer to list to append node to
+ * @returns 0 on success, or non-zero on error. Check errno for details.
+ * @exception errno=ENOLINK The provided list has missing links
+ * @exception errno=EINVAL One of the supplied pointers is NULL
+*/
+int link_node_insert(LinkedNode *nodep, LinkedNode *currp, LinkedList *listp)
+{
+   /* error checks */
+   if (nodep == NULL || listp == NULL) goto FAIL_INVAL;
+
+   /* check insert position for simple append -- redirect function */
+   if (currp == NULL) return link_node_append(nodep, listp);
+
+   /* reconnect list linkage */
+   if (listp->next == currp) listp->next = nodep;
+   else if (currp->prev) currp->prev->next = nodep;
+   else goto FAIL_NOLINK;  /* non-first node SHOULD HAVE previous linkage */
+   /* prepare inserted node linkage -- increment count */
+   nodep->prev = currp->prev;
+   nodep->next = currp;
+   currp->prev = nodep;
+   listp->count++;
+
+   /* success */
+   return 0;
+
+/* error handling */
+FAIL_INVAL: set_errno(EINVAL); return (-1);
+FAIL_NOLINK: set_errno(ENOLINK); return (-1);
+}  /* end link_node_insert() */
+
 /* end include guard */
 #endif

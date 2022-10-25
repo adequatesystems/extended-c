@@ -14,6 +14,25 @@
 #include "extint.h"
 #include <stdlib.h>
 
+
+/**
+ * Linked node struct.
+*/
+typedef struct linkednode_t {
+   struct linkednode_t *next; /**< pointer to next node (if in list) */
+   struct linkednode_t *prev; /**< pointer to previous node (if in list) */
+   void *data;                /**< pointer to data for node */
+} LinkedNode;
+
+/**
+ * Linked list struct.
+*/
+typedef struct linkedlist_t {
+   struct linkednode_t *next; /**< pointer to next node (head) in list */
+   struct linkednode_t *last; /**< pointer to last node (tail) in list */
+   int count;                 /**< count of nodes in list */
+} LinkedList;
+
 /* C/C++ compatible function prototypes for extthread.c */
 #ifdef __cplusplus
 extern "C" {
@@ -47,6 +66,14 @@ void *bsearch_len(const void *key, size_t len,
    const void *ptr, size_t count, size_t size);
 int filesort(const char *filename, size_t size, size_t bufsz,
    int (*comp)(const void *, const void *));
+int link_list_append(LinkedList *srcp, LinkedList *dstp);
+int link_node_append(LinkedNode *nodep, LinkedList *listp);
+LinkedNode *link_node_create(size_t datasz);
+void link_node_destroy(LinkedNode *lnp);
+int link_node_insert
+   (LinkedNode *nodep, LinkedNode *currp, LinkedList *listp);
+int link_node_remove(LinkedNode *nodep, LinkedList *listp);
+
 #ifdef __cplusplus
 }  /* end extern "C" */
 #endif
