@@ -3,26 +3,40 @@
 #include "../extio.h"
 #include <errno.h>
 
+void cleanup(void)
+{
+   remove("tmp/dir/tree/test3.tmp");
+   remove("tmp/dir/tree/test2.tmp");
+   remove("tmp/dir/tree/test.tmp");
+   remove("tmp/dir/tree");
+   remove("tmp/dir");
+   remove("tmp");
+}
+
 int main()
 {
    char input[1024], nametoolong[FILENAME_MAX + 1];
    char *printable = " !\"#$%&'()*+,-./0123456789:;<=>?@"
       "ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+   char search[6];
    unsigned i;
    FILE *fp;
 
+   /* cleanup previous failures -- it's sensitive */
+   cleanup();
+
    /* check mkdir_p() fault conditions */
    for (i = 0; i < sizeof(nametoolong); i++) nametoolong[i] = 'A';
-   ASSERT_EQ(mkdir_p(NULL), 1);
+   ASSERT_NE(mkdir_p(NULL), 0);
    ASSERT_EQ(errno, EINVAL);
-   ASSERT_EQ(mkdir_p(nametoolong), 1);
+   ASSERT_NE(mkdir_p(nametoolong), 0);
    ASSERT_EQ(errno, ENAMETOOLONG);
-   ASSERT_EQ(mkdir_p(__FILE__"/abc"), 1);
+   ASSERT_NE(mkdir_p(__FILE__"/abc"), 0);
    /* check ftouch fault conditions */
-   ASSERT_EQ(ftouch("tmp/dir/tree/test.tmp"), 1);
+   ASSERT_NE(ftouch("tmp/dir/tree/test.tmp"), 0);
    /* check fcopy() source fault conditions */
-   ASSERT_EQ(fcopy(NULL, NULL), 1);
-   ASSERT_EQ(fcopy("tmp/dir/tree/test.tmp", NULL), 1);
+   ASSERT_NE(fcopy(NULL, NULL), 0);
+   ASSERT_NE(fcopy("tmp/dir/tree/test.tmp", NULL), 0);
    /* create directory structure and touch a file within directory */
    ASSERT_EQ_MSG(mkdir_p("tmp/dir/tree"), 0, "mkdir_p() should return 0");
    ASSERT_EQ_MSG(mkdir_p("tmp/dir/tree"), 0, "mkdir_p() shouldn't complain");
@@ -32,22 +46,31 @@ int main()
    fp = fopen("tmp/dir/tree/test.tmp", "w");
    fwrite(printable, strlen(printable), 1, fp);
    fclose(fp);
+   fp = NULL;
+   /* check fbsearch() fault and find conditions */
+   ASSERT_EQ(fbsearch(NULL, "a1b", 3, search, 6), NULL);
+   ASSERT_EQ_MSG(errno, EINVAL, "errno should be EINVAL for invalid param");
+   ASSERT_EQ(fbsearch("tmp/dir/tree/test.tmp", "a1b", 3, search, 6), NULL);
+   ASSERT_EQ(fbsearch("tmp/dir/tree/test.tmp",
+      &printable[12], 3, search, 6), search);
+   ASSERT_CMP(&printable[12], search, 6);
    /* check fcopy() destination fault conditions */
-   ASSERT_EQ(fcopy("tmp/dir/tree/test.tmp", NULL), 1);
-   ASSERT_EQ(fcopy("tmp/dir/tree/test.tmp", "tmp/dir/tree/bad/file"), 1);
+   ASSERT_NE(fcopy("tmp/dir/tree/test.tmp", NULL), 0);
+   ASSERT_NE(fcopy("tmp/dir/tree/test.tmp", "tmp/dir/tree/bad/file"), 0);
    /* copy file to same location */
    ASSERT_EQ(fcopy("tmp/dir/tree/test.tmp", "tmp/dir/tree/test2.tmp"), 0);
    ASSERT_EQ(fexists("tmp/dir/tree/test2.tmp"), 1);
+   /* check fsave() capabilities */
+   fp = fopen("tmp/dir/tree/test2.tmp", "rb");
+   ASSERT_EQ(fsave(fp, "tmp/dir/tree/test3.tmp"), 0);
+   fclose(fp);
+   ASSERT_EQ(fexists("tmp/dir/tree/test3.tmp"), 1);
    /* check copied data is exact */
-   fp = fopen("tmp/dir/tree/test2.tmp", "r");
+   fp = fopen("tmp/dir/tree/test3.tmp", "r");
    fread(input, 1, sizeof(input), fp);
    fclose(fp);
    ASSERT_STR(input, printable, strlen(printable));
 
    /* cleanup */
-   remove("tmp/dir/tree/test2.tmp");
-   remove("tmp/dir/tree/test.tmp");
-   remove("tmp/dir/tree");
-   remove("tmp/dir");
-   remove("tmp");
+   cleanup();
 }
