@@ -43,6 +43,10 @@ void srand32(unsigned long long x);
 void shuffle(void *list, size_t size, size_t count);
 void shufflenz(void *list, size_t size, size_t count);
 
+void *bsearch_len(const void *key, size_t len,
+   const void *ptr, size_t count, size_t size);
+int filesort(const char *filename, size_t size, size_t bufsz,
+   int (*comp)(const void *, const void *));
 #ifdef __cplusplus
 }  /* end extern "C" */
 #endif

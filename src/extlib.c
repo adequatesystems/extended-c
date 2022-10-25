@@ -11,7 +11,11 @@
 
 
 #include "extlib.h"
-#include "extmath.h"  /* for iszero() in *nz() functions */
+
+/* internal support */
+#include "exterrno.h"
+#include "extio.h"      /* for f*64() functions in filesort */
+#include "extmath.h"    /* for iszero() in *nz() functions */
 #include "extstring.h"  /* for memory manipulation support */
 
 /* Internal state seeds for PRNG's */
@@ -253,8 +257,7 @@ void shufflenz(void *list, size_t size, size_t count)
    shuffle(list, size, count);
 }  /* end shufflenz() */
 
-/**
- * Search a `list[count]` of non-zero, @a size byte elements
+/* Search a `list[count]` of non-zero, @a size byte elements
  * for a @a value.
  * @returns Pointer to found value, else NULL if not found.
 *
@@ -270,8 +273,7 @@ void *search(void *value, void *list, size_t size, size_t count)
    return NULL;
 }  // end search() */
 
-/**
- * Search a `list[count]` of non-zero, @a size byte elements
+/* Search a `list[count]` of non-zero, @a size byte elements
  * for a @a value. A zero value marks the end of list.
  * @returns Pointer to found value, else NULL if not found.
 *
@@ -287,8 +289,7 @@ void *searchnz(void *value, void *list, size_t size, size_t count)
    return NULL;
 }  // end searchnz() */
 
-/**
- * Extract a @a value from a `list[count]` of non-zero, @a size
+/* Extract a @a value from a `list[count]` of non-zero, @a size
  * byte elements.
  * @returns Pointer to extracted value, else NULL if not found.
 *
@@ -308,8 +309,7 @@ void *extractnz(void *value, void *list, size_t size, size_t count)
    return value;
 }  // end extractnz() */
 
-/**
- * Append a non-zero, @a size byte value to a `list[count]`.
+/* Append a non-zero, @a size byte value to a `list[count]`.
  * @returns Pointer to appended value, else NULL if not appended.
 *
 void *appendnz(void *value, void *list, size_t size, size_t count)
@@ -326,6 +326,195 @@ void *appendnz(void *value, void *list, size_t size, size_t count)
 
    return NULL;
 }  // end appendnz() */
+
+/**
+ * Perform a binary search for @a len bytes of @a key in @a ptr.
+ * Data at @a ptr is expected to be sorted in blocks of @a len bytes.
+ * Performance comparison of the C Standard bsearch() function
+ * is negligible... <https://godbolt.org/z/TKKjcc6ev>
+ * @param key Pointer to key to search for
+ * @param len Length, in bytes, of key to compare
+ * @param ptr Pointer to data to search in
+ * @param count Number of elements to search
+ * @param size Number of bytes of each element
+ * @returns (void *) Pointer to found element, or NULL if not found.
+*/
+void *bsearch_len(const void *key, size_t len,
+   const void *ptr, size_t count, size_t size)
+{
+   size_t mid, hi, lo;
+   void *data;
+   int cond;
+
+   /* init */
+   hi = count - 1;
+   lo = 0;
+
+   /* binary search ptr for key */
+   while (lo <= hi) {
+      mid = (hi + lo) / 2;
+      data = (char *) ptr + (mid * size);
+      cond = memcmp(key, (char *) data, len);
+      /* adjust and repeat -- find first occurrence */
+      if (cond == 0) return data;
+      if (lo == hi) break;
+      if (cond < 0) hi = mid - 1; else lo = mid + 1;
+   }  /* end while */
+
+   return NULL;
+}  /* end bsearch_len() */
+
+/**
+ * Sort a file containing @a size length elements. If file data fits into
+ * the memory buffer, @a bufsz, data is simply sorted in-memory with quick
+ * sort. Otherwise, an external merge sort algorithm is applied.
+ * @param filename Name of file to sort
+ * @param size Size of each element in file
+ * @param bufsz Size of the buffer of each run used for in-memory sorting
+ * @param comp Comparison function to use when sorting elements
+ * @returns 0 on success, or non-zero on error. Check errno for details.
+ * @exception errno=EINVAL A function parameter is invalid
+*/
+int filesort(const char *filename, size_t size, size_t blocksz,
+   int (*comp)(const void *, const void *))
+{
+   void *a, *b, *buffer;
+   FILE *afp, *bfp, *ofp;
+   long long aidx, bidx;
+   long long filelen, block;
+   long long start, mid, end;
+   size_t filecount, count, in;
+   int cond;
+   char fname[FILENAME_MAX];
+
+   /* sanity checks */
+   if (filename == NULL || comp == NULL) goto FAIL_INVAL;
+   if (size == 0 || blocksz == 0) goto FAIL_INVAL;
+
+   /* PHASE 1: pre-sort blocks of data */
+
+   /* get count for blocksz (adjust) */
+   count = blocksz / size;
+   blocksz = count * size;
+   /* create buffer, open input/output files */
+   ofp = fopen(filename, "rb+");
+   buffer = malloc(blocksz);
+   /* check failures */
+   if (ofp == NULL || buffer == NULL) goto FAIL1;
+
+   /* get filelen */
+   if (fseek64(ofp, 0LL, SEEK_END) != 0) goto FAIL1;
+   if ((filelen = ftell64(ofp)) == EOF) goto FAIL1;
+   filecount = (size_t) (filelen / size);
+
+   for (rewind(ofp); filecount > 0; filecount -= in) {
+      /* read input file in chunks for presort */
+      if (filecount < count) count = filecount;
+      in = fread(buffer, size, count, ofp);
+      if (in < count && ferror(ofp)) goto FAIL1;
+      if (fseek(ofp, -(in * size), SEEK_CUR) != 0) goto FAIL1;
+      /* check data was read */
+      if (in > 0) {
+         /* perform sort on buffer data, write to output */
+         if (in > 1) qsort(buffer, in, size, comp);
+         if (fwrite(buffer, size, in, ofp) != in) goto FAIL1;
+      }
+   }
+   /* cleanup */
+   fclose(ofp);
+   free(buffer);
+
+   /* PHASE 2: merge sort blocks together until nothing left to sort */
+
+   /* obtain file size */
+   filelen = EOF;
+   ofp = fopen(filename, "rb");
+   if (ofp == NULL) return (-1);
+   if (fseek64(ofp, 0LL, SEEK_END) == 0) filelen = ftell64(ofp);
+   fclose(ofp);
+   /* check filesize */
+   if (filelen == EOF) return (-1);
+
+   /* create comparison buffers */
+   a = malloc(size);
+   b = malloc(size);
+   if (a == NULL || b == NULL) goto FAIL2;
+
+   snprintf(fname, FILENAME_MAX, "%s.sort", filename);
+
+   /* iterate until (sorted) block size is greater than total filesize */
+   for (block = (long long) blocksz; block < filelen; block <<= 1) {
+      /* open files for merge sorting */
+      afp = fopen(filename, "rb");
+      bfp = fopen(filename, "rb");
+      ofp = fopen(fname, "wb");
+      if (afp == NULL || bfp == NULL || ofp == NULL) goto FAIL2_IO;
+      /* iterate over every "block pair", shifting end to start */
+      for (start = 0; start < filelen; start = end) {
+         /* set index parameters */
+         mid = start + block;
+         end = mid + block;
+         if (mid > filelen) mid = end = filelen;
+         else if (end > filelen) end = filelen;
+         aidx = start;
+         bidx = mid;
+
+         /* pre-read first values into buffers */
+         if (fseek64(afp, aidx, SEEK_SET) != 0) goto FAIL2_IO;
+         if (fread(a, size, 1, afp) != 1) goto FAIL2_IO;
+         if (bidx < end) {
+            if (fseek64(bfp, bidx, SEEK_SET) != 0) goto FAIL2_IO;
+            if (fread(b, size, 1, bfp) != 1) goto FAIL2_IO;
+         }
+         /* walk the block pair until data is (merge) sorted */
+         while (aidx < mid || bidx < end) {
+            if (aidx >= mid) cond = 1;
+            else if (bidx >= end) cond = -1;
+            else cond = comp(a, b);
+            /* determine comparison result */
+            if (cond <= 0) {
+               /* write a to output and read another (if available) */
+               if (fwrite(a, size, 1, ofp) != 1) goto FAIL2_IO;
+               aidx += size;
+               if (aidx < mid) {
+                  if (fread(a, size, 1, afp) != 1) goto FAIL2_IO;
+               }
+            } else {
+               /* write b to output and read another (if available) */
+               if (fwrite(b, size, 1, ofp) != 1) goto FAIL2_IO;
+               bidx += size;
+               if (bidx < end) {
+                  if (fread(b, size, 1, bfp) != 1) goto FAIL2_IO;
+               }
+            }
+         }
+      }
+      /* close files and move result back to filename */
+      fclose(ofp);
+      fclose(bfp);
+      fclose(afp);
+      if (remove(filename) != 0) goto FAIL2;
+      if (rename(fname, filename) != 0) goto FAIL2;
+   }
+
+   /* sort success */
+   return 0;
+
+/* error handling */
+FAIL_INVAL: set_errno(EINVAL); return (-1);
+FAIL2_IO:
+   if (ofp) fclose(ofp);
+   if (bfp) fclose(bfp);
+   if (afp) fclose(afp);
+FAIL2:
+   if (b) free(b);
+   if (a) free(a);
+   return (-1);
+FAIL1:
+   if (buffer) free(buffer);
+   if (ofp) fclose(ofp);
+   return (-1);
+}  /* end filesort() */
 
 /* end include guard */
 #endif
