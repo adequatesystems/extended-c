@@ -14,6 +14,27 @@
 #include "extint.h"
 #include <stdlib.h>
 
+#ifdef _WIN32
+   /* compatibility layer definitions for file mapping */
+   #define MAP_FILE        0x00
+   #define MAP_SHARED      0x01
+   #define MAP_PRIVATE     0x02
+   #define MAP_TYPE        0x0f
+   #define MAP_FIXED       0x10
+   #define MAP_ANONYMOUS   0x20
+   #define MAP_ANON        MAP_ANONYMOUS
+   #define MAP_FAILED      ((void *) -1)
+   #define PROT_NONE       0x00
+   #define PROT_READ       0x01
+   #define PROT_WRITE      0x02
+   #define PROT_EXEC       0x04
+
+/* end Windows */
+#else
+   #include <sys/mman.h>  /* for mmap() et al */
+
+/* end UNIX-like */
+#endif
 
 /**
  * Linked node struct.
@@ -73,6 +94,14 @@ void link_node_destroy(LinkedNode *lnp);
 int link_node_insert
    (LinkedNode *nodep, LinkedNode *currp, LinkedList *listp);
 int link_node_remove(LinkedNode *nodep, LinkedList *listp);
+
+#ifdef _WIN32
+
+void *mmap(void *addr, size_t len, int prot, int flags, int fd, size_t off);
+int munmap(void *addr, size_t length);
+
+/* end Windows */
+#endif
 
 #ifdef __cplusplus
 }  /* end extern "C" */
