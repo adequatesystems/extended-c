@@ -82,7 +82,6 @@ int cpu_cores(void)
  * @param size Length of each item in search data file
  * @returns (void *) pointer to buf containing found value, else NULL.
  * @exception errno=EINVAL A function parameter is invalid
- * @exception errno=XEEOF Unexpected end-of-file while reading @a fname
 */
 void *fbsearch(char *fname, void *key, size_t len, void *buf, size_t size)
 {
@@ -122,8 +121,6 @@ void *fbsearch(char *fname, void *key, size_t len, void *buf, size_t size)
       if (cond < 0) hi = mid - size;
       else low = mid + size;
    }  /* end while */
-   /* check unexpected end-of-file */
-   if (feof(fp)) set_errno(XEEOF);
 
 DONE:
    /* cleanup */
