@@ -5,5 +5,6 @@
 int main()
 {  /* check ntoa() converts 32-bit unsigned value to hexadecimal string */
    unsigned long decimalIPv4 = 0x6f9fcfff;
+   ASSERT_EQ(ntoa(NULL, NULL), NULL);
    ASSERT_STR(ntoa(&decimalIPv4, NULL), "255.207.159.111", 15);
 }
