@@ -4,10 +4,6 @@
  * @details Provides extended support for general utilities.
  * @copyright Adequate Systems LLC, 2018-2022. All Rights Reserved.
  * <br />For license information, please refer to ../LICENSE.md
- * @todo Implement a 32-bit PRNG with greater statistical randomness.
- * <br/>Current candidates, in order of recommendation:
- * <br/>https://en.wikipedia.org/wiki/Permuted_congruential_generator
- * <br/>https://en.wikipedia.org/wiki/Xoroshiro128%2B
 */
 
 /* include guard */
@@ -40,8 +36,10 @@ void srand16fast(word32 x);
 word32 get_rand16fast(void);
 void srand16(word32 x, word32 y, word32 z);
 void get_rand16(word32 *x, word32 *y, word32 *z);
-word32 rand16(void);
 word32 rand16fast(void);
+word32 rand16(void);
+word32 rand32(void);
+void srand32(unsigned long long x);
 void shuffle(void *list, size_t size, size_t count);
 void shufflenz(void *list, size_t size, size_t count);
 

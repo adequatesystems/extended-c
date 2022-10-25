@@ -14,11 +14,18 @@
 #include "extmath.h"  /* for iszero() in *nz() functions */
 #include "extstring.h"  /* for memory manipulation support */
 
-/* Internal state seeds for PRNG's rand16fast() and rand16() */
-volatile word32 Lseed = 1;
-volatile word32 Lseed2 = 1;
-volatile word32 Lseed3 = 362436069;
-volatile word32 Lseed4 = 123456789;
+/* Internal state seeds for PRNG's */
+static word32 Lseed = 1;
+static word32 Lseed2 = 1;
+static word32 Lseed3 = 362436069;
+static word32 Lseed4 = 123456789;
+static word32 State128[4] =
+   { 0xcafef00d, 0xf01dab1e, 0x5eed1e55, 0x1dea112e };
+
+#ifndef rotl
+   #define rotl(x, n)  ( ((x) << (n)) | ((x) >> (32 - (n))) )
+
+#endif
 
 /* 64-bit guard */
 #ifdef HAS_64BIT
@@ -170,6 +177,42 @@ word32 rand16(void)
    /* the KISS method (combination of methods) */
    return (Lseed2 ^ (Lseed3 << 16) ^ Lseed4) >> 16;
 }  /* end rand16() */
+
+/**
+ * 32-bit PRNG using 128-bits of internal state seeds.
+ * Based on Xoshiro128** by David Blackman and Sebastiano Vigna.
+ * @returns (word32) value representing a random 32-bit unsigned integer.
+*/
+word32 rand32(void)
+{
+	const word32 result = rotl(State128[1] * 5, 7) * 9;
+	const word32 t = State128[1] << 9;
+
+	State128[2] ^= State128[0];
+	State128[3] ^= State128[1];
+	State128[1] ^= State128[2];
+	State128[0] ^= State128[3];
+
+	State128[2] ^= t;
+
+	State128[3] = rotl(State128[3], 11);
+
+	return result;
+}  /* end rand32() */
+
+/**
+ * Generate an internal state seed for rand32(), using a value.
+ * State generation based on SplitMix64 by Sebastiano Vigna.
+ * @param x 64-bit unsigned integer value to seed rand32() with
+*/
+void srand32(unsigned long long x)
+{
+   unsigned long long z;
+   z = (x += WORD64_C(0x9e3779b97f4a7c15));
+	z = (z ^ (z >> 30)) * WORD64_C(0xbf58476d1ce4e5b9);
+	z = (z ^ (z >> 27)) * WORD64_C(0x94d049bb133111eb);
+	*((unsigned long long *) State128) = z ^ (z >> 31);
+}  /* end srand32() */
 
 /**
  * Shuffle a `list[count]` of @a size byte elements.
