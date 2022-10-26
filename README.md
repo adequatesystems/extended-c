@@ -21,16 +21,14 @@ Originally being derived from the Mochimo Codebase, this repository contains cor
 For specific usage information, see the [documentation](https://adequatesystems.github.io/extended-c/).
 
 Extended-C library headers:
-* `"extassert.h"` - assertion support
+* `"exterrno.h"` - error number support
 * `"extinet.h"` - internet support
 * `"extint.h"` - integer support
 * `"extio.h"` - input/output support
 * `"extlib.h"` - general utilities support
 * `"extmath.h"` - math support (incl. 64-bit math for x86 systems)
-* `"extos.h"` - OS identification and system header support
-* `"extprint.h"` - printing and logging support
-* `"extstring.h"` - string manipulation support
-* `"extthread.h"` - thread and mutex support
+* `"extstring.h"` - string/memory manipulation support
+* `"extthrd.h"` - thread and mutex support
 * `"exttime.h"` - subsecond time support
 
 ## Module Installation
