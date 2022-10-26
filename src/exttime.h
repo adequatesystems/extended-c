@@ -10,8 +10,15 @@
 #define EXTENDED_TIME_H
 
 
-#include "extos.h"
 #include <time.h>
+
+#ifdef _WIN32
+   #include <Windows.h>
+
+#elif ! defined(_POSIX_VERSION) || _POSIX_VERSION < 199309L
+   #include <unistd.h>
+
+#endif
 
 /**
  * Suspend the current thread for a specified number of milliseconds.
@@ -19,28 +26,26 @@
 */
 static inline void millisleep(unsigned long ms)
 {
-#if OS_WINDOWS
+#ifdef _WIN32
    Sleep(ms);
 
-#elif OS_UNIX
+/* end Windows */
+#elif _POSIX_VERSION >= 199309L
    /* nanosleep() is specified by POSIX.1b-1993... */
-   #if _POSIX_VERSION >= 199309L
-      struct timespec ts;
+   struct timespec ts;
 
-      /* split seconds and nanoseconds from ms parameter */
-      ts.tv_sec = (time_t) (ms / 1000UL);
-      ts.tv_nsec = (long) ((ms - (ts.tv_sec * 1000UL)) * 1000000L);
-      /* perform POSIX compliant sleep */
-      /* while(nanosleep(&ts, &ts) != 0); // uninterruptible */
-      nanosleep(&ts, &ts);
+   /* split seconds and nanoseconds from ms parameter */
+   ts.tv_sec = (time_t) (ms / 1000UL);
+   ts.tv_nsec = (long) ((ms - (ts.tv_sec * 1000UL)) * 1000000L);
+   /* perform POSIX compliant sleep */
+   /* while(nanosleep(&ts, &ts) != 0); // uninterruptible */
+   nanosleep(&ts, &ts);
 
-   /* end #if _POSIX_VERSION... */
-   #else
-      usleep(ms * 1000UL);
+/* end _POSIX_VERSION >= 199309L */
+#else
+   usleep(ms * 1000UL);
 
-   #endif
-
-/* end OS_UNIX */
+/* end remaining UNIX-like */
 #endif
 }
 
