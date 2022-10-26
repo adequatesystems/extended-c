@@ -1,31 +1,37 @@
 /**
  * @file extthrd.h
  * @brief Extended thread and mutex support.
- * @details The support functions in this file are based on
- * POSIX Threads. Functionality is extended to Windows systems by
- * wrapping Windows API routines in functions imitating, as much
- * as reasonably possible, associated "pthreads" counterparts.
- * <br/>Thread function syntax: @code
+ * @details The support functions in this file are based on POSIX Threads.
+ * On Windows systems, functions wrap the Windows API imitating, as much
+ * as reasonably possible, the POSIX Thread functions they are based on.
+ * On Non-Windows systems, functions directly call the pthreads library,
+ * which must be linked by the compiler/linker using the `-pthread` option.
+ *
+ * Thread function syntax: @code
  * ThreadProc threadfn(void *args)
  * {
  *    // ... thread routine ...
  *    Unthread;  // ends the thread
  * }
- * ThreadId startThread(ThreadRoutine func, void *args)
+ * int startThread(Thread *thrdp, ThreadRoutine func, void *args)
  * {
- *    ThreadId tid;
- *    thread_create(&tid, func, args);
- *    return tid;
+ *    // NOTE: this function simply demonstrates the requirement to use
+ *    // ThreadRoutine as a parameter type when passing ThreadProc args
+ *    return thread_create(thrdp, func, args);
  * }
  * int main()
  * {
- *    ThreadId tid = startThread(threadfn, NULL);
+ *    Thread thread;
+ *
+ *    if (startThread(&thread, threadfn, NULL) != 0) {
+ *       // check errno, handle error
+ *    } else {
+ *       // Thread handle is placed in thread
+ *       thread_join(thread); // blocks until thread has finished
+ *    }
  * } @endcode
  * @copyright Adequate Systems LLC, 2021-2022. All Rights Reserved.
  * <br />For license information, please refer to ../LICENSE.md
- * @note For use in UNIX-style operating systems, POSIX Threads
- * must be linked by the compiler using the `-pthread` option.
- * 
 */
 
 /* include guard */
@@ -33,39 +39,30 @@
 #define EXTENDED_THREAD_H
 
 
-/* NOTE: For use of pthread_setname_np(), _GNU_SOURCE "must" be defined
- * before "any" includes. But defining _GNU_SOURCE under UNIX systems in
- * the "extos.h" header file may not be a desireable solution.
- * _DEFINE_GNU_SOURCE_IN_EXTOS tells "extos.h" to define _GNU_SOURCE, but
- * only for this compilation unit, reducing side-effects elsewhere. */
-#define _DEFINE_GNU_SOURCE_IN_EXTOS
-#include "extos.h"
-
-#if OS_WINDOWS
+#ifdef _WIN32
    /* use Windows API threads */
+   #include <win32lean.h>
 
    /* Windows API static initializers */
-   #define ext_CONDITION_INITIALIZER   { .semaphore = NULL, .waiting = 0 }
-   #define ext_MUTEX_INITIALIZER       NULL
+   #define ext_CONDITION_INITIALIZER   CONDITION_VARIABLE_INIT
+   #define ext_MUTEX_INITIALIZER       SRWLOCK_INIT
    #define ext_RWLOCK_INITIALIZER      SRWLOCK_INIT
 
-   typedef struct _ext_Condition {
-      HANDLE semaphore;
-      LONG waiting;
-   } ext_Condition;
-
    /* Windows API datatypes and structs */
-   #define ext_Mutex          HANDLE
+   #define ext_Condition      CONDITION_VARIABLE
+   #define ext_Mutex          SRWLOCK
    #define ext_RWLock         SRWLOCK
+   #define ext_Thread         HANDLE
    #define ext_ThreadId       DWORD
    #define ext_ThreadProc     DWORD WINAPI
    #define ext_ThreadRoutine  LPTHREAD_START_ROUTINE
-   #define ext_ThreadValue    0
+   #define ext_ThreadReturn   0
 
 /* end OS_WINDOWS */
-#elif defined(_POSIX_THREADS)
+#else
    /* use pthreads library */
    #include <pthread.h>
+   #include <unistd.h>
 
    /* POSIX THREAD static initializers */
    #define ext_CONDITION_INITIALIZER   PTHREAD_COND_INITIALIZER
@@ -79,15 +76,13 @@
    #define ext_Condition      pthread_cond_t
    #define ext_Mutex          pthread_mutex_t
    #define ext_RWLock         pthread_rwlock_t
+   #define ext_Thread         pthread_t
    #define ext_ThreadId       pthread_t
    #define ext_ThreadProc     void*
    #define ext_ThreadRoutine  THREAD_START_ROUTINE
-   #define ext_ThreadValue    NULL
+   #define ext_ThreadReturn   NULL
 
-/* end _POSIX_THREADS */
-#else
-   #error Unable to determine appropriate threading library.
-
+/* end UNIX-like */
 #endif
 
 /**
@@ -138,8 +133,8 @@
  * inside a `ThreadProc` function. If return values are necessary,
  * consider utilizing a struct containing a result variable that
  * is passed as an argument.
- * <br/>On Windows, `ext_ThreadValue` expands to: `0`.
- * <br/>On Unix, `ext_ThreadValue` expands to: `NULL`.
+ * <br/>On Windows, `ext_ThreadReturn expands to: `0`.
+ * <br/>On Unix, `ext_ThreadReturn expands to: `NULL`.
  * <br/>Example Usage: @code
  * ThreadProc threadfn(void *args)
  * {
@@ -147,7 +142,7 @@
  *    Unthread;  // ends the thread
  * } @endcode
 */
-#define Unthread return ext_ThreadValue
+#define Unthread return ext_ThreadReturn
 
 /**
  * Condition variable datatype. Used to define a "meeting place"
@@ -160,7 +155,7 @@ typedef ext_Condition Condition;
 /**
  * Mutually exclusive datatype. Used to define a variable for
  * handling mutually exclusive execution across threads.
- * <br/>On Windows, `ext_Mutex` expands to a self-managed struct.
+ * <br/>On Windows, `ext_Mutex` expands to: `SRWLOCK` (exclusive use only).
  * <br/>On Unix, `ext_Mutex` expands to: `pthread_mutex_t`.
 */
 typedef ext_Mutex Mutex;
@@ -172,6 +167,14 @@ typedef ext_Mutex Mutex;
  * <br/>On Unix, expands to: `pthread_rwlock_t`.
 */
 typedef ext_RWLock RWLock;
+
+/**
+ * Thread handle datatype.
+ * Used to reference a specific thread used by thread* functions.
+ * <br/>On Windows, expands to: `HANDLE`.
+ * <br/>On Unix, expands to: `pthread_t`.
+*/
+typedef ext_Thread Thread;
 
 /**
  * Thread Identification datatype.
@@ -203,7 +206,6 @@ int condition_timedwait(Condition *condp, Mutex *mutexp, unsigned int ms);
 int condition_destroy(Condition *condp);
 int mutex_init(Mutex *mutexp);
 int mutex_lock(Mutex *mutexp);
-int mutex_timedlock(Mutex *mutexp, unsigned int ms);
 int mutex_trylock(Mutex *mutexp);
 int mutex_unlock(Mutex *mutexp);
 int mutex_destroy(Mutex *mutexp);
@@ -215,14 +217,13 @@ int rwlock_trywrlock(RWLock *rwlockp);
 int rwlock_rdunlock(RWLock *rwlockp);
 int rwlock_wrunlock(RWLock *rwlockp);
 int rwlock_destroy(RWLock *rwlockp);
-int thread_create(ThreadId *tidp, ThreadRoutine fnp, void *argp);
-int thread_equal(ThreadId tid1, ThreadId tid2);
-int thread_join(ThreadId tid);
-int thread_join_list(ThreadId tidlist[], int count);
-ThreadId thread_self(void);
-void thread_setname(ThreadId tid, const char *name);
-int thread_terminate(ThreadId tid);
-int thread_terminate_list(ThreadId tidlist[], int count);
+int thread_create(Thread *thrdp, ThreadRoutine fnp, void *argp);
+int thread_equal(Thread thrd1, Thread thrd2);
+int thread_join(Thread thrd);
+ThreadId thread_selfid(void);
+Thread thread_self(void);
+void thread_setname(Thread thrd, const char *name);
+int thread_cancel(Thread thrd);
 
 #ifdef __cplusplus
 }  /* end extern "C" */
