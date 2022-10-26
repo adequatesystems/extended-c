@@ -66,7 +66,14 @@ var NAVTREE =
       [ "Exhibit A - Source Code Form License Notice", "md__l_i_c_e_n_s_e.html#autotoc_md28", null ],
       [ "Exhibit B - \"Incompatible With Secondary Licenses\" Notice", "md__l_i_c_e_n_s_e.html#autotoc_md29", null ]
     ] ],
-    [ "Todo List", "todo.html", null ],
+    [ "Data Structures", "annotated.html", [
+      [ "Data Structures", "annotated.html", "annotated_dup" ],
+      [ "Data Structure Index", "classes.html", null ],
+      [ "Data Fields", "functions.html", [
+        [ "All", "functions.html", null ],
+        [ "Variables", "functions_vars.html", null ]
+      ] ]
+    ] ],
     [ "Files", "files.html", [
       [ "File List", "files.html", "files_dup" ],
       [ "Globals", "globals.html", [
@@ -81,7 +88,7 @@ var NAVTREE =
 
 var NAVTREEINDEX =
 [
-"dir_68267d1309a1af8e8297ef4c3efbcdba.html"
+"annotated.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

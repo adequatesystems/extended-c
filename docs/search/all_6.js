@@ -1,9 +1,9 @@
 var searchData=
 [
-  ['int16_0',['int16',['../extint_8h.html#aa50df5d20322d173377618a99ee6d0fc',1,'extint.h']]],
-  ['int32_1',['int32',['../extint_8h.html#ad875d941a0dd3227c220bef415dcbcde',1,'extint.h']]],
-  ['int64_2',['int64',['../extint_8h.html#a86f2e2f75315689e416e9ea8bdfa970d',1,'extint.h']]],
-  ['int8_3',['int8',['../extint_8h.html#ae47c588f3ab8c61121c1c7ab7edc47cd',1,'extint.h']]],
-  ['invalid_5fsocket_4',['INVALID_SOCKET',['../extinet_8h.html#a26769957ec1a2beaf223f33b66ee64ab',1,'extinet.h']]],
-  ['iszero_5',['iszero',['../extmath_8h.html#a87d393379eac64ff792a51eff81eecbf',1,'extmath.c']]]
+  ['get16_0',['get16',['../extlib_8h.html#a6c56580ed29bdaa81bbf5c72dc13c85a',1,'extlib.c']]],
+  ['get32_1',['get32',['../extlib_8h.html#abac000d6404fb92eec317e85428ee628',1,'extlib.c']]],
+  ['get_5frand16_2',['get_rand16',['../extlib_8h.html#af34d6a2876c4b0823925ef46cec89622',1,'extlib.c']]],
+  ['get_5frand16fast_3',['get_rand16fast',['../extlib_8h.html#aa45c3149e11aae241f30638acf873303',1,'extlib.c']]],
+  ['get_5fsock_5fip_4',['get_sock_ip',['../extinet_8h.html#ad1269fe4cd924e2c81caa02c8ca9defe',1,'extinet.c']]],
+  ['gethostip_5',['gethostip',['../extinet_8h.html#a90b6b2f0e912f8416d7b2dc16dcc386c',1,'extinet.c']]]
 ];

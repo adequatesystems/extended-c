@@ -1,4 +1,29 @@
 var searchData=
 [
-  ['unthread_0',['Unthread',['../extthread_8h.html#a09e995ade7250582528bf004adb10876',1,'extthread.h']]]
+  ['set_5falterrno_0',['set_alterrno',['../exterrno_8h.html#a84064bfa937b7b778923c85d491d6160',1,'exterrno.h']]],
+  ['set_5ferrno_1',['set_errno',['../exterrno_8h.html#a90eeebe5b8d062dbdb11ec9adce6b89c',1,'exterrno.h']]],
+  ['shiftr64_2',['shiftr64',['../extmath_8h.html#a7b1d2f689b7fb9e703d187607cf55585',1,'extmath.c']]],
+  ['shuffle_3',['shuffle',['../extlib_8h.html#a63e737b30b5e961589449c9c86d36b61',1,'extlib.c']]],
+  ['shufflenz_4',['shufflenz',['../extlib_8h.html#a85de0b85b15e81b129e550da10413eab',1,'extlib.c']]],
+  ['sock_5fcleanup_5',['sock_cleanup',['../extinet_8h.html#a37d1c7235284fb0b84cbad6086445920',1,'extinet.c']]],
+  ['sock_5fclose_6',['sock_close',['../extinet_8h.html#a7c085f394f6184ba42175a676b475c7f',1,'extinet.c']]],
+  ['sock_5fconnect_5faddr_7',['sock_connect_addr',['../extinet_8h.html#a70dffe7da4e278c3f6fdae8000d61a39',1,'extinet.c']]],
+  ['sock_5fconnect_5fip_8',['sock_connect_ip',['../extinet_8h.html#aeb7eadc3088116c19bf1fdcaf48d1bfa',1,'extinet.c']]],
+  ['sock_5fconnected_9',['sock_connected',['../extinet_8h.html#a838c9e1f7f904823ad800b9632c04ed9',1,'extinet.h']]],
+  ['sock_5fconnecting_10',['sock_connecting',['../extinet_8h.html#a49bb365b58b172ff9902e23cd427b3e2',1,'extinet.h']]],
+  ['sock_5ferrno_11',['sock_errno',['../extinet_8h.html#a60a8ec2d46b6b1e2ca7719672f755c70',1,'extinet.h']]],
+  ['sock_5frecv_12',['sock_recv',['../extinet_8h.html#a997592a04f028be126d85a5e8033c9aa',1,'extinet.c']]],
+  ['sock_5fsend_13',['sock_send',['../extinet_8h.html#a72bc0be26ce4d1656765531a05426578',1,'extinet.c']]],
+  ['sock_5fset_5fblocking_14',['sock_set_blocking',['../extinet_8h.html#a82202afa2652e44fbeb8ad7573932c04',1,'extinet.c']]],
+  ['sock_5fset_5fnonblock_15',['sock_set_nonblock',['../extinet_8h.html#aee8822b4cb3693757e2279d9efdd0497',1,'extinet.c']]],
+  ['sock_5fstartup_16',['sock_startup',['../extinet_8h.html#a6695161b3d08505700caae09689cb63b',1,'extinet.c']]],
+  ['sock_5fstate_17',['sock_state',['../extinet_8h.html#a94193efb43dd668e3b90f84a83b0ef9e',1,'extinet.c']]],
+  ['sock_5fwaiting_18',['sock_waiting',['../extinet_8h.html#a1ddd54612182edb8e6752323d067c916',1,'extinet.h']]],
+  ['socket_19',['SOCKET',['../extinet_8h.html#aff55fe551a9992a54ec54621c524d0a4',1,'extinet.h']]],
+  ['socket_5ferror_20',['SOCKET_ERROR',['../extinet_8h.html#a633b0396ff93d336a088412a190a5072',1,'extinet.h']]],
+  ['srand16_21',['srand16',['../extlib_8h.html#a80dbf65a5416fcaed92ffa790a03d3f1',1,'extlib.c']]],
+  ['srand16fast_22',['srand16fast',['../extlib_8h.html#a3934135a960daec39a576b10470598fb',1,'extlib.c']]],
+  ['srand32_23',['srand32',['../extlib_8h.html#a3e365a5bb7366ae38ec893d5608ab3b1',1,'extlib.c']]],
+  ['strerror_5fext_24',['strerror_ext',['../extstring_8h.html#abfd95d0392b36483b187be6c23164d41',1,'extstring.c']]],
+  ['sub64_25',['sub64',['../extmath_8h.html#af948e93803ac71e897907e27f2fc2270',1,'extmath.c']]]
 ];

@@ -1,11 +1,12 @@
 var searchData=
 [
-  ['get16_0',['get16',['../extlib_8h.html#a6c56580ed29bdaa81bbf5c72dc13c85a',1,'extlib.c']]],
-  ['get32_1',['get32',['../extlib_8h.html#abac000d6404fb92eec317e85428ee628',1,'extlib.c']]],
-  ['get_5fnum_5ferrs_2',['get_num_errs',['../extprint_8h.html#a003730eef66cff17fceed0314e2ed835',1,'extprint.c']]],
-  ['get_5fnum_5flogs_3',['get_num_logs',['../extprint_8h.html#a9c8da09e8ffb4479de2af53aef257578',1,'extprint.c']]],
-  ['get_5frand16_4',['get_rand16',['../extlib_8h.html#af34d6a2876c4b0823925ef46cec89622',1,'extlib.c']]],
-  ['get_5frand16fast_5',['get_rand16fast',['../extlib_8h.html#aa45c3149e11aae241f30638acf873303',1,'extlib.c']]],
-  ['get_5fsock_5fip_6',['get_sock_ip',['../extinet_8h.html#ad1269fe4cd924e2c81caa02c8ca9defe',1,'extinet.c']]],
-  ['gethostip_7',['gethostip',['../extinet_8h.html#a90b6b2f0e912f8416d7b2dc16dcc386c',1,'extinet.c']]]
+  ['fbsearch_0',['fbsearch',['../extio_8h.html#aba9af66ecdf750c61aab4e2f8933c0ee',1,'extio.c']]],
+  ['fcopy_1',['fcopy',['../extio_8h.html#ac215ec7c208fde0fd06495a3e621ae1a',1,'extio.c']]],
+  ['fexists_2',['fexists',['../extio_8h.html#a2036c5cc8a73175819e8662a17d2bcec',1,'extio.c']]],
+  ['fexistsnz_3',['fexistsnz',['../extio_8h.html#af80ad7e9560d9eab015d10dea70b90dd',1,'extio.c']]],
+  ['filesort_4',['filesort',['../extlib_8h.html#afbfbaec746310cc3b5abf1f68913b208',1,'extlib.c']]],
+  ['fsave_5',['fsave',['../extio_8h.html#ae83282009cf77a830a87f5874553acdf',1,'extio.c']]],
+  ['fseek64_6',['fseek64',['../extio_8h.html#a6b23b3dfeb177fc93aa23b93916d3d1a',1,'extio.c']]],
+  ['ftell64_7',['ftell64',['../extio_8h.html#a4355b4fff374abc6d36333051b3879a9',1,'extio.c']]],
+  ['ftouch_8',['ftouch',['../extio_8h.html#a0525da59e21475f143bd6cba4f53c785',1,'extio.c']]]
 ];

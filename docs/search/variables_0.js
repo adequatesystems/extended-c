@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['sockinuse_0',['Sockinuse',['../extinet_8h.html#ac840ed72525552cdd45f123383aa494a',1,'extinet.h']]]
+  ['count_0',['count',['../structlinkedlist__t.html#ad43c3812e6d13e0518d9f8b8f463ffcf',1,'linkedlist_t']]]
 ];
