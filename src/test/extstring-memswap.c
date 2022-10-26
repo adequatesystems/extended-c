@@ -2,8 +2,10 @@
 #include "_assert.h"
 #include "../extstring.h"
 
-#define LISTLENGTH      1024
-#define LISTHALFLENGTH  (LISTLENGTH / 2)
+#include <stdio.h>
+
+#define LISTLENGTH      ( BUFSIZ + 1 )
+#define LISTHALFLENGTH  ( LISTLENGTH / 2 )
 
 int main()
 {  /* check; shuffle on list length < 2, and normal list */
@@ -14,9 +16,12 @@ int main()
 
    /* initialize lists */
    for(i = 0; i < LISTLENGTH; i++) {
-      if (i < LISTHALFLENGTH) expect_long[i] = i + LISTHALFLENGTH;
-      else expect_long[i] = i - LISTHALFLENGTH;
+      expect_long[i] = i;
       list[i] = i;
+   }
+   for (i = 0; i < LISTHALFLENGTH; i++) {
+      expect_long[i] = i + LISTHALFLENGTH;
+      expect_long[i+ LISTHALFLENGTH] = i;
    }
 
    /* memswap large memory */
