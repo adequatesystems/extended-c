@@ -28,6 +28,7 @@
 /* end Windows */
 #else
    #include <fcntl.h>   /* for fcntl() */
+   #include <unistd.h>  /* for close() */
 
 /* end UNIX-like */
 #endif
