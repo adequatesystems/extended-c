@@ -18,14 +18,16 @@
    #include <win32lean.h>
    #include <direct.h>     /* for _mkdir() */
 
-   #define cd(p) _chdir(p)
+   #define cd(p)        _chdir(p)
+   #define cwd(p, sz)   _getcwd(p, sz)
 
 /* end Windows */
 #else
    #include <unistd.h>
    #include <sys/stat.h>   /* for mkdir() */
 
-   #define cd(p) chdir(p)
+   #define cd(p)        chdir(p)
+   #define cwd(p, sz)   getcwd(p, sz)
 
 /* end UNIX-like */
 #endif
