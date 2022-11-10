@@ -496,6 +496,9 @@ int filesort(const char *filename, size_t size, size_t blocksz,
       if (remove(filename) != 0) goto FAIL2;
       if (rename(fname, filename) != 0) goto FAIL2;
    }
+   /* free buffers */
+   free(b);
+   free(a);
 
    /* sort success */
    return 0;
