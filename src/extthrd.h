@@ -48,6 +48,9 @@
    #define ext_MUTEX_INITIALIZER       SRWLOCK_INIT
    #define ext_RWLOCK_INITIALIZER      SRWLOCK_INIT
 
+   /* Windows API error codes */
+   #define ext_CONDITION_TIMEOUT       ERROR_TIMEOUT
+
    /* Windows API datatypes and structs */
    #define ext_Condition      CONDITION_VARIABLE
    #define ext_Mutex          SRWLOCK
@@ -68,6 +71,9 @@
    #define ext_CONDITION_INITIALIZER   PTHREAD_COND_INITIALIZER
    #define ext_MUTEX_INITIALIZER       PTHREAD_MUTEX_INITIALIZER
    #define ext_RWLOCK_INITIALIZER      PTHREAD_RWLOCK_INITIALIZER
+
+   /* Windows API error codes */
+   #define ext_CONDITION_TIMEOUT       ETIMEDOUT
 
    /* typedef for passing thread process functions as arguments */
    typedef void *(*THREAD_START_ROUTINE)(void *threadArgs);
@@ -94,6 +100,13 @@
  * @code Condition cond = CONDITION_INITIALIZER; @endcode
 */
 #define CONDITION_INITIALIZER ext_CONDITION_INITIALIZER
+
+/**
+ * Condition TIMEOUT error code.
+ * <br/>On Windows, expands to: `ERROR_TIMEOUT`.
+ * <br/>On Unix, expands to: `ETIMEDOUT`.
+*/
+#define CONDITION_TIMEOUT ext_CONDITION_TIMEOUT
 
 /**
  * Static Mutex initializer.
