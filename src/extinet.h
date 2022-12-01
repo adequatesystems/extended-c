@@ -15,6 +15,7 @@
 
 #ifdef _WIN32
    #pragma comment(lib, "ws2_32.lib")
+   #define FD_SETSIZE 1024    /* for UNIX consistancy */
    #include <winsock2.h>  /* for socket handling */
    #include <ws2tcpip.h>  /* for socklen_t */
 
