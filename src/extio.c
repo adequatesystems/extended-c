@@ -75,59 +75,47 @@ int cpu_cores(void)
 /**
  * Perform a binary search for data in a file.
  * Assumes file is sorted (ascending) in @a size length binary elements.
- * @param fname Name of file to search in
+ * @param fp FILE pointer to search in
  * @param key Pointer to data to search for
  * @param len Length of data in key to compare
  * @param buf Pointer to a buffer to place search data
  * @param size Length of each item in search data file
- * @returns (void *) pointer to buf containing found value, else NULL.
+ * @returns (int) 1 if found, else 0; check errno for details
  * @exception errno=EINVAL A function parameter is invalid
+ * @exception errno=0 Key not found
 */
-void *fbsearch(char *fname, void *key, size_t len, void *buf, size_t size)
+int fbsearch(FILE *fp, const void *key, size_t len, void *buf, size_t size)
 {
-   FILE *fp;
    long long mid, hi, low;
    int cond;
 
+   set_errno(0);
+
    /* parameter check */
-   if (fname == NULL || key == NULL || buf == NULL
-         || len == 0 || size == 0) {
+   if (fp == NULL || key == NULL || buf == NULL || len == 0 || size == 0) {
       set_errno(EINVAL);
-      return NULL;
+      return 0;
    }
 
-   /* open file for reading */
-   fp = fopen(fname, "rb");
-   if (fp == NULL) return NULL;
-
    /* set hi/lo positions for search */
-   if (fseek64(fp, 0LL, SEEK_END) != 0) goto DONE;
+   if (fseek64(fp, 0LL, SEEK_END) != 0) return 0;
    hi = ftell64(fp);
-   if (hi == EOF) goto DONE;
-   hi = hi - size;
+   if (hi == (-1)) return 0;
+   hi = (hi / size) - 1;
    low = 0;
    /* perform binary search */
    while (low <= hi) {
       mid = (hi + low) / 2;
-      if (fseek64(fp, mid, SEEK_SET) != 0) break;
+      if (fseek64(fp, mid * size, SEEK_SET) != 0) break;
       if (fread(buf, size, 1, fp) != 1) break;
       /* compare next middle value */
       cond = memcmp(key, buf, len);
-      if (cond == 0) {
-         /* found */
-         fclose(fp);
-         return buf;
-      } else if (low == hi) break;
-      if (cond < 0) hi = mid - size;
-      else low = mid + size;
+      if (cond == 0) return 1;  /* found */
+      if (cond < 0) hi = mid - 1;
+      else low = mid + 1;
    }  /* end while */
 
-DONE:
-   /* cleanup */
-   fclose(fp);
-
-   /* not found */
-   return NULL;
+   return 0;
 }  /* end fbsearch() */
 
 /**

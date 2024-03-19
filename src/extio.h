@@ -39,7 +39,7 @@ extern "C" {
 
 int asnprintf(char *buf, size_t bufsz, const char *fmt, ...);
 int cpu_cores(void);
-void *fbsearch(char *fname, void *key, size_t len, void *buf, size_t size);
+int fbsearch(FILE *fp, const void *key, size_t len, void *buf, size_t size);
 int fcopy(char *srcpath, char *dstpath);
 int fexists(char *fpath);
 int fexistsnz(char *fpath);
