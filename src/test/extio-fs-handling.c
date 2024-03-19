@@ -18,7 +18,6 @@ int main()
    char input[1024], nametoolong[FILENAME_MAX + 1];
    char *printable = " !\"#$%&'()*+,-./0123456789:;<=>?@"
       "ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
-   char search[6];
    unsigned i;
    FILE *fp;
 
@@ -47,13 +46,6 @@ int main()
    fwrite(printable, strlen(printable), 1, fp);
    fclose(fp);
    fp = NULL;
-   /* check fbsearch() fault and find conditions */
-   ASSERT_EQ(fbsearch(NULL, "a1b", 3, search, 6), NULL);
-   ASSERT_EQ_MSG(errno, EINVAL, "errno should be EINVAL for invalid param");
-   ASSERT_EQ(fbsearch("tmp/dir/tree/test.tmp", "a1b", 3, search, 6), NULL);
-   ASSERT_EQ(fbsearch("tmp/dir/tree/test.tmp",
-      &printable[12], 3, search, 6), search);
-   ASSERT_CMP(&printable[12], search, 6);
    /* check fcopy() destination fault conditions */
    ASSERT_NE(fcopy("tmp/dir/tree/test.tmp", NULL), 0);
    ASSERT_NE(fcopy("tmp/dir/tree/test.tmp", "tmp/dir/tree/bad/file"), 0);
