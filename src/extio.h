@@ -48,8 +48,8 @@ int fseek64(FILE *stream, long long offset, int origin);
 long long ftell64(FILE *stream);
 int ftouch(char *fpath);
 int mkdir_p(char *dirpath);
-int read_data(void *buff, int len, char *fpath);
-int write_data(void *buff, int len, char *fpath);
+size_t read_data(void *buff, size_t len, char *fpath);
+size_t write_data(void *buff, size_t len, char *fpath);
 
 #ifdef __cplusplus
 }  /* end extern "C" */

@@ -321,7 +321,7 @@ int mkdir_p(char *dirpath)
  * @param fpath Path to file to read from
  * @returns Number of bytes read into buff, or (-1) on error
 */
-int read_data(void *buff, int len, char *fpath)
+size_t read_data(void *buff, size_t len, char *fpath)
 {
    FILE *fp;
    size_t count;
@@ -332,7 +332,7 @@ int read_data(void *buff, int len, char *fpath)
    count = fread(buff, 1, len, fp);
    fclose(fp);
 
-   return (int) count;
+   return count;
 }  /* end read_data() */
 
 /**
@@ -343,7 +343,7 @@ int read_data(void *buff, int len, char *fpath)
  * @param fpath Path to file to write to
  * @returns Number of bytes written, or (-1) on error.
 */
-int write_data(void *buff, int len, char *fpath)
+size_t write_data(void *buff, size_t len, char *fpath)
 {
    FILE *fp;
    size_t count;
@@ -353,7 +353,7 @@ int write_data(void *buff, int len, char *fpath)
    count = fwrite(buff, 1, len, fp);
    fclose(fp);
 
-   return (int) count;
+   return count;
 }  /* end write_data() */
 
 /* end include guard */
