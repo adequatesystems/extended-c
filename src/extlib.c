@@ -35,7 +35,7 @@ static word32 State128[4] =
 #ifdef HAS_64BIT
 
    /* Place a 64-bit unsigned @a value in @a buff. */
-   void put64_x64(void *buff, void *value)
+   void put64_x64(void *buff, const void *value)
    {
       *((word64 *) buff) = *((word64 *) value);
    }
@@ -43,7 +43,7 @@ static word32 State128[4] =
 #endif  /* end WORD64_MAX */
 
 /* Place a 64-bit unsigned @a value in @a buff. */
-void put64_x86(void *buff, void *value)
+void put64_x86(void *buff, const void *value)
 {
    ((word32 *) buff)[0] = ((word32 *) value)[0];
    ((word32 *) buff)[1] = ((word32 *) value)[1];
@@ -54,7 +54,7 @@ void put64_x86(void *buff, void *value)
  * @param buff Pointer to buffer to get value from
  * @returns 16-bit unsigned value from @a buff.
 */
-word16 get16(void *buff)
+word16 get16(const void *buff)
 {
    return *((word16 *) buff);
 }
@@ -74,7 +74,7 @@ void put16(void *buff, word16 value)
  * @param buff Pointer to buffer to get value from
  * @returns 32-bit unsigned value from @a buff.
 */
-word32 get32(void *buff)
+word32 get32(const void *buff)
 {
    return *((word32 *) buff);
 }
@@ -93,7 +93,7 @@ void put32(void *buff, word32 value)
  * @param buff Pointer to buffer to place value
  * @param value Pointer to 64-bit value
 */
-void put64(void *buff, void *value)
+void put64(void *buff, const void *value)
 {
 #ifdef WORD64_MAX
    put64_x64(buff, value);

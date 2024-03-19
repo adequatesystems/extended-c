@@ -19,7 +19,7 @@
 
    /* Forced 64-bit operation of iszero(). Not recommended for
     * use outside of testing purposes. Use iszero() instead. */
-   int iszero_x64(void *buff, int len)
+   int iszero_x64(const void *buff, int len)
    {
       word8 *bp = (word8 *) buff;
 
@@ -30,7 +30,7 @@
 
    /* Forced 64-bit operation of add64(). Not recommended for
     * use outside of testing purposes. Use add64() instead. */
-   int add64_x64(void *ax, void *bx, void *cx)
+   int add64_x64(const void *ax, const void *bx, void *cx)
    {
       word64 a = *((word64 *) ax);
       word64 b = *((word64 *) bx);
@@ -42,7 +42,7 @@
 
    /* Forced 64-bit operation of sub64(). Not recommended for
     * use outside of testing purposes. Use sub64() instead. */
-   int sub64_x64(void *ax, void *bx, void *cx)
+   int sub64_x64(const void *ax, const void *bx, void *cx)
    {
       word64 a = *((word64 *) ax);
       word64 b = *((word64 *) bx);
@@ -61,7 +61,7 @@
 
    /* Forced 64-bit operation of cmp64(). Not recommended for
     * use outside of testing purposes. Use cmp64() instead. */
-   int cmp64_x64(void *ax, void *bx)
+   int cmp64_x64(const void *ax, const void *bx)
    {
       word64 *a = (word64 *) ax;
       word64 *b = (word64 *) bx;
@@ -73,7 +73,7 @@
 
    /* Forced 64-bit operation of cmp256(). Not recommended for
     * use outside of testing purposes. Use cmp256() instead. */
-   int cmp256_x64(void *ax, void *bx)
+   int cmp256_x64(const void *ax, const void *bx)
    {
       word64 *a = (word64 *) ax;
       word64 *b = (word64 *) bx;
@@ -96,7 +96,7 @@
 
    /* Forced 64-bit operation of mult64(). Not recommended for
     * use outside of testing purposes. Use mult64() instead. */
-   int mult64_x64(void *ax, void *bx, void *cx)
+   int mult64_x64(const void *ax, const void *bx, void *cx)
    {
       word64 *c = (word64 *) cx;
       word64 a = *((word64 *) ax);
@@ -113,7 +113,7 @@
 
 /* Forced 32-bit operation of iszero(). Not recommended for
  * use outside of testing purposes. Use iszero() instead. */
-int iszero_x86(void *buff, int len)
+int iszero_x86(const void *buff, int len)
 {
    word8 *bp = (word8 *) buff;
 
@@ -124,7 +124,7 @@ int iszero_x86(void *buff, int len)
 
 /* Forced 32-bit operation of add64(). Not recommended for
  * use outside of testing purposes. Use add64() instead. */
-int add64_x86(void *ax, void *bx, void *cx)
+int add64_x86(const void *ax, const void *bx, void *cx)
 {
    word32 a[2], b[2];
    word32 *c = (word32 *) cx;
@@ -138,7 +138,7 @@ int add64_x86(void *ax, void *bx, void *cx)
 
 /* Forced 32-bit operation of sub64(). Not recommended for
  * use outside of testing purposes. Use sub64() instead. */
-int sub64_x86(void *ax, void *bx, void *cx)
+int sub64_x86(const void *ax, const void *bx, void *cx)
 {
    word32 a[2], b[2];
    word32 *c = (word32 *) cx;
@@ -163,7 +163,7 @@ void negate64_x86(void *ax)
 
 /* Forced 32-bit operation of cmp64(). Not recommended for
  * use outside of testing purposes. Use cmp64() instead. */
-int cmp64_x86(void *ax, void *bx)
+int cmp64_x86(const void *ax, const void *bx)
 {
    word32 *a = (word32 *) ax;
    word32 *b = (word32 *) bx;
@@ -177,7 +177,7 @@ int cmp64_x86(void *ax, void *bx)
 
 /* Forced 32-bit operation of cmp256(). Not recommended for
  * use outside of testing purposes. Use cmp256() instead. */
-int cmp256_x86(void *ax, void *bx)
+int cmp256_x86(const void *ax, const void *bx)
 {
    word32 *a = (word32 *) ax;
    word32 *b = (word32 *) bx;
@@ -204,7 +204,7 @@ void shiftr64_x86(void *ax)
 
 /* Forced 32-bit operation of mult64(). Not recommended for
  * use outside of testing purposes. Use mult64() instead. */
-int mult64_x86(void *ax, void *bx, void *cx)
+int mult64_x86(const void *ax, const void *bx, void *cx)
 {
    word32 *c = (word32 *) cx;
    word32 a[2], b[2];
@@ -229,7 +229,7 @@ int mult64_x86(void *ax, void *bx, void *cx)
  * @param len The length of buffer, in bytes, to check
  * @returns 1 if `buff[len]` is all zeros, else 0.
 */
-int iszero(void *buff, int len)
+int iszero(const void *buff, int len)
 {
 #ifdef HAS_64BIT
    return iszero_x64(buff, len);
@@ -247,7 +247,7 @@ int iszero(void *buff, int len)
  * @param cx Pointer to place result of 64-bit addition
  * @returns Resulting carry of operation.
 */
-int add64(void *ax, void *bx, void *cx)
+int add64(const void *ax, const void *bx, void *cx)
 {
 #ifdef HAS_64BIT
    return add64_x64(ax, bx, cx);
@@ -266,7 +266,7 @@ int add64(void *ax, void *bx, void *cx)
  * @param cx Pointer to place result of 64-bit subtraction
  * @returns Resulting carry of operation.
 */
-int sub64(void *ax, void *bx, void *cx)
+int sub64(const void *ax, const void *bx, void *cx)
 {
 #ifdef HAS_64BIT
    return sub64_x64(ax, bx, cx);
@@ -300,7 +300,7 @@ void negate64(void *ax)
  * @retval 1 if @a *ax > @a *bx
  * @retval 0 if @a *ax == @a *bx.
 */
-int cmp64(void *ax, void *bx)
+int cmp64(const void *ax, const void *bx)
 {
 #ifdef HAS_64BIT
    return cmp64_x64(ax, bx);
@@ -319,7 +319,7 @@ int cmp64(void *ax, void *bx)
  * @retval 1 if @a *ax > @a *bx
  * @retval 0 if @a *ax == @a *bx.
 */
-int cmp256(void *ax, void *bx)
+int cmp256(const void *ax, const void *bx)
 {
 #ifdef HAS_64BIT
    return cmp256_x64(ax, bx);
@@ -353,7 +353,7 @@ void shiftr64(void *ax)
  * @param cx Pointer to place result of 64-bit multiplication
  * @result 1 if multiplication results in overflow, else 0.
 */
-int mult64(void *ax, void *bx, void *cx)
+int mult64(const void *ax, const void *bx, void *cx)
 {
 #ifdef HAS_64BIT
    return mult64_x64(ax, bx, cx);
@@ -372,14 +372,16 @@ int mult64(void *ax, void *bx, void *cx)
  * @param cx Pointer to place result of multi-byte addition
  * @returns Resulting carry of operation.
 */
-int multi_add(void *ax, void *bx, void *cx, int bytelen)
+int multi_add(const void *ax, const void *bx, void *cx, int bytelen)
 {
    word8 *a, *b, *c;
    int t, carry = 0;
 
    if(bytelen < 1) return 0;
 
-   a = ax; b = bx; c = cx;
+   a = (word8 *) ax;
+   b = (word8 *) bx;
+   c = (word8 *) cx;
    for( ; bytelen; a++, b++, c++, bytelen--) {
       t = *a + *b + carry;
       carry = t >> 8;
@@ -397,14 +399,16 @@ int multi_add(void *ax, void *bx, void *cx, int bytelen)
  * @param cx Pointer to place result of multi-byte subtraction
  * @returns Resulting carry of operation.
 */
-int multi_sub(void *ax, void *bx, void *cx, int bytelen)
+int multi_sub(const void *ax, const void *bx, void *cx, int bytelen)
 {
    word8 *a, *b, *c;
    int t, carry = 0;
 
    if(bytelen < 1) return 0;
 
-   a = ax; b = bx; c = cx;
+   a = (word8 *) ax;
+   b = (word8 *) bx;
+   c = (word8 *) cx;
    for( ; bytelen; a++, b++, c++, bytelen--) {
       t = *a - *b - carry;
       carry = (t >> 8) & 1;

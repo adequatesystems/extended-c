@@ -61,17 +61,17 @@ extern "C" {
 
 /* 64-bit guard */
 #ifdef HAS_64BIT
-   void put64_x64(void *buff, void *val);
+   void put64_x64(void *buff, const void *value);
 
 #endif
 
-void put64_x86(void *buff, void *val);
+void put64_x86(void *buff, const void *val);
 
-word16 get16(void *buff);
-void put16(void *buff, word16 val);
-word32 get32(void *buff);
-void put32(void *buff, word32 val);
-void put64(void *buff, void *val);
+word16 get16(const void *value);
+void put16(void *buff, word16 value);
+word32 get32(const void *value);
+void put32(void *buff, word32 value);
+void put64(void *buff, const void *value);
 void srand16fast(word32 x);
 word32 get_rand16fast(void);
 void srand16(word32 x, word32 y, word32 z);
