@@ -356,5 +356,95 @@ size_t write_data(void *buff, size_t len, char *fpath)
    return count;
 }  /* end write_data() */
 
+/* Windows compatibility functions */
+#ifdef _WIN32
+
+/**
+ * Open a file mapping to the specified file descriptor.
+ * @note This is a Windows API compatibility layer function that
+ * immitates, as close as reasonably possible, the functionality
+ * available to UNIX systems under the <sys/mman.h> header.
+*/
+void *mmap(void *addr, size_t len, int prot, int flags, int fd, size_t off)
+{
+   HANDLE fileh, maph;
+   void *mapp;
+   int page;
+   int view;
+
+   /* sanity checks:
+    * - len cannot be Zero
+    * - MAP_FIXED is unsupported on Windows
+    * - PROT_EXEC must be accompanied by additional protections */
+   if (!len || (flags & MAP_FIXED) || (prot == PROT_EXEC)) {
+      set_errno(EINVAL);
+      return MAP_FAILED;
+   }
+
+   /* determine page protection access */
+   if (flags & MAP_PRIVATE) {
+      if (prot & PROT_EXEC) {
+         page = (prot & PROT_WRITE)
+            ? PAGE_EXECUTE_WRITECOPY : PAGE_EXECUTE_READ;
+      } else page = (prot & PROT_WRITE) ? PAGE_WRITECOPY : PAGE_READONLY;
+   } else if (prot & PROT_EXEC) {
+      page = (prot & PROT_WRITE)
+         ? PAGE_EXECUTE_READWRITE : PAGE_EXECUTE_READ;
+   } else page = (prot & PROT_WRITE) ? PAGE_READWRITE : PAGE_READONLY;
+
+   /* determine view protection access */
+   if (prot & (PROT_READ | PROT_WRITE)) view |= FILE_MAP_ALL_ACCESS;
+   else if (prot & PROT_READ) view |= FILE_MAP_READ;
+   else if (prot & PROT_WRITE) view |= FILE_MAP_WRITE;
+   /* ... add execute / copy-on-write flags */
+   if (prot & PROT_EXEC) view |= FILE_MAP_EXECUTE;
+   if (flags & MAP_PRIVATE) view |= FILE_MAP_COPY;
+
+   /* derive file handle from file descriptor, flags permitting */
+   if (!(flags & MAP_ANONYMOUS)) {
+      fileh = (HANDLE) _get_osfhandle(fd);
+      if (fileh == INVALID_HANDLE_VALUE) {
+         set_errno(EBADF);
+         return MAP_FAILED;
+      }
+   } else fileh = INVALID_HANDLE_VALUE;
+
+   /* obtain file mapping handle */
+   maph = CreateFileMapping(fileh, NULL, page, 0, (DWORD) off + len, NULL);
+   if (maph == INVALID_HANDLE_VALUE) goto FAIL_MAP;
+
+   /* obtain pointer to file mapping */
+   mapp = MapViewOfFile(maph, view, 0, (DWORD) off, len);
+   CloseHandle(maph);
+   if (mapp == NULL) goto FAIL_MAP;
+
+   /* success */
+   return mapp;
+
+/* error handling */
+FAIL_MAP:
+   set_alterrno(GetLastError());
+   return MAP_FAILED;
+}  /* end mmap() */
+
+/**
+ * Closes a file mapping.
+ * @note This is a Windows API compatibility layer function that
+ * immitates, as close as reasonably possible, the functionality
+ * available to UNIX systems under the <sys/mman.h> header.
+*/
+int munmap(void *addr, size_t length)
+{
+   if (!UnmapViewOfFile(addr)) {
+      set_alterrno(GetLastError());
+      return -1;
+   }
+
+   return 0;
+}  /* end munmap() */
+
+/* end Windows */
+#endif
+
 /* end include guard */
 #endif
