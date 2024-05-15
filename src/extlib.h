@@ -91,13 +91,17 @@ void *bsearch_len(const void *key, size_t len,
    const void *ptr, size_t count, size_t size);
 int filesort(const char *filename, size_t size, size_t bufsz,
    int (*comp)(const void *, const void *));
-int link_list_append(LinkedList *srcp, LinkedList *dstp);
-int link_node_append(LinkedNode *nodep, LinkedList *listp);
-LinkedNode *link_node_create(size_t datasz);
-void link_node_destroy(LinkedNode *lnp);
-int link_node_insert
-   (LinkedNode *nodep, LinkedNode *currp, LinkedList *listp);
-int link_node_remove(LinkedNode *nodep, LinkedList *listp);
+
+int dllist_append(DLLIST *srcp, DLLIST *dstp);
+int dlnode_append(DLNODE *nodep, DLLIST *listp);
+DLNODE *dlnode_create(size_t datasz);
+void dlnode_destroy(DLNODE *np);
+int dlnode_insert(DLNODE *nodep, DLNODE *currp, DLLIST *listp);
+int dlnode_remove(DLNODE *nodep, DLLIST *listp);
+SLNODE *slnode_create(size_t datasz);
+void slnode_destroy(SLNODE *np);
+SLNODE *slnode_pop(SLLIST *listp);
+int slnode_push(SLNODE *nodep, SLLIST *listp);
 
 #ifdef __cplusplus
 }  /* end extern "C" */
