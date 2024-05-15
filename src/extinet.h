@@ -15,7 +15,6 @@
 
 #ifdef _WIN32
    #pragma comment(lib, "ws2_32.lib")
-   #define FD_SETSIZE 1024    /* for UNIX consistancy */
    #include <winsock2.h>  /* for socket handling */
    #include <ws2tcpip.h>  /* for socklen_t */
 
@@ -32,6 +31,7 @@
    #include <netdb.h>
    #include <netinet/in.h>
    #include <sys/socket.h>
+   #include <poll.h>
 
    #define os_sock_errno            ( errno )
    #define os_sock_connected(_e)    ( _e == EISCONN )
