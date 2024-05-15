@@ -15,22 +15,48 @@
 #include <stdlib.h>
 
 /**
- * Linked node struct.
+ * @struct DLNODE Doubly-linked node struct.
+ * @property DLNODE::next Pointer to next Doubly-linked node.
+ * @property DLNODE::prev Pointer to previous Doubly-linked node.
+ * @property DLNODE::data Pointer to node data.
 */
-typedef struct linkednode_t {
-   struct linkednode_t *next; /**< pointer to next node (if in list) */
-   struct linkednode_t *prev; /**< pointer to previous node (if in list) */
-   void *data;                /**< pointer to data for node */
-} LinkedNode;
+typedef struct doubly_linked_node {
+   struct doubly_linked_node *next;
+   struct doubly_linked_node *prev;
+   void *data;
+} DLNODE;
 
 /**
- * Linked list struct.
+ * @struct DLLIST Doubly-linked list struct.
+ * @property DLLIST::next Pointer to next node (list head).
+ * @property DLLIST::last Pointer to last node (list tail).
+ * @property DLLIST::count Number of nodes in list.
 */
-typedef struct linkedlist_t {
-   struct linkednode_t *next; /**< pointer to next node (head) in list */
-   struct linkednode_t *last; /**< pointer to last node (tail) in list */
-   int count;                 /**< count of nodes in list */
-} LinkedList;
+typedef struct doubly_linked_list {
+   struct doubly_linked_node *next;
+   struct doubly_linked_node *last;
+   int count;
+} DLLIST;
+
+/**
+ * @struct SLNODE Singly-linked node struct.
+ * @property SLNODE::next Pointer to next Singly-linked node.
+ * @property SLNODE::data Pointer to node data.
+*/
+typedef struct singly_linked_node {
+   struct singly_linked_node *next;
+   void *data;
+} SLNODE;
+
+/**
+ * @struct SLLIST Singly-linked list struct.
+ * @property SLLIST::next Pointer to next node (list head).
+ * @property SLLIST::count Number of nodes in list.
+*/
+typedef struct singly_linked_list {
+   struct singly_linked_node *next;
+   int count;
+} SLLIST;
 
 /* C/C++ compatible function prototypes for extthread.c */
 #ifdef __cplusplus
