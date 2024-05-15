@@ -701,6 +701,96 @@ FAIL_INVAL: set_errno(EINVAL); return (-1);
 FAIL_NOLINK: set_errno(ENOLINK); return (-1);
 }  /* end dlnode_remove() */
 
+/**
+ * Create a SLNODE and associated data (via malloc).
+ * To prevent a memory leak, use slnode_destroy() before discarding.
+ * @param datasz Size (in bytes) of node data pointer to malloc, in
+ * addition to the node itself. Set 0 for no additional malloc.
+ * @returns A SLNODE pointer on success, or NULL on error.
+ * Check errno for details.
+*/
+SLNODE *slnode_create(size_t datasz)
+{
+   SLNODE *nodep;
+
+   /* malloc space for SLNODE */
+   nodep = malloc(sizeof(SLNODE));
+   if (nodep == NULL) return NULL;
+   /* malloc space for SLNODE->data, if specified */
+   if (datasz) {
+      nodep->data = malloc(datasz);
+      if (nodep->data == NULL) return NULL;
+   } else nodep->data = NULL;
+   /* clear SLNODE linkage */
+   nodep->next = NULL;
+
+   return nodep;
+}  /* end slnode_create() */
+
+/**
+ * Destroy (deallocate) a SLNODE and it's data pointer.
+ * @param nodep Pointer to node to destroy
+*/
+void slnode_destroy(SLNODE *nodep)
+{
+   /* deallocate non-NULL SLNODE data and SLNODE */
+   if (nodep->data) free(nodep->data);
+   free(nodep);
+}  /* end slnode_destroy() */
+
+/**
+ * Pop a SLNODE from a SLLIST.
+ * @param listp Pointer to list to pop node from
+ * @returns Pointer to a SLNODE on success, or NULL on error.
+ * Check errno for details.
+ * @exception errno=ENOLINK The provided list has no linked nodes
+ * @exception errno=EINVAL One of the supplied pointers is NULL
+*/
+SLNODE *slnode_pop(SLLIST *listp)
+{
+   SLNODE *nodep;
+
+   /* error checks */
+   if (listp == NULL) {
+      set_errno(EINVAL);
+      return NULL;
+   } else if (listp->next == NULL) {
+      set_errno(ENOLINK);
+      return NULL;
+   }
+
+   /* hold node -- reconnect list linkage */
+   nodep = listp->next;
+   listp->next = nodep->next;
+   /* remove old linkage -- decrement counter */
+   nodep->next = NULL;
+   listp->count--;
+
+   return nodep;
+}  /* end slnode_pop() */
+
+/**
+ * Push a SLNODE into a SLLIST.
+ * @param nodep Pointer to node to push
+ * @param listp Pointer to list to push node to
+ * @returns 0 on success, or non-zero on error. Check errno for details.
+ * @exception errno=EINVAL One of the supplied pointers is NULL
+*/
+int slnode_push(SLNODE *nodep, SLLIST *listp)
+{
+   /* error checks */
+   if (nodep == NULL || listp == NULL) {
+      set_errno(EINVAL);
+      return (-1);
+   }
+
+   /* prepare node linkage -- increment count */
+   nodep->next = listp->next;
+   listp->next = nodep;
+   listp->count++;
+
+   return 0;
+}  /* end slnode_push() */
 
 /* end include guard */
 #endif
