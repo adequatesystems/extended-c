@@ -1,7 +1,7 @@
 
 ##
 # GNUmakefile - C/C++ makefile for GNU Make
-# Copyright 2021-2022 Adequate Systems, LLC. All Rights Reserved.
+# Copyright 2021-2024 Adequate Systems, LLC. All Rights Reserved.
 #
 
 #####################
@@ -24,6 +24,7 @@ INCLUDEDIR:= include
 SOURCEDIR:= src
 TESTBUILDDIR:= $(BUILDDIR)/test
 TESTSOURCEDIR:= $(SOURCEDIR)/test
+BINSOURCEDIR:= $(SOURCEDIR)/bin
 
 # build definitions
 GITVERSION:=$(shell git describe --always --dirty --tags || echo "<no-ver>")
@@ -44,6 +45,7 @@ MODLIB:= $(BUILDDIR)/lib$(MODULE).a
 COVERAGE:= $(BUILDDIR)/coverage.info
 
 # source files: test (base/cuda), base, cuda
+BCSRCS:= $(sort $(wildcard $(BINSOURCEDIR)/*.c))
 CUSRCS:= $(sort $(wildcard $(SOURCEDIR)/*.cu))
 CSRCS:= $(sort $(wildcard $(SOURCEDIR)/*.c))
 TCUSRCS:= $(sort $(wildcard $(TESTSOURCEDIR)/*-cu.c))
@@ -55,9 +57,9 @@ CUOBJS:= $(patsubst $(SOURCEDIR)/%.cu,$(BUILDDIR)/%.cu.o,$(CUSRCS))
 TCOBJS:= $(patsubst $(SOURCEDIR)/%.c,$(BUILDDIR)/%.o,$(TCSRCS))
 TCUOBJS:= $(patsubst $(SOURCEDIR)/%-cu.c,$(BUILDDIR)/%-cu.o,$(TCUSRCS))
 
-# dependency files; compatible onlywith *.c files
+# dependency files; compatible only with *.c files
 DEPENDS:= $(patsubst $(SOURCEDIR)/%.c,$(BUILDDIR)/%.d, \
-	$(CSRCS) $(TCSRCS) $(TCUSRCS) $(TCLSRCS))
+	$(BCSRCS) $(CSRCS) $(TCSRCS) $(TCUSRCS) $(TCLSRCS))
 
 # dynamic working set of objects; dependant on compilation flags
 OBJECTS:= $(COBJS) $(if $(CUDEF),$(CUOBJS),)
@@ -80,42 +82,26 @@ LIBFLAGS:= -l$(MODULE) $(patsubst $(INCLUDEDIR)/%,-l%,$(INCLUDES)) \
 	$(if $(CUDEF),-lcudart -lnvidia-ml -lstdc++,) -lm
 
 # compiler/linker flag macros
-LDFLAGS:= $(addprefix -L,$(LIBDIRS)) -Wl,-\( $(LIBFLAGS) -Wl,-\) -pthread
-CCFLAGS:= $(addprefix -I,$(INCLUDEDIRS)) -Werror -Wall -Wextra -MMD -MP
+CCWARNS:= -Wall -Wextra -Wpedantic -Werror
+CXFLAGS:= -fopenmp # -fopenmp typically links with -pthreads
+LDFLAGS:= $(addprefix -L,$(LIBDIRS)) -Wl,-\( $(LIBFLAGS) -Wl,-\) $(CXFLAGS)
+CCFLAGS:= $(addprefix -I,$(INCLUDEDIRS)) $(CCWARNS) -MMD -MP $(CXFLAGS)
 NVCCFLAGS:= $(addprefix -I,$(INCLUDEDIRS)) -Xptxas -Werror
 
 ## ^^ END CONFIGURATION ^^
 ##########################
 
 .SUFFIXES: # disable rules predefined by MAKE
-.PHONY: help all allcuda clean cleanall coverage docs library report \
-	sublibraries test version
+.PHONY: _ all clean cleanall coverage docs help-dev library report \
+	sublibs test update version help
 
-help: # default rule prints help information
-	@echo ""
-	@echo "Usage:  make [options] [FLAGS=FLAGVALUES]"
-	@echo "   make               prints this usage information"
-	@echo "   make all           build all object files"
-	@echo "   make allcuda       build all CUDA object files"
-	@echo "   make clean         removes build directory and files"
-	@echo "   make cleanall      removes (all) build directories and files"
-	@echo "   make coverage      build test coverage file"
-	@echo "   make docs          build documentation files"
-	@echo "   make report        build html report from test coverage"
-	@echo "   make library       build a library file containing all objects"
-	@echo "   make sublibraries  build all library files (incl. submodules)"
-	@echo "   make test          build and run tests"
-	@echo "   make test-*        build and run sub tests matching *"
-	@echo "   make variable-*    show the value of a variable matching *"
-	@echo "   make version       show the git repository version string"
-	@echo ""
+# default rule calls help and informs of help-dev
+_: # help as dependency DOES NOT inform of missing help rule
+	@make help --no-print-directory
+	@echo "Run 'make help-dev' for developer usage information."
 
-# build "all" base objects; redirect (DEFAULT RULE)
+# build "all" base objects
 all: $(OBJECTS)
-
-# build all CUDA object files; redirect
-allcuda:
-	@make $(CUOBJS) "CFLAGS=-DCUDA $(CFLAGS)" --no-print-directory
 
 # remove build directory and files
 clean:
@@ -128,12 +114,42 @@ cleanall: clean
 # build test coverage (requires lcov); redirect
 coverage: $(COVERAGE)
 
-# build documentation files under docs/ (requires doxygen)
+# build documentation files (requires doxygen)
 docs:
 	@mkdir -p docs
-	@doxygen <( cat .github/docs/config; \
-	 echo "PROJECT_NAME=$(MODULE)" | tr '[:lower:]' '[:upper:]'; \
-	 echo "PROJECT_NUMBER=$(GITVERSION)" )
+	@cp .github/docs/config docs/config
+	@echo 'PROJECT_NAME = "$(MODULE)"' | \
+	 tr '[:lower:]' '[:upper:]' >>docs/config
+	@echo 'PROJECT_NUMBER = "$(GITVERSION)"' >>docs/config
+	-doxygen docs/config
+	rm docs/config
+
+# developer help information
+help-dev:
+	@echo ""
+	@echo "Usage:  make [options] [targets]"
+	@echo "Options:"
+	@echo "   ... see 'make --help' for make specific options"
+	@echo "   CFLAGS='<flags>' for additional compiler flags"
+	@echo "   LFLAGS='<flags>' for additional linker flags"
+	@echo "   NVCFLAGS='<flags>' for additional NVIDIA compiler flags"
+	@echo "Targets (developer):"
+	@echo "   make [_]         redirects to 'help' and suggests 'help-dev'"
+	@echo "   make all         build all object files"
+	@echo "   make clean       remove build directory"
+	@echo "   make cleanall    remove build directory (incl. submodules)"
+	@echo "   make coverage    build test coverage file"
+	@echo "   make docs        build documentation files"
+	@echo "   make help-dev    prints this developer usage information"
+	@echo "   make library     build a library file containing all objects"
+	@echo "   make report      build html report from test coverage"
+	@echo "   make sublibs     build all library files (incl. submodules)"
+	@echo "   make test        build and run (all) tests"
+	@echo "   make test-*      build and run tests matching *"
+	@echo "   make update      update current repository and submodules"
+	@echo "   make variable-*  show the value of a variable matching *"
+	@echo "   make version     show the git repository version string"
+	@echo ""
 
 # build library file; redirect
 library: $(MODLIB)
@@ -143,7 +159,7 @@ report: $(COVERAGE)
 	genhtml $(COVERAGE) --output-directory $(BUILDDIR)
 
 # initialize and build build submodule libraries; redirect
-sublibraries: $(SUBLIBS)
+sublibs: $(SUBLIBS)
 
 # build and run specific tests matching pattern
 test-%: $(SUBLIBS) $(MODLIB)
@@ -168,6 +184,11 @@ test: $(SUBLIBS) $(MODLIB) $(TESTOBJECTS)
 	 echo -e "[ FAILED ] $$FAILS tests failed.\n"; \
 	 exit $$FAILS
 
+# update git repository (incl. submodule)
+update:
+	git pull --recurse-submodules
+	@! git merge --abort 2>/dev/null
+
 # echo the value of a variable matching pattern
 variable-%:
 	@echo $* = $($*)
@@ -190,8 +211,7 @@ $(MODLIB): $(OBJECTS)
 	ar rcs $(MODLIB) $(OBJECTS)
 
 # build submodule libraries, within associated directories
-$(SUBLIBS): %:
-	git submodule update --init --recursive
+$(SUBLIBS): %: $(INCLUDEDIRS)
 	@make library -C $(INCLUDEDIR)/$(word 2,$(subst /, ,$@))
 
 # build coverage file, within out directory
@@ -222,6 +242,10 @@ $(BUILDDIR)/%.cu.o: $(SUBLIBS) $(SOURCEDIR)/%.cu
 $(BUILDDIR)/%.o: $(SUBLIBS) $(SOURCEDIR)/%.c
 	@mkdir -p $(dir $@)
 	$(CC) -c $(SOURCEDIR)/$*.c -o $@ $(CCFLAGS) $(CFLAGS) $(VERDEF)
+
+# initialize submodules, within include directory
+$(INCLUDEDIRS): %:
+	git submodule update --init --recursive
 
 # include depends rules created during "build object file" process
 -include $(DEPENDS)
