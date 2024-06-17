@@ -6,10 +6,10 @@ int main()
 {  /* check setting socket to blocking and non-blocking I/O */
    SOCKET sd;
 
-   sock_startup();  /* enables socket support */
-   sd = sock_connect_addr("example.com", 80, 3);
+   wsa_startup(2, 2);  /* enables socket support */
+   sd = socket(AF_INET, SOCK_STREAM, 0);
    ASSERT_NE_MSG(sd, INVALID_SOCKET, "connection is required for testing");
-   ASSERT_EQ_MSG(sock_set_blocking(sd), 0, "should set socket to blocking");
-   ASSERT_EQ_MSG(sock_set_nonblock(sd), 0, "should set socket to nonblocking");
-   sock_cleanup();
+   ASSERT_EQ_MSG(set_blocking(sd), 0, "should set socket to blocking");
+   ASSERT_EQ_MSG(set_nonblocking(sd), 0, "should set socket to nonblocking");
+   wsa_cleanup();
 }
