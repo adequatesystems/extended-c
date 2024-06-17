@@ -5,6 +5,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+Major changes to `extinet` unit, in preparation for a new server handler.
+
+## Added
+- `extinet` connect_auto() for connecting to ambiguous AF_ family types.
+- `extinet` get_hostipv6() for IPv6 socket operations.
+
+## Changed
+- `extinet` gethostip() to get_hostipv4().
+- `extinet` sock_connect/send/recv() to *_timed() named function variants to better reflect their use over standard socket operations.
+- `extinet` sock_close() to closesocket(), used historically.
+- `extinet` sock_startup/cleanup() to wsa_startup(major, minor) and wsa_cleanup().
+
+## Removed
+- `extinet` get_sock_ip() in favor of `struct sockaddr` and associated functions.
+- `extinet` sock_state() and Sockinuse restrictions.
+- `extinet` sock_connect_addr() to be handled by application.
 
 ## [1.2.0] - 2022-05-18
 Function changes/additions to `extinet` and `extthread` units.
