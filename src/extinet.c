@@ -1,7 +1,7 @@
 /**
  * @private
  * @headerfile extinet.h <extinet.h>
- * @copyright Adequate Systems LLC, 2018-2022. All Rights Reserved.
+ * @copyright Adequate Systems LLC, 2018-2024. All Rights Reserved.
  * <br />For license information, please refer to ../LICENSE.md
 */
 
@@ -18,23 +18,18 @@
 
 /* external support */
 #include <stdio.h>
-#include <string.h>
 
-#ifdef _WIN32
-   /* initialize for winsock version 2.2 */
-   WSADATA Sockdata;
-   WORD Sockverreq = 0x0202;
-
-/* end Windows */
-#else
+#ifndef _WIN32
+   /* system support */
    #include <fcntl.h>   /* for fcntl() */
-   #include <unistd.h>  /* for close() */
 
 /* end UNIX-like */
 #endif
 
-/* initialize global Sockinuse */
-int Sockinuse;
+/* always online reference addresses */
+#define CLOUDFLARE_DNS_IPv4 "1.1.1.1"
+#define CLOUDFLARE_DNS_IPv6 "2606:4700:4700::1111"
+#define CLOUDFLARE_DNS_PORT 53
 
 /**
  * Convert IPv4 from 32-bit binary form to numbers-and-dots notation.
@@ -45,21 +40,21 @@ int Sockinuse;
  * @returns Character pointer to converted result, or NULL on error.
  * Check errno for details.
 */
-char *ntoa(void *n, char *a)
+char *ntoa(void *n, char a[16])
 {
    static char cp[16];
    unsigned char *bp;
 
-   if (n == NULL) goto FAIL_INVAL;
-   if (a == NULL) a = cp;
+   if (n == NULL) {
+      set_errno(EINVAL);
+      return NULL;
+   }
 
+   if (a == NULL) a = cp;
    bp = (unsigned char *) n;
-   sprintf(a, "%d.%d.%d.%d", bp[0], bp[1], bp[2], bp[3]);
+   snprintf(a, 16, "%d.%d.%d.%d", bp[0], bp[1], bp[2], bp[3]);
 
    return a;
-
-/* error handling */
-FAIL_INVAL: set_errno(EINVAL); return NULL;
 }  /* end ntoa() */
 
 /**
@@ -74,227 +69,187 @@ unsigned long aton(char *a)
    struct hostent *host;
    struct sockaddr_in addr;
 
-   if (a == NULL) goto FAIL_INVAL;
-   memset(&addr, 0, sizeof(addr));
+   if (a == NULL) {
+      set_errno(EINVAL);
+      return 0;
+   }
 
    host = gethostbyname(a);
-   if (host == NULL) goto FAIL_HOST;
+   if (host == NULL) {
+#ifdef _WIN32
+      set_alterrno(WSAGetLastError());
+#endif
+      return 0;
+   }
+
+   memset(&addr, 0, sizeof(addr));
    memcpy(&(addr.sin_addr.s_addr), host->h_addr_list[0], host->h_length);
 
    return addr.sin_addr.s_addr;
-
-/* error handling */
-FAIL_INVAL: set_errno(EINVAL); return 0;
-FAIL_HOST:
-#ifdef _WIN32
-   set_alterrno(WSAGetLastError());
-#endif
-   return 0;
 }  /* end aton() */
 
 /**
- * Obtain an ip address from a valid SOCKET descriptor.
- * @param sd Socket descriptor to obtain ip value from
- * @returns Unsigned long value of the IPv4 address in binary form, or
- * SOCKET_ERROR on error. Check errno for details.
-*/
-unsigned long get_sock_ip(SOCKET sd)
-{
-   static socklen_t addrlen = (socklen_t) sizeof(struct sockaddr_in);
-   struct sockaddr_in addr;
-
-   if (getpeername(sd, (struct sockaddr *) &addr, &addrlen) == 0) {
-      return addr.sin_addr.s_addr;  /* the unsigned long ip */
-   }
-
-#ifdef _WIN32
-   set_alterrno(WSAGetLastError());
-#endif
-
-   return (unsigned long) SOCKET_ERROR;
-}  /* end get_sock_ip() */
-
-/**
- * Perform Socket Startup enabling socket functionality.
+ * Connect to a provided address and socket descriptor. This function
+ * automatically determines the address family and connects to the
+ * socket using the socklen_t parameter derived from the address family.
+ * @param sd Socket descriptor to connect
+ * @param addrp Socket address struct to connect to
  * @returns 0 on success, or SOCKET_ERROR on error. Check errno for details.
 */
-int sock_startup(void)
+int connect_auto(SOCKET sd, const struct sockaddr *addrp)
 {
-#ifdef _WIN32
-   /* perform startup request -- ensure requested version was obtained */
-   int ecode = WSAStartup(Sockverreq, &Sockdata);
-   if (ecode) {
-      set_alterrno(ecode);
+   switch (addrp->sa_family) {
+   #ifndef _WIN32
+      case AF_UNIX: return connect(sd, addrp, sizeof(struct sockaddr_un));
+   #endif
+      case AF_INET: return connect(sd, addrp, sizeof(struct sockaddr_in));
+      case AF_INET6: return connect(sd, addrp, sizeof(struct sockaddr_in6));
+      default: set_errno(EAFNOSUPPORT); return SOCKET_ERROR;
+   }
+}  /* end connect_auto() */
+
+/**
+ * Connect to a provided address and socket descriptor. This function
+ * will attempt to connect to the provided address and port, with a
+ * specified timeout. If the connection is successful, the function
+ * will return a non-blocking socket descriptor.
+ * @param sd Socket descriptor to connect
+ * @param addrp Socket address struct to connect to
+ * @param len Length of the socket address struct
+ * @param seconds Timeout in seconds
+ * @returns 0 on success, or SOCKET_ERROR on error.
+ * Check socket_errno for details.
+*/
+int connect_timed
+   (SOCKET sd, const struct sockaddr *addrp, socklen_t len, int seconds)
+{
+   time_t start;
+   int ecode;
+
+   /* set non-blocking */
+   if (set_nonblocking(sd) != 0) return SOCKET_ERROR;
+   /* try connect -- timeout after specified seconds */
+   for (time(&start); connect(sd, addrp, len) != 0; millisleep(100)) {
+      ecode = socket_errno;
+      if (socket_is_connected(ecode)) break;
+      if (socket_is_connecting(ecode)) {
+         if (difftime(time(NULL), start) < (double) seconds) continue;
+      }  /* ... connection is deemed a failure */
       return SOCKET_ERROR;
    }
-
-#endif
-
-   Sockinuse++;  /* increment to enable sockets support */
 
    return 0;
-}  /* end sock_startup() */
+}  /* end connect_timed() */
 
 /**
- * Obtain the internal state of "sockets-in-use", as modified by functions
- * sock_startup() and sock_cleanup().
- * @returns Value representing the number of sock_startup() calls made.
+ * Get the primary IPv4 address of the host machine.
+ * @returns 0 on succesful operation, or SOCKET_ERROR on error.
+ * Check socket_errno for details.
 */
-int sock_state(void)
+int get_hostipv4(char *name, size_t namelen)
 {
-   return Sockinuse;
-}
-
-/**
- * Perform Socket Cleanup, disabling socket functionality.
- * @returns 0 on success, or SOCKET_ERROR on error. Check errno for details.
-*/
-int sock_cleanup(void)
-{
-   int ecode = 0;
-
-   while (Sockinuse > 0) {
-
-#ifdef _WIN32
-   if (WSACleanup()) {
-      set_alterrno(WSAGetLastError());
-      return SOCKET_ERROR;
-   }
-
-#endif
-
-      Sockinuse--;
-   }
-
-   return ecode;
-}  /* end sock_cleanup() */
-
-/**
- * Set socket descriptor to non-blocking I/O.
- * @param sd Socket descriptor to set non-blocking I/O
- * @returns 0 on success, or SOCKET_ERROR on error. Check errno for details.
-*/
-int sock_set_nonblock(SOCKET sd)
-{
-#ifdef _WIN32
-   u_long arg = 1UL;
-   int ecode = ioctlsocket(sd, FIONBIO, &arg);
-   if (ecode) set_alterrno(WSAGetLastError());
-   return ecode;
-
-#else
-   return fcntl(sd, F_SETFL, fcntl(sd, F_GETFL, 0) | O_NONBLOCK);
-
-#endif
-}  /* end sock_set_nonblock() */
-
-/**
- * Set socket descriptor to blocking I/O.
- * @param sd Socket descriptor to set blocking I/O
- * @returns 0 on success, or SOCKET_ERROR on error. Check errno for details.
-*/
-int sock_set_blocking(SOCKET sd)
-{
-#ifdef _WIN32
-   u_long arg = 0UL;
-   int ecode = ioctlsocket(sd, FIONBIO, &arg);
-   if (ecode) set_alterrno(WSAGetLastError());
-   return ecode;
-
-#else
-   return fcntl(sd, F_SETFL, fcntl(sd, F_GETFL, 0) & (~O_NONBLOCK));
-
-#endif
-}  /* end sock_set_blocking() */
-
-/**
- * Close an open socket. Does NOT clear socket descriptor value.
- * @param sd socket descriptor to close
- * @returns 0 on success, or SOCKET_ERROR on error. Check errno for details.
-*/
-int sock_close(SOCKET sd)
-{
-#ifdef _WIN32
-   int ecode = closesocket(sd);
-   if (ecode) set_alterrno(WSAGetLastError());
-   return ecode;
-
-#else
-   return close(sd);
-
-#endif
-}  /* end sock_close() */
-
-/**
- * Initialize an outgoing connection with a network IPv4 address.
- * @param ip 32-bit binary form IPv4 value
- * @param port 16-bit binary form port value
- * @param timeout time, in seconds, to wait for connection
- * @returns Non-blocking SOCKET on success, or INVALID_SOCKET on error.
- * Check errno for details.
-*/
-SOCKET sock_connect_ip
-   (unsigned long ip, unsigned short port, double timeout)
-{
-   static socklen_t addrlen = (socklen_t) sizeof(struct sockaddr_in);
+   static socklen_t len = (socklen_t) sizeof(struct sockaddr_in);
    struct sockaddr_in addr;
-   time_t start;
+   struct sockaddr *addrp;
    SOCKET sd;
    int ecode;
 
-   sd = socket(AF_INET, SOCK_STREAM, 0);  /* AF_INET = IPv4 */
-   if(sd == INVALID_SOCKET) {
-      ecode = sock_errno;
+   /* open socket for IPv4 connection */
+   sd = socket(AF_INET, SOCK_STREAM, 0);
+   if(sd == INVALID_SOCKET) return SOCKET_ERROR;
+
+   /* set target to cloudflare dns */
+   addrp = (struct sockaddr *) &addr;
+   memset(addrp, 0, sizeof(struct sockaddr_in));
+   addr.sin_family = AF_INET;
+   addr.sin_port = htons(CLOUDFLARE_DNS_PORT);
+   ecode = inet_pton(AF_INET, CLOUDFLARE_DNS_IPv4, &(addr.sin_addr));
+   if (ecode != 1) {
+      /* inet_pton return zero on invalid address string */
+      if (ecode == 0) set_errno(EINVAL);
       goto FAIL;
    }
 
-   memset((char *) &addr, 0, sizeof(addr));
-   addr.sin_addr.s_addr = ip;
-   addr.sin_family = AF_INET;  /* AF_UNIX */
-   /* Convert short integer to network byte order */
-   addr.sin_port = htons(port);
-
-   sock_set_nonblock(sd);
-   time(&start);
-
-   while (connect(sd, (struct sockaddr *) &addr, addrlen)) {
-      ecode = sock_errno;
-      if (sock_connected(ecode)) break;
-      if (sock_connecting(ecode) &&
-         (difftime(time(NULL), start) < timeout)) {
-         millisleep(1);  /* socket is waiting patiently */
-         continue;
-      }  /* ... connection is deemed a failure, cleanup... */
-      sock_close(sd);
-      goto FAIL;
+   /* connect (1s timeout), get socket name and convert */
+   if (connect_timed(sd, addrp, len, 1) != 0) goto FAIL;
+   if (getsockname(sd, addrp, &len) == 0) {
+      if (inet_ntop(AF_INET, &(addr.sin_addr), name, namelen) != NULL) {
+         return closesocket(sd);
+      }
    }
-
-   return sd;
 
 /* error handling */
 FAIL:
-#ifdef _WIN32
-   set_alterrno(ecode);
-#else
-   set_errno(ecode);
-#endif
-   return INVALID_SOCKET;
-}  /* end sock_connect_ip() */
+   closesocket(sd);
+   return SOCKET_ERROR;
+}  /* end get_hostipv4() */
 
 /**
- * Initialize an outgoing connection with a network host address.
- * @param addr Pointer to character array of network host address
- * @param port 16-bit binary form port value
- * @param timeout time, in seconds, to wait for connection
- * @returns Non-blocking SOCKET on success, or INVALID_SOCKET on error.
- * Check errno for details.
+ * Get the primary IPv6 address of the host machine.
+ * @returns 0 on succesful operation, or SOCKET_ERROR on error.
+ * Check socket_errno for details.
 */
-SOCKET sock_connect_addr(char *addr, unsigned short port, double timeout)
+int get_hostipv6(char *name, size_t namelen)
 {
-   unsigned long ip = aton(addr);
+   static socklen_t len = (socklen_t) sizeof(struct sockaddr_in6);
+   struct sockaddr_in6 addr6;
+   struct sockaddr *addrp;
+   SOCKET sd;
+   int ecode;
 
-   return sock_connect_ip(ip, port, timeout);
-}  /* end sock_connect_addr() */
+   /* open socket for IPv6 connection */
+   sd = socket(AF_INET6, SOCK_STREAM, 0);
+   if(sd == INVALID_SOCKET) return SOCKET_ERROR;
+
+   /* set target to cloudflare dns */
+   addrp = (struct sockaddr *) &addr6;
+   memset(addrp, 0, len);
+   addr6.sin6_family = AF_INET6;
+   addr6.sin6_port = htons(CLOUDFLARE_DNS_PORT);
+   addr6.sin6_scope_id = 0;
+   ecode = inet_pton(AF_INET6, CLOUDFLARE_DNS_IPv6, &(addr6.sin6_addr));
+   if (ecode != 1) {
+      /* inet_pton return zero on invalid address string */
+      if (ecode == 0) set_errno(EINVAL);
+      goto FAIL;
+   }
+
+   /* connect (1s timeout), get socket name and convert */
+   if (connect_timed(sd, addrp, len, 1) != 0) goto FAIL;
+   if (getsockname(sd, addrp, &len) == 0) {
+      if (inet_ntop(AF_INET6, &(addr6.sin6_addr), name, namelen) != NULL) {
+         return closesocket(sd);
+      }
+   }
+
+/* error handling */
+FAIL:
+   closesocket(sd);
+   return SOCKET_ERROR;
+}  /* end get_hostipv6() */
+
+/**
+ * Convert a sockaddr struct to a human-readable IP address.
+ * @param addrp Pointer to a sockaddr struct
+ * @param dst Destination buffer for IP address
+ * @param size Size of the destination buffer
+ * @returns Pointer to the destination buffer on success, or NULL on error.
+ * Check socket_errno for details.
+*/
+const char *inet_ntop_auto
+   (const struct sockaddr *src, char *dst, size_t size)
+{
+   /* determine family -- ipv4/6 only */
+   switch (src->sa_family) {
+      case AF_INET6:
+         return inet_ntop(src->sa_family,
+            &(((struct sockaddr_in6 *) src)->sin6_addr), dst, size);
+      case AF_INET:
+         return inet_ntop(src->sa_family,
+            &(((struct sockaddr_in *) src)->sin_addr), dst, size);
+      default: set_errno(EAFNOSUPPORT); return NULL;
+   }
+}
 
 /**
  * Receive a packet of data from a socket descriptor into `pkt[len]`.
@@ -309,7 +264,7 @@ SOCKET sock_connect_addr(char *addr, unsigned short port, double timeout)
  * @retval (1) for end communication
  * @retval (-1) for timeout
 */
-int sock_recv(SOCKET sd, void *pkt, int len, int flags, double timeout)
+int recv_timed(SOCKET sd, void *pkt, int len, int flags, int seconds)
 {
    int n, count;
    time_t start;
@@ -320,12 +275,12 @@ int sock_recv(SOCKET sd, void *pkt, int len, int flags, double timeout)
       count = (int) recv(sd, ((char *) pkt) + n, len - n, flags);
       if (count == 0) return 1;  /* end communication */
       if (count > 0) n += count;  /* count recv'd bytes */
-      else if(difftime(time(NULL), start) >= timeout) return (-1);
+      else if(difftime(time(NULL), start) >= (double) seconds) return (-1);
       else millisleep(1);  /* socket is waiting patiently */
    }
 
    return 0;  /* recv'd packet */
-}  /* end sock_recv() */
+}  /* end recv_timed() */
 
 /**
  * Send a packet of data on SOCKET sd from pkt[len].
@@ -340,7 +295,7 @@ int sock_recv(SOCKET sd, void *pkt, int len, int flags, double timeout)
  * @retval (1) for end communication
  * @retval (-1) for timeout
 */
-int sock_send(SOCKET sd, void *pkt, int len, int flags, double timeout)
+int send_timed(SOCKET sd, void *pkt, int len, int flags, int seconds)
 {
    int n, count;
    time_t start;
@@ -351,42 +306,102 @@ int sock_send(SOCKET sd, void *pkt, int len, int flags, double timeout)
       count = (int) send(sd, ((char *) pkt) + n, len - n, flags);
       if (count == 0) return 1;  /* end communication */
       if (count > 0) n += count;  /* count sent bytes */
-      else if(difftime(time(NULL), start) >= timeout) return (-1);
+      else if(difftime(time(NULL), start) >= (double) seconds) return (-1);
       else millisleep(1);  /* socket is waiting patiently */
    }
 
    return 0;  /* sent packet */
-}  /* end sock_send() */
+}  /* end send_timed() */
 
 /**
- * Get the IPv4 address of the host.
- * @returns 0 on succesful operation, or SOCKET_ERROR on error.
- * Check errno for details.
+ * Set socket (file descriptor) to blocking I/O.
+ * @param sd Socket to set blocking I/O
+ * @returns 0 on success, or SOCKET_ERROR on error.
+ * Check sock_errno for details.
 */
-int gethostip(char *name, int namelen)
+int set_blocking(SOCKET sd)
 {
-   SOCKET sd;
-   struct sockaddr_in addrname;
-   socklen_t addrnamelen = sizeof(addrname);
+#ifdef _WIN32
+   return ioctlsocket(sd, FIONBIO, (u_long[1]) { 0UL });
+#else
+   int flags = fcntl(sd, F_GETFL, 0);
+   if (flags == (-1)) return SOCKET_ERROR;
+   return fcntl(sd, F_SETFL, flags & (~O_NONBLOCK));
+#endif
+}  /* end set_blocking() */
 
-   /* connect to cloudflare dns server 1.1.1.1:53 */
-   sd = sock_connect_addr("1.1.1.1", 53, 3);
-   if (sd < 0) return SOCKET_ERROR;
+/**
+ * Set socket (file descriptor) to non-blocking I/O.
+ * @param sd Socket to set non-blocking I/O
+ * @returns 0 on success, or SOCKET_ERROR on error.
+ * Check sock_errno for details.
+*/
+int set_nonblocking(SOCKET sd)
+{
+#ifdef _WIN32
+   return ioctlsocket(sd, FIONBIO, (u_long[1]) { 1UL });
+#else
+   int flags = fcntl(sd, F_GETFL, 0);
+   if (flags == (-1)) return SOCKET_ERROR;
+   return fcntl(sd, F_SETFL, flags | O_NONBLOCK);
+#endif
+}  /* end set_nonblocking() */
 
-   /* get socket name for interpretation */
-   if (getsockname(sd, (struct sockaddr *) &addrname, &addrnamelen) == 0) {
-      if (inet_ntop(AF_INET, &addrname.sin_addr, name, namelen) != NULL) {
-         return sock_close(sd);
-      }
+/**
+ * Cleanup and deregister the winsock dll from the implementation.
+ * On non-Windows systems, this function does nothing.
+ * @returns 0 on success, or SOCKET_ERROR on error.
+ * Check socket_errno for details.
+*/
+int wsa_cleanup(void)
+{
+#ifdef _WIN32
+   return WSACleanup();
+#else
+   return 0;
+#endif
+}
+
+/**
+ * Initialize the winsock dll for use with socket functions.
+ * On non-Windows systems, this function does nothing.
+ * @param major Major version of winsock dll to request
+ * @param minor Minor version of winsock dll to request
+ * @returns 0 on success, or SOCKET_ERROR on error. Check errno for details.
+ * @exception ENOTSUP if requested version is not supported
+*/
+int wsa_startup(unsigned char major, unsigned char minor)
+{
+#ifdef _WIN32
+   /* initialize for winsock dll request */
+   WSADATA wsa_data;
+   WORD wsa_request;
+   int ecode;
+
+   /* request winsock dll version (v<major>.<minor>) */
+   wsa_request = MAKEWORD(major, minor);
+   ecode = WSAStartup(wsa_request, &wsa_data);
+   if (ecode != 0) {
+      set_alterrno(ecode);
+      return SOCKET_ERROR;
    }
 
-#ifdef _WIN32
-   set_alterrno(WSAGetLastError());
-#endif
+   /* check supplied version */
+   if (wsa_data.wVersion < wsa_request) {
+      WSACleanup();
+      set_errno(ENOTSUP);
+      return SOCKET_ERROR;
+   }
 
-   sock_close(sd);
-   return SOCKET_ERROR;
-}  /* end gethostip() */
+   return 0;
+#else
+   /* no compiler complaints */
+   (void) major;
+   (void) minor;
+
+   return 0;
+#endif
+}  /* end wsa_startup() */
 
 /* end include guard */
 #endif
