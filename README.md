@@ -6,8 +6,6 @@
       <img src="https://github.com/adequatesystems/extended-c/actions/workflows/tests.yaml/badge.svg" alt="tests status" /></a>
    <a href="https://github.com/adequatesystems/extended-c/actions/workflows/codeql.yaml">
       <img src="https://github.com/adequatesystems/extended-c/actions/workflows/codeql.yaml/badge.svg" alt="codeql status" /></a>
-   <a href="https://codecov.io/gh/adequatesystems/extended-c">
-      <img src="https://codecov.io/gh/adequatesystems/extended-c/graph/badge.svg" alt="coverage status"></a>
    <br/>
    <a href="https://github.com/adequatesystems/extended-c/tags">
       <img src="https://img.shields.io/github/v/tag/adequatesystems/extended-c?color=0059ff&label=Latest&labelColor=2d3339&logo=github&logoColor=lightgray" alt="GitHub tag (latest by date)"></a>
