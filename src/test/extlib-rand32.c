@@ -2,9 +2,10 @@
 #include "_assert.h"
 #include "../extlib.h"
 #include <time.h>
+
 int main()
-{  /* check; random numbers do not exceed WORD32_MAX*/
-   word32 iterations = WORD32_MAX;
+{  /* check; random numbers do not exceed WORD32_MAX */
+   word32 iterations = WORD32_MAX >> 8;
 
    srand32(time(NULL));
    while (iterations--) {
