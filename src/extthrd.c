@@ -517,8 +517,16 @@ void thread_setname(Thread thrd, const char *name)
    SetThreadDescription(thrd, wname);
 
 #elif defined(_POSIX_THREADS)
+   #ifdef __APPLE__
+   /* Hey... I'm different too... give me attention... */
+   if (pthread_equal(pthread_self(), thrd)) {
+      pthread_setname_np(name); /* (:/) */
+   }
+
+   #else
    pthread_setname_np(thrd, name);
 
+   #endif
 #endif
 }  /* end thread_setname() */
 
