@@ -83,7 +83,7 @@ char *strerror_ext(int errnum, char *buf, size_t buflen)
 /* end XSI-compliant strerror_r() */
 #else  /* use GNU strerror_r() fallback */
    /* NOTE: GNU's strerror_r() MAY NOT USE the provided buffer, so copy */
-   strncpy(buf, strerror_r(errnum, buf, buflen), buflen)
+   strncpy(buf, strerror_r(errnum, buf, buflen), buflen);
    /* ensure buf is null terminated */
    if (buflen > 0 && buf[buflen - 1]) buf[buflen - 1] = '\0';
 
