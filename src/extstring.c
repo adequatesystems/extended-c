@@ -76,8 +76,15 @@ char *strerror_ext(int errnum, char *buf, size_t buflen)
    strerror_s(buf, buflen, errnum);
 
 /* end Windows */
-#elif (_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && ! _GNU_SOURCE
-   /* ^ XSI-compliant strerror_r() feature test */
+#elif (_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600 || \
+      defined(__APPLE__)) && ! _GNU_SOURCE
+   /* ^ XSI-compliant strerror_r() feature test...
+    * NOTE: it's not that OSx compilers aren't respecting the feature test,
+    * but rather (at least some) OSx compilers are choosing to use the
+    * XSI-compliant version of strerror_r() without a default configuration
+    * that would indicate so, per the feature test. As such, a simple OR
+    * defined(__APPLE__) is included to accommodate this behavior.
+    */
    strerror_r(errnum, buf, buflen);
 
 /* end XSI-compliant strerror_r() */
